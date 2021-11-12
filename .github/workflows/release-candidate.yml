@@ -1,0 +1,99 @@
+name: Create Production Release Candidate
+on:
+  push:
+    branches:
+      - "release/v[0-9]+.[0-9]+.[0-9]+" # Push events to matching v*, i.e.v20.15.10
+jobs:
+  quality-check:
+    name: Lint & Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v1
+        with:
+          node-version: 16.x
+      - name: Install Packages
+        run: yarn install
+      - name: Typecheck
+        run: npx --no-install tsc --noEmit
+      - name: Lint
+        run: yarn lint
+      - name: Test
+        run: yarn test
+  deploy_prod:
+    name: Deploy To Release Candidate Channel
+    needs: quality-check
+    runs-on: ubuntu-latest
+    outputs:
+      releaseChannel: ${{ steps.releaseChannel.outputs.releaseChannel }}
+      latestBinaryVersion: ${{ steps.latestBinaryVersion.outputs.version }}
+      isMajorRelease: ${{ steps.determineMajorRelease.outputs.isMajorRelease }}
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          ref: ${{ github.head_ref }}
+      - name: Fetch Tags
+        run: |
+          git fetch --prune --unshallow --tags -f
+      - uses: actions/setup-node@v1
+        with:
+          node-version: 16.x
+      - uses: expo/expo-github-action@v6
+        with:
+          expo-cache: true
+          expo-version: 4.x
+          eas-cache: true
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+      - uses: rlespinasse/github-slug-action@v3.x
+      - name: Generate Release Channel # Release Channels are named v<Major Release>, i.e. v1, v3
+        id: releaseChannel
+        run: |
+          RELEASE_CHANNEL=$(echo ${{ env.GITHUB_REF_SLUG }} | sed -E 's/\.[0-9]+\.[0-9]+$//')
+          echo "::set-output name=releaseChannel::rc-$RELEASE_CHANNEL"
+      - name: Get previous release tag
+        id: previous-release
+        uses: sammcoe/get-previous-release-action@v1.0.3
+      - name: Determine whether there was a major version bump
+        id: determineMajorRelease
+        run: |
+          PREVIOUS_RELEASE_CHANNEL=rc-$(echo ${{ steps.previous-release.outputs.rev }} | sed -E 's/\.[0-9]+\.[0-9]+$//')
+          [ ${PREVIOUS_RELEASE_CHANNEL} != ${{ steps.releaseChannel.outputs.releaseChannel }} ] && IS_MAJOR_RELEASE=1 || IS_MAJOR_RELEASE=0
+          echo Previous release channel was $PREVIOUS_RELEASE_CHANNEL
+          echo Current release channel is ${{ steps.releaseChannel.outputs.releaseChannel }}
+          [ ${IS_MAJOR_RELEASE} -eq 1 ] && echo This is a major release, binaries will be built || echo This is not a major release, binaries will not be built
+          echo "::set-output name=isMajorRelease::$IS_MAJOR_RELEASE"
+      - name: Install Packages
+        run: yarn install
+      - name: Get Latest Binary Version # Binary Version will be x.x.x based on the latest tag
+        id: latestBinaryVersion
+        run: |
+          # Release tag finds the lastest tag in the tree branch - i.e. prod-x.x.x
+          RELEASE_TAG=$(echo $(git describe --tags --abbrev=0))
+          # Using param substitution, we output x.x.x instead
+          echo "::set-output name=version::${RELEASE_TAG#*-}"
+      - name: Echo Version Details
+        run: |
+          echo Build number is $GITHUB_RUN_NUMBER
+          echo Latest release is ${{ steps.latestBinaryVersion.outputs.version }}
+      - name: Expo Publish Versioned Channel
+        run: expo publish --non-interactive --release-channel=${{ steps.releaseChannel.outputs.releaseChannel }}
+  build_all_platforms:
+    name: Build All Platforms (iOS and Android)
+    needs: deploy_prod
+    if: ${{ needs.deploy_prod.outputs.isMajorRelease == 1 }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: expo/expo-github-action@v6
+        with:
+          expo-cache: true
+          expo-version: 4.x
+          eas-cache: true
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+      - name: Install Packages
+        run: yarn install --pure-lockfile
+      - name: Build iOS Release
+        run: |
+          npx eas-cli build --platform all --profile staging --non-interactive

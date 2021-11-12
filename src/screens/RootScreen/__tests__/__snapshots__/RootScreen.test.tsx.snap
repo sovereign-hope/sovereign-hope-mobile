@@ -1,0 +1,456 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`RootScreen Shows the Home screen when a user token is available 1`] = `
+<RNCSafeAreaProvider
+  onInsetsChange={[Function]}
+  style={
+    Array [
+      Object {
+        "flex": 1,
+      },
+      undefined,
+    ]
+  }
+>
+  <RNSScreenStack
+    style={
+      Object {
+        "flex": 1,
+      }
+    }
+  >
+    <RNSScreen
+      forwardedRef={[Function]}
+      onAppear={[Function]}
+      onDisappear={[Function]}
+      onDismissed={[Function]}
+      onWillDisappear={[Function]}
+      replaceAnimation="pop"
+      stackPresentation="push"
+      style={
+        Object {
+          "bottom": 0,
+          "left": 0,
+          "position": "absolute",
+          "right": 0,
+          "top": 0,
+        }
+      }
+    >
+      <RNSScreenStackHeaderConfig
+        backButtonInCustomView={false}
+        backgroundColor="rgb(255, 255, 255)"
+        color="#FC5B30"
+        direction="ltr"
+        hidden={false}
+        hideBackButton={false}
+        hideShadow={true}
+        largeTitleHideShadow={false}
+        title="Home"
+        titleColor="rgb(28, 28, 30)"
+        topInsetEnabled={false}
+        translucent={false}
+      />
+      <View
+        style={
+          Array [
+            Object {
+              "flex": 1,
+            },
+            Object {
+              "backgroundColor": "rgb(242, 242, 242)",
+            },
+            undefined,
+          ]
+        }
+      >
+        <View>
+          <Text>
+            Home Screen
+          </Text>
+          <View
+            accessible={true}
+            focusable={true}
+            onBlur={[Function]}
+            onClick={[Function]}
+            onFocus={[Function]}
+            onResponderGrant={[Function]}
+            onResponderMove={[Function]}
+            onResponderRelease={[Function]}
+            onResponderTerminate={[Function]}
+            onResponderTerminationRequest={[Function]}
+            onStartShouldSetResponder={[Function]}
+            style={
+              Object {
+                "alignItems": "center",
+                "backgroundColor": "#333333",
+                "borderRadius": 10,
+                "elevation": 2,
+                "flexDirection": "row",
+                "justifyContent": "center",
+                "minHeight": 44,
+                "opacity": 1,
+                "paddingHorizontal": 16,
+                "paddingVertical": 8,
+              }
+            }
+          >
+            <Text
+              style={
+                Object {
+                  "color": "#FFFFFF",
+                  "flex": 1,
+                  "textAlign": "center",
+                }
+              }
+            >
+              Logout
+            </Text>
+          </View>
+        </View>
+      </View>
+    </RNSScreen>
+  </RNSScreenStack>
+</RNCSafeAreaProvider>
+`;
+
+exports[`RootScreen Shows the Landing Screen when a user token is not available 1`] = `
+<RNCSafeAreaProvider
+  onInsetsChange={[Function]}
+  style={
+    Array [
+      Object {
+        "flex": 1,
+      },
+      undefined,
+    ]
+  }
+>
+  <RNSScreenStack
+    style={
+      Object {
+        "flex": 1,
+      }
+    }
+  >
+    <RNSScreen
+      forwardedRef={[Function]}
+      onAppear={[Function]}
+      onDisappear={[Function]}
+      onDismissed={[Function]}
+      onWillDisappear={[Function]}
+      replaceAnimation="pop"
+      stackPresentation="push"
+      style={
+        Object {
+          "bottom": 0,
+          "left": 0,
+          "position": "absolute",
+          "right": 0,
+          "top": 0,
+        }
+      }
+    >
+      <RNSScreenStackHeaderConfig
+        backButtonInCustomView={false}
+        backgroundColor="rgb(255, 255, 255)"
+        color="#FC5B30"
+        direction="ltr"
+        hidden={true}
+        hideBackButton={false}
+        hideShadow={true}
+        largeTitleHideShadow={false}
+        title="Landing"
+        titleColor="rgb(28, 28, 30)"
+        topInsetEnabled={false}
+        translucent={false}
+      />
+      <View
+        style={
+          Array [
+            Object {
+              "flex": 1,
+            },
+            Object {
+              "backgroundColor": "rgb(242, 242, 242)",
+            },
+            undefined,
+          ]
+        }
+      >
+        <RNCSafeAreaView
+          style={
+            Object {
+              "alignItems": "center",
+              "flex": 1,
+            }
+          }
+        >
+          <View
+            style={
+              Object {
+                "flex": 1,
+                "justifyContent": "center",
+              }
+            }
+          >
+            <Image
+              accessibilityIgnoresInvertColors={false}
+              source={1}
+              style={
+                Object {
+                  "height": "80%",
+                  "marginVertical": 32,
+                  "maxHeight": 250,
+                  "resizeMode": "contain",
+                }
+              }
+            />
+          </View>
+          <Text
+            style={
+              Object {
+                "color": "rgb(28, 28, 30)",
+                "fontSize": 36,
+                "fontWeight": "600",
+              }
+            }
+          >
+            Welcome!
+          </Text>
+          <Text
+            style={
+              Object {
+                "color": "rgb(28, 28, 30)",
+                "fontSize": 16,
+                "fontWeight": "400",
+                "margin": 16,
+                "textAlign": "center",
+              }
+            }
+          >
+            Sign in to your Submittable account or create a free Submittable account to get started.
+          </Text>
+          <View
+            style={
+              Object {
+                "justifyContent": "flex-end",
+                "padding": 16,
+                "width": "100%",
+              }
+            }
+          >
+            <View
+              accessible={true}
+              focusable={true}
+              onBlur={[Function]}
+              onClick={[Function]}
+              onFocus={[Function]}
+              onResponderGrant={[Function]}
+              onResponderMove={[Function]}
+              onResponderRelease={[Function]}
+              onResponderTerminate={[Function]}
+              onResponderTerminationRequest={[Function]}
+              onStartShouldSetResponder={[Function]}
+              style={
+                Object {
+                  "alignItems": "center",
+                  "backgroundColor": "#333333",
+                  "borderRadius": 10,
+                  "elevation": 2,
+                  "flexDirection": "row",
+                  "height": 44,
+                  "justifyContent": "center",
+                  "marginBottom": 8,
+                  "minHeight": 44,
+                  "opacity": 1,
+                  "paddingHorizontal": 16,
+                  "paddingVertical": 8,
+                  "width": "100%",
+                }
+              }
+            >
+              <Text
+                allowFontScaling={false}
+                style={
+                  Array [
+                    Object {
+                      "color": "#FFFFFF",
+                      "fontSize": 22,
+                    },
+                    Object {
+                      "marginRight": 4,
+                    },
+                    Object {
+                      "fontFamily": "ionicons",
+                      "fontStyle": "normal",
+                      "fontWeight": "normal",
+                    },
+                    Object {},
+                  ]
+                }
+              >
+                
+              </Text>
+              <Text
+                style={
+                  Object {
+                    "color": "#FFFFFF",
+                    "flex": 1,
+                    "textAlign": "center",
+                  }
+                }
+              >
+                Continue with Email
+              </Text>
+            </View>
+            <View
+              accessible={true}
+              focusable={true}
+              onBlur={[Function]}
+              onClick={[Function]}
+              onFocus={[Function]}
+              onResponderGrant={[Function]}
+              onResponderMove={[Function]}
+              onResponderRelease={[Function]}
+              onResponderTerminate={[Function]}
+              onResponderTerminationRequest={[Function]}
+              onStartShouldSetResponder={[Function]}
+              style={
+                Object {
+                  "alignItems": "center",
+                  "backgroundColor": "#333333",
+                  "borderRadius": 10,
+                  "elevation": 2,
+                  "flexDirection": "row",
+                  "height": 44,
+                  "justifyContent": "center",
+                  "marginBottom": 8,
+                  "minHeight": 44,
+                  "opacity": 1,
+                  "paddingHorizontal": 16,
+                  "paddingVertical": 8,
+                  "width": "100%",
+                }
+              }
+            >
+              <Text
+                allowFontScaling={false}
+                style={
+                  Array [
+                    Object {
+                      "color": "#FFFFFF",
+                      "fontSize": 22,
+                    },
+                    Object {
+                      "marginRight": 4,
+                    },
+                    Object {
+                      "fontFamily": "ionicons",
+                      "fontStyle": "normal",
+                      "fontWeight": "normal",
+                    },
+                    Object {},
+                  ]
+                }
+              >
+                
+              </Text>
+              <Text
+                style={
+                  Object {
+                    "color": "#FFFFFF",
+                    "flex": 1,
+                    "textAlign": "center",
+                  }
+                }
+              >
+                Continue with Facebook
+              </Text>
+            </View>
+            <View
+              accessible={true}
+              focusable={true}
+              onBlur={[Function]}
+              onClick={[Function]}
+              onFocus={[Function]}
+              onResponderGrant={[Function]}
+              onResponderMove={[Function]}
+              onResponderRelease={[Function]}
+              onResponderTerminate={[Function]}
+              onResponderTerminationRequest={[Function]}
+              onStartShouldSetResponder={[Function]}
+              style={
+                Object {
+                  "alignItems": "center",
+                  "backgroundColor": "#333333",
+                  "borderRadius": 10,
+                  "elevation": 2,
+                  "flexDirection": "row",
+                  "height": 44,
+                  "justifyContent": "center",
+                  "marginBottom": 8,
+                  "minHeight": 44,
+                  "opacity": 1,
+                  "paddingHorizontal": 16,
+                  "paddingVertical": 8,
+                  "width": "100%",
+                }
+              }
+            >
+              <Text
+                allowFontScaling={false}
+                style={
+                  Array [
+                    Object {
+                      "color": "#FFFFFF",
+                      "fontSize": 22,
+                    },
+                    Object {
+                      "marginRight": 4,
+                    },
+                    Object {
+                      "fontFamily": "ionicons",
+                      "fontStyle": "normal",
+                      "fontWeight": "normal",
+                    },
+                    Object {},
+                  ]
+                }
+              >
+                
+              </Text>
+              <Text
+                style={
+                  Object {
+                    "color": "#FFFFFF",
+                    "flex": 1,
+                    "textAlign": "center",
+                  }
+                }
+              >
+                Continue with Google
+              </Text>
+            </View>
+            <ViewManagerAdapter_ExpoAppleAuthenticationButtonContinueBlack
+              proxiedProperties={
+                Object {
+                  "cornerRadius": 5,
+                  "onButtonPress": [Function],
+                }
+              }
+              style={
+                Object {
+                  "height": 44,
+                  "marginBottom": 8,
+                  "width": "100%",
+                }
+              }
+            />
+          </View>
+        </RNCSafeAreaView>
+      </View>
+    </RNSScreen>
+  </RNSScreenStack>
+</RNCSafeAreaProvider>
+`;

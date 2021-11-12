@@ -1,0 +1,47 @@
+name: CI
+on:
+  push:
+  pull_request:
+    branches: [main]
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install dependencies
+        run: yarn install
+      - name: Typecheck
+        run: npx --no-install tsc --noEmit
+      - name: Lint
+        run: yarn lint
+      - name: Test
+        run: yarn test
+      - uses: expo/expo-github-action@v6
+        if: ${{ github.event_name == 'pull_request' }}
+        with:
+          expo-cache: true
+          expo-version: 4.x
+          eas-cache: true
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+      - name: Publish PR Expo build
+        if: ${{ github.event_name == 'pull_request' }}
+        run: expo publish --release-channel=pr-${{ github.event.number }}
+      - uses: thollander/actions-comment-pull-request@1.0.2
+        if: ${{ github.event_name == 'pull_request' }}
+        with:
+          message: App ready for review, you can [see it here](https://expo.io/@sovereign-hope/sovereign-hope-mobile?release-channel=pr-${{ github.event.number }}).
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Extract Strings
+        run: npx -p @formatjs/cli formatjs extract 'src/**/*.ts*' --out-file strings/en.json --id-interpolation-pattern '[sha512:contenthash:base64:6]'
+      - uses: gr2m/create-or-update-pull-request-action@v1
+        if: ${{ github.event_name == 'pull_request' }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          branch: ${{ github.head_ref }}
+          author: "github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>"
+          path: "strings/"
+          commit-message: "Updatings string files with newly extracted messages."

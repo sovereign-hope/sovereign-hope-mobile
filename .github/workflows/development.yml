@@ -1,0 +1,61 @@
+name: Create Development Release
+on:
+  push:
+    branches: main
+jobs:
+  quality-check:
+    name: Lint & Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v1
+        with:
+          node-version: 16.x
+      - name: Install Packages
+        run: yarn install
+      - name: Typecheck
+        run: npx --no-install tsc --noEmit
+      - name: Lint
+        run: yarn lint
+      - name: Test
+        run: yarn test
+  deploy_develop:
+    name: Deploy To Development Release Channel
+    needs: quality-check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          ref: ${{ github.head_ref }}
+      - uses: actions/setup-node@v1
+        with:
+          node-version: 16.x
+      - uses: expo/expo-github-action@v6
+        with:
+          expo-cache: true
+          expo-version: 4.x
+          eas-cache: true
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+      - name: Install Packages
+        run: yarn install
+      - name: Expo Publish Development Channel
+        run: expo publish --non-interactive --release-channel=development
+  build_all_platforms:
+    name: Build All Platforms (iOS and Android)
+    needs: deploy_develop
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: expo/expo-github-action@v6
+        with:
+          expo-cache: true
+          expo-version: 4.x
+          eas-cache: true
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+      - name: Install Packages
+        run: yarn install --pure-lockfile
+      - name: Build iOS Release
+        run: |
+          npx eas-cli build --platform all --profile development --non-interactive

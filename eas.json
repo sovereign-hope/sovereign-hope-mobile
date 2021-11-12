@@ -1,0 +1,26 @@
+{
+  "build": {
+    "release": {
+      "ios": {
+        "autoIncrement": true
+      },
+      "releaseChannel": "prod-v0.0.1"
+    },
+    "staging": {
+      "releaseChannel": "rc-v0.0.1"
+    },
+    "development": {
+      "releaseChannel": "development",
+      "distribution": "internal"
+    },
+    "preview": {
+      "android": {
+        "distribution": "internal"
+      },
+      "ios": {
+        "simulator": true
+      },
+      "releaseChannel": "development"
+    }
+  }
+}

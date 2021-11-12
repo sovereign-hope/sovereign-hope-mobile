@@ -1,0 +1,51 @@
+{
+  "expo": {
+    "name": "Sovereign Hope",
+    "slug": "sovereign-hope-mobile",
+    "version": "1.0.0",
+    "owner": "sovereign-hope",
+    "githubUrl": "https://github.com/sovereign-hope/sovereign-hope-mobile",
+    "primaryColor": "#1F1F1F",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "scheme": "sovereign-hope",
+    "updates": {
+      "fallbackToCacheTimeout": 0
+    },
+    "assetBundlePatterns": ["**/*"],
+    "userInterfaceStyle": "automatic",
+    "ios": {
+      "bundleIdentifier": "com.sovereign-hope.sovereign-hope-mobile",
+      "buildNumber": "1.0.0",
+      "splash": {
+        "image": "./assets/splash.png",
+        "resizeMode": "contain",
+        "backgroundColor": "#FFFFFF"
+      },
+      "googleServicesFile": "google/GoogleService-Info.plist",
+      "infoPlist": {
+        "CFBundleAllowMixedLocalizations": true
+      },
+      "usesAppleSignIn": true,
+      "userInterfaceStyle": "automatic"
+    },
+    "android": {
+      "package": "com.sovereign_hope.sovereign_hope",
+      "versionCode": 1,
+      "jsEngine": "hermes",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#FFFFFF"
+      },
+      "splash": {
+        "image": "./assets/splash.png",
+        "resizeMode": "contain",
+        "backgroundColor": "#FFFFFF"
+      },
+      "permissions": [],
+      "googleServicesFile": "google/google-services.json",
+      "userInterfaceStyle": "automatic"
+    },
+    "locales": {}
+  }
+}
