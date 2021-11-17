@@ -1,6 +1,6 @@
 import { StyleSheet, ViewStyle, TextStyle, ImageStyle } from "react-native";
 import { spacing, elementSize } from "src/style/layout";
-import { header1, header3 } from "src/style/typography";
+import { header1, header2, header3 } from "src/style/typography";
 import { Theme } from "@react-navigation/native";
 
 type Props = {
@@ -9,48 +9,65 @@ type Props = {
 
 interface Style {
   screen: ViewStyle;
-  imageContainer: ViewStyle;
-  headerImage: ImageStyle;
-  headerText: TextStyle;
-  infoText: TextStyle;
-  buttonContainer: ViewStyle;
-  button: ViewStyle;
+  planList: ViewStyle;
+  planItem: ViewStyle;
+  planItemContent: ViewStyle;
+  planItemReading: ViewStyle;
+  planItemReadingColumn: ViewStyle;
+  planItemCheckbox: ViewStyle;
+  planItemTitle: TextStyle;
+  planItemVerses: TextStyle;
+  sectionHeaderText: TextStyle;
+  dayLabel: TextStyle;
 }
 
 export const styles = ({ theme }: Props): Style =>
   StyleSheet.create({
     screen: {
+      flex: 1,
+      paddingTop: 0,
+      backgroundColor: theme.colors.background,
+    },
+    planList: {
+      width: "100%",
+      flex: 1,
+    },
+    planItem: {
+      flexDirection: "row",
+      padding: spacing.medium,
       alignItems: "center",
+      backgroundColor: theme.colors.card,
+    },
+    planItemContent: {
+      flexDirection: "column",
       flex: 1,
     },
-    imageContainer: {
-      flex: 1,
-      justifyContent: "center",
+    planItemReading: {
+      flexDirection: "row",
+      justifyContent: "space-around",
     },
-    headerImage: {
-      resizeMode: "contain",
-      height: "80%",
-      maxHeight: 250,
-      marginVertical: spacing.extraLarge,
+    planItemReadingColumn: {
+      flexDirection: "column",
+      padding: spacing.medium,
     },
-    headerText: {
+    planItemCheckbox: {
+      margin: spacing.small,
+    },
+    planItemTitle: {
+      ...header2,
+      color: theme.colors.text,
+    },
+    planItemVerses: {
+      color: theme.colors.text,
+    },
+    sectionHeaderText: {
       ...header1,
       color: theme.colors.text,
+      backgroundColor: theme.colors.background,
+      padding: spacing.medium,
     },
-    infoText: {
-      ...header3,
-      margin: spacing.large,
-      textAlign: "center",
+    dayLabel: {
+      ...header2,
       color: theme.colors.text,
-    },
-    buttonContainer: {
-      justifyContent: "flex-end",
-      width: "100%",
-      padding: spacing.large,
-    },
-    button: {
-      width: "100%",
-      marginBottom: spacing.medium,
-      height: elementSize.small,
     },
   });

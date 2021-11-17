@@ -31,7 +31,7 @@ export const RootScreen = (): JSX.Element => {
           },
         }}
       >
-        <Stack.Screen name="ReadingPlan" component={ReadingPlanScreen} />
+        <Stack.Screen name="Reading Plan" component={ReadingPlanScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

@@ -1,3 +1,3 @@
 export type RootStackParamList = {
-  ReadingPlan: undefined;
+  "Reading Plan": undefined;
 };

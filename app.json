@@ -22,7 +22,6 @@
         "resizeMode": "contain",
         "backgroundColor": "#FFFFFF"
       },
-      "googleServicesFile": "google/GoogleService-Info.plist",
       "infoPlist": {
         "CFBundleAllowMixedLocalizations": true
       },
@@ -43,7 +42,6 @@
         "backgroundColor": "#FFFFFF"
       },
       "permissions": [],
-      "googleServicesFile": "google/google-services.json",
       "userInterfaceStyle": "automatic"
     },
     "locales": {}
