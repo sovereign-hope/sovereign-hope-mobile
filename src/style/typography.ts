@@ -11,6 +11,6 @@ export const header2: TextStyle = {
 };
 
 export const header3: TextStyle = {
-  fontSize: 16,
-  fontWeight: "400",
+  fontSize: 18,
+  fontWeight: "600",
 };

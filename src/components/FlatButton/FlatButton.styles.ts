@@ -24,7 +24,7 @@ export const styles = ({ theme }: Props): Style =>
       minHeight: elementSize.small,
       borderRadius: radius.medium,
       elevation: elevation.small,
-      backgroundColor: theme.dark ? colors.brand : colors.darkGrey,
+      backgroundColor: colors.accent,
     },
     icon: {
       marginRight: spacing.small,

@@ -4,13 +4,68 @@ import { ReadingPlanScreen } from "src/screens/ReadingPlanScreen/ReadingPlanScre
 import { NavigationContainer } from "@react-navigation/native";
 import { lightTheme, darkTheme } from "src/style/themes";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { enableScreens } from "react-native-screens";
+import { Ionicons } from "@expo/vector-icons";
 import { RootStackParamList } from "src/navigation/RootNavigator";
-import { accent } from "src/style/colors";
+import { colors } from "src/style/colors";
+import { TodayScreen } from "../TodayScreen/TodayScreen";
+import { ReadScreen } from "../ReadScreen/ReadScreen";
 
 // React Navigation configuration
 enableScreens();
 const Stack = createNativeStackNavigator<RootStackParamList>();
+const Tab = createBottomTabNavigator();
+
+const HomeScreen = (): JSX.Element => (
+  <Tab.Navigator>
+    <Tab.Screen
+      name="Today"
+      component={TodayScreen}
+      options={{
+        headerShown: false,
+        // eslint-disable-next-line react/display-name
+        tabBarIcon: ({
+          focused,
+          color,
+          size,
+        }: {
+          focused: boolean;
+          color: string;
+          size: number;
+        }) => (
+          <Ionicons
+            name="today"
+            size={size}
+            color={focused ? colors.accent : color}
+          />
+        ),
+      }}
+    />
+    <Tab.Screen
+      name="Reading Plan"
+      component={ReadingPlanScreen}
+      options={{
+        // eslint-disable-next-line react/display-name
+        tabBarIcon: ({
+          focused,
+          color,
+          size,
+        }: {
+          focused: boolean;
+          color: string;
+          size: number;
+        }) => (
+          <Ionicons
+            name="ios-book"
+            size={size}
+            color={focused ? colors.accent : color}
+          />
+        ),
+      }}
+    />
+  </Tab.Navigator>
+);
 
 export const RootScreen = (): JSX.Element => {
   const colorScheme = useColorScheme();
@@ -21,7 +76,7 @@ export const RootScreen = (): JSX.Element => {
     >
       <Stack.Navigator
         screenOptions={{
-          headerTintColor: accent,
+          headerTintColor: colors.accent,
           headerShadowVisible: false,
           headerTitleStyle: {
             color:
@@ -31,7 +86,12 @@ export const RootScreen = (): JSX.Element => {
           },
         }}
       >
-        <Stack.Screen name="Reading Plan" component={ReadingPlanScreen} />
+        <Stack.Screen
+          name="Home"
+          component={HomeScreen}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen name="Read" component={ReadScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

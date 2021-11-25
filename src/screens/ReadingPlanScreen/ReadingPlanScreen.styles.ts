@@ -39,8 +39,9 @@ export const styles = ({ theme }: Props): Style =>
       backgroundColor: theme.colors.card,
     },
     planItemContent: {
-      flexDirection: "column",
+      flexDirection: "row",
       flex: 1,
+      alignItems: "center",
     },
     planItemReading: {
       flexDirection: "row",
@@ -54,20 +55,21 @@ export const styles = ({ theme }: Props): Style =>
       margin: spacing.small,
     },
     planItemTitle: {
-      ...header2,
       color: theme.colors.text,
+      fontWeight: "bold",
     },
     planItemVerses: {
       color: theme.colors.text,
     },
     sectionHeaderText: {
-      ...header1,
+      ...header2,
       color: theme.colors.text,
       backgroundColor: theme.colors.background,
       padding: spacing.medium,
     },
     dayLabel: {
-      ...header2,
+      ...header3,
       color: theme.colors.text,
+      margin: spacing.medium,
     },
   });

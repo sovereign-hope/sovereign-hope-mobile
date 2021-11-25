@@ -1,14 +1,12 @@
 import React from "react";
 import { TextInput, TextInputProps } from "react-native";
-import { useIntl } from "react-intl";
-import { MessageDescriptor } from "@formatjs/intl";
 import { useTheme } from "@react-navigation/native";
 import { styles } from "./EmailInput.style";
 
 interface Props extends TextInputProps {
   onChangeText: (text: string) => void;
   value: string;
-  placeholderMessage: MessageDescriptor;
+  placeholderMessage: string;
 }
 
 export const EmailInput: React.FunctionComponent<Props> = ({
@@ -17,7 +15,6 @@ export const EmailInput: React.FunctionComponent<Props> = ({
   placeholderMessage,
   ...rest
 }: Props) => {
-  const intl = useIntl();
   const theme = useTheme();
   const themedStyles = styles({ theme });
 
@@ -26,7 +23,7 @@ export const EmailInput: React.FunctionComponent<Props> = ({
       style={themedStyles.input}
       onChangeText={onChangeText}
       value={value}
-      placeholder={intl.formatMessage(placeholderMessage)}
+      placeholder={placeholderMessage}
       autoCompleteType="email"
       autoCapitalize="none"
       autoCorrect={false}

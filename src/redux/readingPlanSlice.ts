@@ -2,6 +2,7 @@ import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import { RootState } from "src/app/store";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { getFirestore, doc, getDoc } from "firebase/firestore";
+import { getDayInWeek, getWeekNumber } from "src/app/utils";
 
 export interface ReadingPlanState {
   readingPlan?: ReadingPlan;
@@ -157,10 +158,40 @@ export const readingPlanSlice = createSlice({
 
 export const selectReadingPlan = (state: RootState): ReadingPlan | undefined =>
   state.readingPlan.readingPlan;
+
+export const selectDailyReadingPlan = (
+  state: RootState
+): ReadingPlanDay | undefined => {
+  const currentWeekIndex = getWeekNumber(new Date())[1] - 1;
+  const currentDayIndex = getDayInWeek() - 1;
+  const currentWeek = state.readingPlan.readingPlan?.weeks[
+    currentWeekIndex
+  ] ?? { days: [] };
+  const isEndOfWeek = currentDayIndex > currentWeek.days.length - 1;
+
+  return currentWeek.days[
+    isEndOfWeek ? currentWeek.days.length - 1 : currentDayIndex
+  ];
+};
+
+export const selectDailyReadingPlanProgress = (state: RootState): boolean => {
+  const currentWeekIndex = getWeekNumber(new Date())[1] - 1;
+  const currentDayIndex = getDayInWeek() - 1;
+  const currentWeek = state.readingPlan.readingPlanProgressState?.weeks[
+    currentWeekIndex
+  ] ?? { days: [] };
+  const isEndOfWeek = currentDayIndex > currentWeek.days.length - 1;
+
+  return currentWeek.days[
+    isEndOfWeek ? currentWeek.days.length - 1 : currentDayIndex
+  ]?.isCompleted;
+};
+
 export const selectReadingPlanProgressState = (
   state: RootState
 ): ReadingPlanProgressState | undefined =>
   state.readingPlan.readingPlanProgressState;
+
 export const selectError = (state: RootState): boolean =>
   state.readingPlan.hasError;
 

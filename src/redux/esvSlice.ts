@@ -44,10 +44,18 @@ export const getPassageText = createAsyncThunk(
     startChapter: number;
     endChapter: number;
   }) => {
-    const response = await axios.post(
-      routes.passageText(`${book} ${startChapter}-${endChapter}}`)
-    );
-    return response.data as EsvResponse;
+    try {
+      const response = await axios.get(
+        routes.passageText(
+          `${book}${Object.is(startChapter, Number.NaN) ? "" : startChapter}${
+            Object.is(startChapter, Number.NaN) ? "" : "-"
+          }${Object.is(endChapter, Number.NaN) ? "" : endChapter}`
+        )
+      );
+      return response.data as EsvResponse;
+    } catch (error) {
+      console.error(error);
+    }
   }
 );
 
@@ -78,5 +86,7 @@ export const selectCurrentPassage = (
   state: RootState
 ): EsvResponse | undefined => state.esv.currentPassage;
 export const selectError = (state: RootState): boolean => state.esv.hasError;
+export const selectIsLoading = (state: RootState): boolean =>
+  state.esv.isLoading;
 
 export const esvReducer = esvSlice.reducer;

@@ -3,10 +3,11 @@ export const colors = {
   black: "#000000",
   darkGrey: "#333333",
   white: "#FFFFFF",
-  green: "#8FDA63",
+  green: "#6CA64B",
+  red: "#C94B41",
+  mint: "#A6F4CC",
+  accent: "#BA8748",
 };
-
-export const accent = colors.white;
 
 export const background = {
   dark: colors.darkGrey,
