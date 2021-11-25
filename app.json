@@ -38,7 +38,7 @@
       },
       "splash": {
         "image": "./assets/splash-android.png",
-        "resizeMode": "contain",
+        "resizeMode": "cover",
         "backgroundColor": "#FFFFFF"
       },
       "permissions": [],

@@ -46,6 +46,7 @@ const HomeScreen = (): JSX.Element => (
       name="Reading Plan"
       component={ReadingPlanScreen}
       options={{
+        lazy: false,
         // eslint-disable-next-line react/display-name
         tabBarIcon: ({
           focused,

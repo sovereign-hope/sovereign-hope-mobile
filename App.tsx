@@ -2,13 +2,14 @@ import React, { useState } from "react";
 import axios from "axios";
 import * as Font from "expo-font";
 import AppLoading from "expo-app-loading";
-import { Alert, StatusBar, useColorScheme } from "react-native";
+import { Alert, useColorScheme } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Provider as StoreProvider } from "react-redux";
 import { store } from "src/app/store";
 import { initializeApp, FirebaseApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 import { RootScreen } from "src/screens/RootScreen/RootScreen";
+import { StatusBar } from "expo-status-bar";
 
 const appLoading = async () => {
   await Promise.all([Font.loadAsync(Ionicons.font)]);
@@ -51,9 +52,7 @@ const App = (): JSX.Element => {
   // Effect hooks
   return (
     <>
-      <StatusBar
-        barStyle={colorScheme === "dark" ? "light-content" : "dark-content"}
-      />
+      <StatusBar style={colorScheme === "dark" ? "light" : "dark"} />
       {!isReady ? (
         <AppLoading
           startAsync={appLoading}
