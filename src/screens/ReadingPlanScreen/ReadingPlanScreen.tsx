@@ -22,6 +22,7 @@ import {
 } from "src/redux/readingPlanSlice";
 import { colors } from "src/style/colors";
 import { getWeekNumber, weekDateToDate } from "src/app/utils";
+import { spacing } from "src/style/layout";
 import { styles } from "./ReadingPlanScreen.styles";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Reading Plan">;
@@ -99,7 +100,12 @@ const ReadingPlanListItem: React.FunctionComponent<{
   };
 
   return (
-    <Pressable onPress={handleRowPress}>
+    <Pressable
+      onPress={handleRowPress}
+      style={({ pressed }) => ({
+        backgroundColor: pressed ? theme.colors.background : theme.colors.card,
+      })}
+    >
       <View style={themedStyles.planItem}>
         {item.isComplete ? (
           <Ionicons
@@ -221,9 +227,10 @@ export const ReadingPlanScreen: React.FunctionComponent<Props> = ({
     navigation.setOptions({
       // eslint-disable-next-line react/display-name, react/require-default-props
       headerRight: ({ tintColor }: { tintColor?: string | undefined }) => (
-        <Button
-          title="Today"
-          color={colors.accent}
+        <Pressable
+          style={{
+            marginRight: spacing.large,
+          }}
           onPress={() => {
             if (scrollViewRef.current) {
               scrollViewRef.current.scrollToLocation({
@@ -235,7 +242,9 @@ export const ReadingPlanScreen: React.FunctionComponent<Props> = ({
               });
             }
           }}
-        />
+        >
+          <Text style={{ color: colors.accent, fontSize: 18 }}>Today</Text>
+        </Pressable>
       ),
     });
   }, [navigation, listData]);

@@ -104,7 +104,7 @@ export const ReadScreen: React.FunctionComponent<Props> = ({
       edges={["left", "bottom", "right"]}
     >
       {isLoading ? (
-        <ActivityIndicator size="large" />
+        <ActivityIndicator size="large" color={theme.colors.text} />
       ) : (
         <ScrollView ref={scrollViewRef} style={themedStyles.container}>
           <RenderHtml

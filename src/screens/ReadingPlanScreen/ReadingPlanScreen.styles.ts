@@ -36,7 +36,6 @@ export const styles = ({ theme }: Props): Style =>
       flexDirection: "row",
       padding: spacing.medium,
       alignItems: "center",
-      backgroundColor: theme.colors.card,
     },
     planItemContent: {
       flexDirection: "row",
