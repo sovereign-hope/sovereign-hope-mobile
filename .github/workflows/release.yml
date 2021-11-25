@@ -34,8 +34,6 @@ jobs:
         run: npx --no-install tsc --noEmit
       - name: Lint
         run: yarn lint
-      - name: Test
-        run: yarn test
   deploy_prod:
     name: Deploy To Production Release Channel
     needs: quality-check

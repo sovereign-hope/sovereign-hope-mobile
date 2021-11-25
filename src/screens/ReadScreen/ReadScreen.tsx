@@ -21,6 +21,7 @@ import {
 import RenderHtml, {
   HTMLElementModel,
   HTMLContentModel,
+  MixedStyleDeclaration,
 } from "react-native-render-html";
 import { FlatButton } from "src/components";
 import { styles } from "./ReadScreen.styles";
@@ -80,7 +81,7 @@ export const ReadScreen: React.FunctionComponent<Props> = ({
 
   // Constants
   const themedStyles = styles({ theme });
-  const tagsStyles = {
+  const tagsStyles: Record<string, MixedStyleDeclaration> = {
     body: {
       whiteSpace: "normal",
       color: theme.colors.text,

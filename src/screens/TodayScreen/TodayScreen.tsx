@@ -2,7 +2,6 @@ import React from "react";
 import { ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useDispatch } from "react-redux";
-import { Ionicons } from "@expo/vector-icons";
 import { useAppSelector } from "src/hooks/store";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { RootStackParamList } from "src/navigation/RootNavigator";

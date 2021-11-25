@@ -77,7 +77,6 @@ const ReadingPlanListItem: React.FunctionComponent<{
         10
       );
       const endChapter: number = startChapter;
-      console.log(book, startChapter, endChapter);
       return { book, startChapter, endChapter };
     });
     const reflectionPassages = item.reflections.map((reflection) => {
@@ -91,7 +90,6 @@ const ReadingPlanListItem: React.FunctionComponent<{
         10
       );
       const endChapter: number = startChapter;
-      console.log(book, startChapter, endChapter);
       return { book, startChapter, endChapter };
     });
     navigation.navigate("Read", {
