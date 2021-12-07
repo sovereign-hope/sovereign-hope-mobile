@@ -33,15 +33,16 @@ export const styles = ({ theme }: Props): Style =>
   StyleSheet.create({
     screen: {
       flex: 1,
-      backgroundColor: colors.grey0,
+      backgroundColor: theme.dark ? colors.darkGrey : colors.grey0,
     },
     scrollView: {
-      backgroundColor: colors.grey0,
+      backgroundColor: theme.dark ? colors.darkGrey : colors.grey0,
     },
     title: {
       ...header1,
       padding: spacing.large,
-      backgroundColor: colors.grey0,
+      color: theme.dark ? colors.white : colors.darkGrey,
+      backgroundColor: theme.dark ? colors.darkGrey : colors.grey0,
     },
     dayContent: {
       flex: 1,
