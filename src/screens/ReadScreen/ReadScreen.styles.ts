@@ -1,6 +1,7 @@
-import { StyleSheet, ViewStyle } from "react-native";
-import { spacing } from "src/style/layout";
+import { StyleSheet, TextStyle, ViewStyle } from "react-native";
+import { radius, spacing } from "src/style/layout";
 import { Theme } from "@react-navigation/native";
+import { colors } from "src/style/colors";
 
 type Props = {
   theme: Theme;
@@ -11,6 +12,10 @@ interface Style {
   container: ViewStyle;
   footer: ViewStyle;
   spacer: ViewStyle;
+  button: ViewStyle;
+  memoryButton: ViewStyle;
+  memoryButtonText: TextStyle;
+  memoryButtonIcon: TextStyle;
 }
 
 export const styles = ({ theme }: Props): Style =>
@@ -30,5 +35,24 @@ export const styles = ({ theme }: Props): Style =>
     },
     spacer: {
       flex: 1,
+    },
+    button: {
+      marginBottom: spacing.medium,
+    },
+    memoryButton: {
+      display: "flex",
+      justifyContent: "center",
+      alignItems: "center",
+      padding: spacing.medium,
+      backgroundColor: colors.red,
+      borderRadius: radius.large,
+      marginBottom: spacing.medium,
+    },
+    memoryButtonText: {
+      color: colors.white,
+    },
+    memoryButtonIcon: {
+      fontSize: 32,
+      marginRight: spacing.medium,
     },
   });

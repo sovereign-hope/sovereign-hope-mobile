@@ -39,17 +39,20 @@ export const getPassageText = createAsyncThunk(
     book,
     startChapter,
     endChapter,
+    includeFootnotes,
   }: {
     book: string;
     startChapter: number;
     endChapter: number;
+    includeFootnotes: boolean;
   }) => {
     try {
       const response = await axios.get(
         routes.passageText(
           `${book}${Object.is(startChapter, Number.NaN) ? "" : startChapter}${
             Object.is(startChapter, Number.NaN) ? "" : "-"
-          }${Object.is(endChapter, Number.NaN) ? "" : endChapter}`
+          }${Object.is(endChapter, Number.NaN) ? "" : endChapter}`,
+          includeFootnotes
         )
       );
       return response.data as EsvResponse;

@@ -13,8 +13,8 @@ export interface ReadingPlanState {
 }
 
 export interface ReadingPlanDay {
-  studies: Array<string>;
-  reflections: Array<string>;
+  reading: Array<string>;
+  memory: Array<string>;
   isComplete: boolean;
   weekIndex?: number;
 }
@@ -47,8 +47,9 @@ export const getReadingPlan = createAsyncThunk(
   async () => {
     try {
       const db = getFirestore();
-      // TODO: Get the current year
-      const docRef = doc(db, "readingPlans", "2022");
+      const today = new Date();
+      const year = today.getFullYear();
+      const docRef = doc(db, "readingPlans", year.toString());
       const docSnap = await getDoc(docRef);
 
       if (docSnap.exists()) {
@@ -65,8 +66,10 @@ export const storeReadingPlanProgressState = createAsyncThunk(
   "readingPlan/storeReadingPlanProgressState",
   async (readingPlanState: ReadingPlanProgressState) => {
     try {
+      const today = new Date();
+      const year = today.getFullYear();
       const jsonValue = JSON.stringify(readingPlanState);
-      await AsyncStorage.setItem("@readingPlanState", jsonValue);
+      await AsyncStorage.setItem(`@readingPlanState${year}`, jsonValue);
     } catch (error) {
       console.error(error);
     }
@@ -88,7 +91,9 @@ export const getReadingPlanProgressState = createAsyncThunk(
     };
 
     try {
-      const jsonValue = await AsyncStorage.getItem("@readingPlanState");
+      const today = new Date();
+      const year = today.getFullYear();
+      const jsonValue = await AsyncStorage.getItem(`@readingPlanState${year}`);
       return jsonValue
         ? (JSON.parse(jsonValue) as ReadingPlanProgressState)
         : blankState;

@@ -6,6 +6,7 @@ import { useAppSelector } from "src/hooks/store";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { RootStackParamList } from "src/navigation/RootNavigator";
 import { useTheme } from "@react-navigation/native";
+import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import {
   getReadingPlan,
@@ -74,8 +75,8 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
   };
 
   const handleReadPress = () => {
-    const studyPassages = readingPlanDay?.studies.map((study) => {
-      const splitPassage = study.split(" ");
+    const readingPassages = readingPlanDay?.reading.map((reading) => {
+      const splitPassage = reading.split(" ");
       const firstToken = splitPassage[0];
       const secondToken = splitPassage[1];
       const book =
@@ -85,10 +86,10 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
         10
       );
       const endChapter: number = startChapter;
-      return { book, startChapter, endChapter };
+      return { book, startChapter, endChapter, isMemory: false };
     });
-    const reflectionPassages = readingPlanDay?.reflections.map((reflection) => {
-      const splitPassage = reflection.split(" ");
+    const memoryPassages = readingPlanDay?.memory.map((memory) => {
+      const splitPassage = memory.split(" ");
       const firstToken = splitPassage[0];
       const secondToken = splitPassage[1];
       const book =
@@ -98,10 +99,10 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
         10
       );
       const endChapter: number = startChapter;
-      return { book, startChapter, endChapter };
+      return { book, startChapter, endChapter, isMemory: true };
     });
     navigation.navigate("Read", {
-      passages: studyPassages?.concat(reflectionPassages ?? []) ?? [],
+      passages: readingPassages?.concat(memoryPassages ?? []) ?? [],
       onComplete: () => handleCompleteDay(true),
     });
   };
@@ -118,78 +119,98 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
 
   return (
     <SafeAreaView style={themedStyles.screen} edges={["left", "top", "right"]}>
-      <ScrollView>
+      <ScrollView
+        style={themedStyles.scrollView}
+        contentContainerStyle={{ flexGrow: 1 }}
+      >
         <Text style={themedStyles.title}>{formatedDate}</Text>
         <View style={themedStyles.dayContent}>
           <View style={themedStyles.dayReadingContainer}>
             <View style={themedStyles.dayReadingColumnPrimary}>
-              <Text
-                style={{
-                  ...themedStyles.dayReadingHeader,
-                  ...themedStyles.whiteText,
-                }}
-              >
-                Studies
-              </Text>
-              {readingPlanDay?.studies.map((study) => (
-                <Text key={study} style={themedStyles.whiteText}>
-                  {study}
+              <Ionicons
+                name="document-text"
+                color={colors.white}
+                style={themedStyles.dayTitleIcon}
+              />
+              <View style={themedStyles.dayTitle}>
+                <Text
+                  style={{
+                    ...themedStyles.dayReadingHeader,
+                    ...themedStyles.whiteText,
+                  }}
+                >
+                  Reading
                 </Text>
-              ))}
+                {readingPlanDay?.reading.map((reading) => (
+                  <Text key={reading} style={themedStyles.whiteText}>
+                    {reading}
+                  </Text>
+                ))}
+              </View>
             </View>
             <View style={themedStyles.dayReadingColumnSecondary}>
-              <Text style={themedStyles.dayReadingHeader}>Reflections</Text>
-              {readingPlanDay?.reflections.map((reflection) => (
-                <Text key={reflection} style={themedStyles.reflectionText}>
-                  {reflection}
-                </Text>
-              ))}
+              <Ionicons
+                name="heart-half"
+                color={colors.white}
+                style={themedStyles.dayTitleIcon}
+              />
+              <View style={themedStyles.dayTitle}>
+                <Text style={themedStyles.dayReadingHeader}>Memory</Text>
+                {readingPlanDay?.memory.map((memory) => (
+                  <Text key={memory} style={themedStyles.memoryText}>
+                    {memory}
+                  </Text>
+                ))}
+              </View>
             </View>
           </View>
-          <Text style={themedStyles.reflectionQuestionHeader}>
-            Study Questions
+          <Text style={themedStyles.memoryQuestionHeader}>
+            Questions for Study
           </Text>
-          <Text style={themedStyles.reflectionQuestionSubHeader}>Look Up</Text>
-          <Text style={themedStyles.reflectionQuestion}>
+          <Text style={themedStyles.memoryQuestionSubHeader}>Look Up</Text>
+          <Text style={themedStyles.memoryQuestion}>
             What does this passage teach us about the Triune God, his character,
             and his plan to save us in the gospel?
           </Text>
-          <Text style={themedStyles.reflectionQuestionSubHeader}>Look In</Text>
-          <Text style={themedStyles.reflectionQuestion}>
+          <Text style={themedStyles.memoryQuestionSubHeader}>Look In</Text>
+          <Text style={themedStyles.memoryQuestion}>
             What does this passage teach us about our own hearts and lives, and
             the world we live in?
           </Text>
-          <Text style={themedStyles.reflectionQuestionSubHeader}>Look Out</Text>
-          <Text style={themedStyles.reflectionQuestion}>
+          <Text style={themedStyles.memoryQuestionSubHeader}>Look Out</Text>
+          <Text style={themedStyles.memoryQuestion}>
             How does this passage influence the way we should act and think as
             Christians at home, at work, in relationships or as the church?
           </Text>
 
-          <Text style={themedStyles.reflectionQuestionHeader}>
-            Reflection Question
+          <Text style={themedStyles.memoryQuestionHeader}>
+            Thoughts for Reflection
           </Text>
-          <Text style={themedStyles.reflectionQuestion}>
+          <Text style={themedStyles.memoryQuestion}>
             Write down one way this passage can influence our emotions and
             prayer life and be sure to set aside time to pray for that today.
           </Text>
         </View>
+        <View style={themedStyles.spacer} />
+        <View style={themedStyles.footer}>
+          <FlatButton
+            title="Read"
+            onPress={handleReadPress}
+            style={themedStyles.footerButton}
+          />
+          <FlatButton
+            title={
+              readingPlanDayProgress ? "Day completed!" : "Mark as complete"
+            }
+            onPress={() => handleCompleteDay(!readingPlanDayProgress)}
+            style={{
+              backgroundColor: readingPlanDayProgress
+                ? colors.green
+                : colors.accent,
+            }}
+          />
+        </View>
       </ScrollView>
-      <View style={themedStyles.footer}>
-        <FlatButton
-          title="Read"
-          onPress={handleReadPress}
-          style={themedStyles.footerButton}
-        />
-        <FlatButton
-          title={readingPlanDayProgress ? "Day completed!" : "Mark as complete"}
-          onPress={() => handleCompleteDay(!readingPlanDayProgress)}
-          style={{
-            backgroundColor: readingPlanDayProgress
-              ? colors.green
-              : colors.accent,
-          }}
-        />
-      </View>
     </SafeAreaView>
   );
 };

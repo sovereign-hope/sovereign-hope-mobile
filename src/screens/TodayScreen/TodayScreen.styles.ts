@@ -10,17 +10,20 @@ type Props = {
 
 interface Style {
   screen: ViewStyle;
+  scrollView: ViewStyle;
   title: TextStyle;
   dayContent: ViewStyle;
+  dayTitle: TextStyle;
+  dayTitleIcon: ImageStyle;
   dayReadingContainer: ViewStyle;
   dayReadingColumnPrimary: ViewStyle;
   dayReadingColumnSecondary: ViewStyle;
   dayReadingHeader: TextStyle;
   whiteText: TextStyle;
-  reflectionText: TextStyle;
-  reflectionQuestionHeader: TextStyle;
-  reflectionQuestionSubHeader: TextStyle;
-  reflectionQuestion: TextStyle;
+  memoryText: TextStyle;
+  memoryQuestionHeader: TextStyle;
+  memoryQuestionSubHeader: TextStyle;
+  memoryQuestion: TextStyle;
   footer: ViewStyle;
   footerButton: ViewStyle;
   spacer: ViewStyle;
@@ -30,15 +33,26 @@ export const styles = ({ theme }: Props): Style =>
   StyleSheet.create({
     screen: {
       flex: 1,
-      backgroundColor: theme.colors.background,
+      backgroundColor: colors.grey0,
+    },
+    scrollView: {
+      backgroundColor: colors.grey0,
     },
     title: {
       ...header1,
-      margin: spacing.large,
-      color: theme.colors.text,
+      padding: spacing.large,
+      backgroundColor: colors.grey0,
     },
     dayContent: {
       flex: 1,
+      backgroundColor: theme.colors.background,
+    },
+    dayTitle: {
+      flexDirection: "column",
+    },
+    dayTitleIcon: {
+      fontSize: 32,
+      marginRight: spacing.medium,
     },
     dayReadingContainer: {
       flexDirection: "row",
@@ -46,54 +60,60 @@ export const styles = ({ theme }: Props): Style =>
     },
     dayReadingColumnPrimary: {
       flex: 1,
-      backgroundColor: colors.red,
+      flexDirection: "row",
+      alignItems: "center",
+      backgroundColor: colors.darkGrey,
       padding: spacing.large,
       color: colors.white,
     },
     dayReadingColumnSecondary: {
       flex: 1,
+      flexDirection: "row",
+      alignItems: "center",
       padding: spacing.large,
-      borderColor: colors.red,
-      borderTopWidth: 2,
-      borderBottomWidth: 2,
-      borderLeftWidth: 2,
+      backgroundColor: colors.darkGrey,
+      // borderColor: colors.grey2,
+      // borderTopWidth: 2,
+      // borderBottomWidth: 2,
+      // borderLeftWidth: 2,
     },
     dayReadingHeader: {
       ...header2,
       marginBottom: spacing.medium,
-      color: theme.colors.text,
+      color: colors.white,
     },
     whiteText: {
       color: colors.white,
     },
-    reflectionQuestionHeader: {
+    memoryQuestionHeader: {
       ...header2,
       margin: spacing.medium,
       color: theme.colors.text,
     },
-    reflectionQuestionSubHeader: {
+    memoryQuestionSubHeader: {
       fontWeight: "bold",
       marginHorizontal: spacing.large,
       marginVertical: spacing.small,
       color: theme.colors.text,
     },
-    reflectionQuestion: {
+    memoryQuestion: {
       marginVertical: spacing.small,
       marginHorizontal: spacing.large,
       color: theme.colors.text,
     },
-    reflectionText: {
-      color: theme.colors.text,
+    memoryText: {
+      color: colors.white,
     },
     footer: {
-      marginHorizontal: spacing.medium,
-      marginBottom: spacing.medium,
+      padding: spacing.medium,
       justifyContent: "flex-end",
+      backgroundColor: theme.colors.background,
     },
     footerButton: {
       marginBottom: spacing.medium,
     },
     spacer: {
       flex: 1,
+      backgroundColor: theme.colors.background,
     },
   });

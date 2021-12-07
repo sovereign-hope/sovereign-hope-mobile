@@ -67,8 +67,8 @@ const ReadingPlanListItem: React.FunctionComponent<{
   };
 
   const handleRowPress = () => {
-    const studyPassages = item.studies.map((study) => {
-      const splitPassage = study.split(" ");
+    const readingPassages = item.reading.map((reading) => {
+      const splitPassage = reading.split(" ");
       const firstToken = splitPassage[0];
       const secondToken = splitPassage[1];
       const book =
@@ -78,10 +78,10 @@ const ReadingPlanListItem: React.FunctionComponent<{
         10
       );
       const endChapter: number = startChapter;
-      return { book, startChapter, endChapter };
+      return { book, startChapter, endChapter, isMemory: false };
     });
-    const reflectionPassages = item.reflections.map((reflection) => {
-      const splitPassage = reflection.split(" ");
+    const memoryPassages = item.memory.map((memory) => {
+      const splitPassage = memory.split(" ");
       const firstToken = splitPassage[0];
       const secondToken = splitPassage[1];
       const book =
@@ -91,10 +91,10 @@ const ReadingPlanListItem: React.FunctionComponent<{
         10
       );
       const endChapter: number = startChapter;
-      return { book, startChapter, endChapter };
+      return { book, startChapter, endChapter, isMemory: true };
     });
     navigation.navigate("Read", {
-      passages: studyPassages?.concat(reflectionPassages ?? []) ?? [],
+      passages: readingPassages?.concat(memoryPassages ?? []) ?? [],
       onComplete: () => handleCompleteDay(true),
     });
   };
@@ -128,18 +128,18 @@ const ReadingPlanListItem: React.FunctionComponent<{
           <Text style={themedStyles.dayLabel}>Day {index + 1}</Text>
           <View style={themedStyles.planItemReading}>
             <View style={themedStyles.planItemReadingColumn}>
-              <Text style={themedStyles.planItemTitle}>Studies</Text>
-              {item.studies.map((study) => (
-                <Text key={study} style={themedStyles.planItemVerses}>
-                  {study}
+              <Text style={themedStyles.planItemTitle}>Reading</Text>
+              {item.reading.map((reading) => (
+                <Text key={reading} style={themedStyles.planItemVerses}>
+                  {reading}
                 </Text>
               ))}
             </View>
             <View style={themedStyles.planItemReadingColumn}>
-              <Text style={themedStyles.planItemTitle}>Reflections</Text>
-              {item.reflections.map((reflection) => (
-                <Text key={reflection} style={themedStyles.planItemVerses}>
-                  {reflection}
+              <Text style={themedStyles.planItemTitle}>Memory</Text>
+              {item.memory.map((memory) => (
+                <Text key={memory} style={themedStyles.planItemVerses}>
+                  {memory}
                 </Text>
               ))}
             </View>
@@ -261,7 +261,7 @@ export const ReadingPlanScreen: React.FunctionComponent<Props> = ({
         initialNumToRender={400}
         keyExtractor={(item: ReadingPlanDay, index) =>
           // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
-          `${item.studies ?? 0}${index}`
+          `${item.reading ?? 0}${index}`
         }
         renderItem={({ item, index }) => (
           <ReadingPlanListItem
