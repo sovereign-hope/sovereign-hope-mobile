@@ -1,6 +1,16 @@
 const getZeroBasedIsoWeekDay = (date: Date) => (date.getDay() + 6) % 7;
 const getIsoWeekDay = (date: Date) => getZeroBasedIsoWeekDay(date) + 1;
 
+export type Passage = {
+  book: string;
+  startChapter: string;
+  endChapter: string;
+  startVerse: string;
+  endVerse: string;
+  isMemory: boolean;
+  heading?: string;
+};
+
 export const weekDateToDate = (
   year: number,
   week: number,
@@ -47,4 +57,48 @@ export const getDayInWeek = (): number => {
   const today = new Date();
   const day = today.getDay();
   return day === 0 ? 7 : day;
+};
+
+export const parsePassageString = (
+  passage: string,
+  heading?: string
+): Passage => {
+  const splitPassage = passage.trim().split(" ");
+  const firstToken = splitPassage[0];
+  const secondToken = splitPassage[1];
+  const thirdToken = splitPassage[2];
+  const book =
+    splitPassage.length > 2 ? `${firstToken}${secondToken}` : firstToken;
+
+  const range =
+    splitPassage.length > 2 ? thirdToken.split("-") : secondToken.split("-");
+  const startPassage = range[0];
+  const endPassage = range.length > 1 ? range[1] : startPassage;
+
+  const startPassageArray = startPassage.split(":");
+  const startPassageChapter = startPassageArray[0];
+  const startPassageVerse =
+    startPassageArray.length > 1 ? startPassageArray[1] : "";
+
+  const endPassageArray = endPassage.split(":");
+  const endPassageChapter =
+    endPassageArray.length > 1 || startPassageVerse.length === 0
+      ? endPassageArray[0]
+      : startPassageChapter;
+  const endPassageVerse =
+    endPassageArray.length > 1
+      ? endPassageArray[1]
+      : startPassageVerse.length > 0
+      ? endPassageArray[0]
+      : "";
+
+  return {
+    book,
+    startChapter: startPassageChapter,
+    endChapter: endPassageChapter,
+    startVerse: startPassageVerse,
+    endVerse: endPassageVerse,
+    isMemory: !!heading,
+    heading,
+  };
 };

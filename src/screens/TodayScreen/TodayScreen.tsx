@@ -19,7 +19,7 @@ import {
 } from "src/redux/readingPlanSlice";
 import { colors } from "src/style/colors";
 import { FlatButton } from "src/components";
-import { getDayInWeek, getWeekNumber } from "src/app/utils";
+import { getDayInWeek, getWeekNumber, parsePassageString } from "src/app/utils";
 import { styles } from "./TodayScreen.styles";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Today">;
@@ -75,36 +75,22 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
   };
 
   const handleReadPress = () => {
-    const readingPassages = readingPlanDay?.reading.map((reading) => {
-      const splitPassage = reading.split(" ");
-      const firstToken = splitPassage[0];
-      const secondToken = splitPassage[1];
-      const book =
-        splitPassage.length > 2 ? `${firstToken}${secondToken}` : firstToken;
-      const startChapter: number = Number.parseInt(
-        splitPassage.length > 2 ? splitPassage[2] : firstToken,
-        10
+    if (readingPlanDay) {
+      const readingPassages = readingPlanDay.reading.map((reading) =>
+        parsePassageString(reading)
       );
-      const endChapter: number = startChapter;
-      return { book, startChapter, endChapter, isMemory: false };
-    });
-    const memoryPassages = readingPlanDay?.memory.map((memory) => {
-      const splitPassage = memory.split(" ");
-      const firstToken = splitPassage[0];
-      const secondToken = splitPassage[1];
-      const book =
-        splitPassage.length > 2 ? `${firstToken}${secondToken}` : firstToken;
-      const startChapter: number = Number.parseInt(
-        splitPassage.length > 2 ? splitPassage[2] : secondToken,
-        10
+
+      // Build Memory Passage
+      const memoryPassage = parsePassageString(
+        readingPlanDay.memory.passage,
+        readingPlanDay.memory.heading
       );
-      const endChapter: number = startChapter;
-      return { book, startChapter, endChapter, isMemory: true };
-    });
-    navigation.navigate("Read", {
-      passages: readingPassages?.concat(memoryPassages ?? []) ?? [],
-      onComplete: () => handleCompleteDay(true),
-    });
+
+      navigation.navigate("Read", {
+        passages: readingPassages?.concat(memoryPassage) ?? [],
+        onComplete: () => handleCompleteDay(true),
+      });
+    }
   };
 
   // Constants
@@ -156,11 +142,12 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
               />
               <View style={themedStyles.dayTitle}>
                 <Text style={themedStyles.dayReadingHeader}>Memory</Text>
-                {readingPlanDay?.memory.map((memory) => (
-                  <Text key={memory} style={themedStyles.memoryText}>
-                    {memory}
-                  </Text>
-                ))}
+                <Text
+                  key={readingPlanDay?.memory.passage}
+                  style={themedStyles.memoryText}
+                >
+                  {readingPlanDay?.memory.passage}
+                </Text>
               </View>
             </View>
           </View>

@@ -2,6 +2,7 @@ import { StyleSheet, TextStyle, ViewStyle } from "react-native";
 import { radius, spacing } from "src/style/layout";
 import { Theme } from "@react-navigation/native";
 import { colors } from "src/style/colors";
+import { header2 } from "src/style/typography";
 
 type Props = {
   theme: Theme;
@@ -10,6 +11,7 @@ type Props = {
 interface Style {
   screen: ViewStyle;
   container: ViewStyle;
+  title: TextStyle;
   footer: ViewStyle;
   spacer: ViewStyle;
   button: ViewStyle;
@@ -27,6 +29,11 @@ export const styles = ({ theme }: Props): Style =>
     },
     container: {
       paddingHorizontal: spacing.large,
+    },
+    title: {
+      ...header2,
+      color: theme.colors.text,
+      marginTop: spacing.large,
     },
     footer: {
       marginHorizontal: spacing.small,

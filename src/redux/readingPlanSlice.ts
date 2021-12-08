@@ -14,7 +14,10 @@ export interface ReadingPlanState {
 
 export interface ReadingPlanDay {
   reading: Array<string>;
-  memory: Array<string>;
+  memory: {
+    passage: string;
+    heading: string;
+  };
   isComplete: boolean;
   weekIndex?: number;
 }

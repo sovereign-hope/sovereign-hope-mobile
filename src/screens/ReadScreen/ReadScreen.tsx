@@ -6,6 +6,7 @@ import {
   Text,
   useWindowDimensions,
   Animated,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useDispatch } from "react-redux";
@@ -43,6 +44,7 @@ export const ReadScreen: React.FunctionComponent<Props> = ({
   const [passageIndex, setPassageIndex] = useState(0);
   const [shouldShowMemoryButton, setShouldShowMemoryButton] = useState(false);
   const [isPressingHideButton, setIsPressingHideButton] = useState(false);
+  const [heading, setHeading] = useState("");
 
   // Custom hooks
   const dispatch = useDispatch();
@@ -59,10 +61,9 @@ export const ReadScreen: React.FunctionComponent<Props> = ({
 
   // Effect hooks
   React.useEffect(() => {
-    const { book, startChapter, endChapter } = passages[passageIndex];
-    dispatch(
-      getPassageText({ book, startChapter, endChapter, includeFootnotes: true })
-    );
+    const passage = passages[passageIndex];
+    setHeading(passage.heading ?? "");
+    dispatch(getPassageText({ passage, includeFootnotes: true }));
   }, [dispatch]);
 
   React.useLayoutEffect(() => {
@@ -74,15 +75,13 @@ export const ReadScreen: React.FunctionComponent<Props> = ({
   // Event handlers
   const handleNextPassage = () => {
     if (passageIndex < passages.length - 1) {
-      const { book, startChapter, endChapter, isMemory } =
-        passages[passageIndex + 1];
-      setShouldShowMemoryButton(isMemory);
+      const passage = passages[passageIndex + 1];
+      setShouldShowMemoryButton(passage.isMemory);
+      setHeading(passage.heading ?? "");
       dispatch(
         getPassageText({
-          book,
-          startChapter,
-          endChapter,
-          includeFootnotes: !isMemory,
+          passage,
+          includeFootnotes: !passage.isMemory,
         })
       );
       setPassageIndex(passageIndex + 1);
@@ -124,7 +123,14 @@ export const ReadScreen: React.FunctionComponent<Props> = ({
       {isLoading ? (
         <ActivityIndicator size="large" color={theme.colors.text} />
       ) : (
-        <ScrollView ref={scrollViewRef} style={themedStyles.container}>
+        <ScrollView
+          ref={scrollViewRef}
+          style={themedStyles.container}
+          contentContainerStyle={{ flexGrow: 1 }}
+        >
+          {heading.length > 0 && (
+            <Text style={themedStyles.title}>{heading}</Text>
+          )}
           <Animated.View style={{ opacity: animation }}>
             <RenderHtml
               contentWidth={width}
@@ -138,6 +144,7 @@ export const ReadScreen: React.FunctionComponent<Props> = ({
               }}
             />
           </Animated.View>
+          <View style={themedStyles.spacer} />
           {shouldShowMemoryButton && (
             <Pressable
               onPressIn={() => {

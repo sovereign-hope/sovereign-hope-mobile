@@ -1,14 +1,11 @@
+import { Passage } from "src/app/utils";
+
 export type RootStackParamList = {
   Home: undefined;
   "Reading Plan": undefined;
   Today: undefined;
   Read: {
-    passages: Array<{
-      book: string;
-      startChapter: number;
-      endChapter: number;
-      isMemory: boolean;
-    }>;
+    passages: Array<Passage>;
     onComplete: () => void;
   };
 };

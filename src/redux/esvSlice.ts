@@ -2,6 +2,7 @@ import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import { RootState } from "src/app/store";
 import axios from "axios";
 import { routes } from "./esvRoutes.constants";
+import { Passage } from "src/app/utils";
 
 export interface EsvState {
   currentPassage?: EsvResponse;
@@ -36,22 +37,32 @@ const initialState: EsvState = {
 export const getPassageText = createAsyncThunk(
   "esv/getPassageText",
   async ({
-    book,
-    startChapter,
-    endChapter,
+    passage,
     includeFootnotes,
   }: {
-    book: string;
-    startChapter: number;
-    endChapter: number;
+    passage: Passage;
     includeFootnotes: boolean;
   }) => {
     try {
+      const { book, startChapter, startVerse, endChapter, endVerse } = passage;
+
+      const startVerseString =
+        !startVerse || Object.is(startVerse, Number.NaN)
+          ? ""
+          : `.${startVerse.toString()}`;
+      const endVerseString =
+        !endVerse || Object.is(endVerse, Number.NaN)
+          ? ""
+          : `.${endVerse.toString()}`;
       const response = await axios.get(
         routes.passageText(
-          `${book}${Object.is(startChapter, Number.NaN) ? "" : startChapter}${
+          `${book}${
+            Object.is(startChapter, Number.NaN) ? "" : startChapter
+          }${startVerseString}${
             Object.is(startChapter, Number.NaN) ? "" : "-"
-          }${Object.is(endChapter, Number.NaN) ? "" : endChapter}`,
+          }${
+            Object.is(endChapter, Number.NaN) ? "" : endChapter
+          }${endVerseString}`,
           includeFootnotes
         )
       );

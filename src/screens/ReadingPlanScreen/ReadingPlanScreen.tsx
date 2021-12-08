@@ -21,7 +21,11 @@ import {
   ReadingPlanProgressState,
 } from "src/redux/readingPlanSlice";
 import { colors } from "src/style/colors";
-import { getWeekNumber, weekDateToDate } from "src/app/utils";
+import {
+  getWeekNumber,
+  parsePassageString,
+  weekDateToDate,
+} from "src/app/utils";
 import { spacing } from "src/style/layout";
 import { styles } from "./ReadingPlanScreen.styles";
 
@@ -67,34 +71,18 @@ const ReadingPlanListItem: React.FunctionComponent<{
   };
 
   const handleRowPress = () => {
-    const readingPassages = item.reading.map((reading) => {
-      const splitPassage = reading.split(" ");
-      const firstToken = splitPassage[0];
-      const secondToken = splitPassage[1];
-      const book =
-        splitPassage.length > 2 ? `${firstToken}${secondToken}` : firstToken;
-      const startChapter: number = Number.parseInt(
-        splitPassage.length > 2 ? splitPassage[2] : firstToken,
-        10
-      );
-      const endChapter: number = startChapter;
-      return { book, startChapter, endChapter, isMemory: false };
-    });
-    const memoryPassages = item.memory.map((memory) => {
-      const splitPassage = memory.split(" ");
-      const firstToken = splitPassage[0];
-      const secondToken = splitPassage[1];
-      const book =
-        splitPassage.length > 2 ? `${firstToken}${secondToken}` : firstToken;
-      const startChapter: number = Number.parseInt(
-        splitPassage.length > 2 ? splitPassage[2] : secondToken,
-        10
-      );
-      const endChapter: number = startChapter;
-      return { book, startChapter, endChapter, isMemory: true };
-    });
+    const readingPassages = item.reading.map((reading) =>
+      parsePassageString(reading)
+    );
+
+    // Build Memory Passage
+    const memoryPassage = parsePassageString(
+      item.memory.passage,
+      item.memory.heading
+    );
+
     navigation.navigate("Read", {
-      passages: readingPassages?.concat(memoryPassages ?? []) ?? [],
+      passages: readingPassages?.concat(memoryPassage) ?? [],
       onComplete: () => handleCompleteDay(true),
     });
   };
@@ -137,11 +125,12 @@ const ReadingPlanListItem: React.FunctionComponent<{
             </View>
             <View style={themedStyles.planItemReadingColumn}>
               <Text style={themedStyles.planItemTitle}>Memory</Text>
-              {item.memory.map((memory) => (
-                <Text key={memory} style={themedStyles.planItemVerses}>
-                  {memory}
-                </Text>
-              ))}
+              <Text
+                key={item.memory.passage}
+                style={themedStyles.planItemVerses}
+              >
+                {item.memory.passage}
+              </Text>
             </View>
           </View>
         </View>
