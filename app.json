@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Sovereign Hope",
+    "name": "SHC",
     "slug": "sovereign-hope-mobile",
     "version": "1.0.0",
     "owner": "sovereign-hope",
@@ -16,10 +16,10 @@
     "userInterfaceStyle": "automatic",
     "ios": {
       "bundleIdentifier": "com.sovereign-hope.sovereign-hope-mobile",
-      "buildNumber": "1.0.0",
+      "buildNumber": "1.0.4",
       "splash": {
         "image": "./assets/splash-ios.png",
-        "resizeMode": "contain",
+        "resizeMode": "cover",
         "backgroundColor": "#FFFFFF"
       },
       "infoPlist": {

@@ -1,6 +1,6 @@
 {
   "build": {
-    "release": {
+    "production": {
       "ios": {
         "autoIncrement": true
       },
@@ -22,5 +22,8 @@
       },
       "releaseChannel": "development"
     }
+  },
+  "cli": {
+    "version": ">= 0.35.0"
   }
 }
