@@ -112,7 +112,7 @@ jobs:
         run: yarn install --pure-lockfile
       - name: Build Android Release
         run: |
-          npx eas-cli build --platform android --profile release --non-interactive > ../buildLogAndroid.txt
+          npx eas-cli build --platform android --profile release --non-interactive --auto-submit > ../buildLogAndroid.txt
           cat ../buildLogAndroid.txt
       - name: Gather build info
         id: androidInfo
@@ -140,7 +140,7 @@ jobs:
         run: yarn install --pure-lockfile
       - name: Build iOS Release
         run: |
-          npx eas-cli build --platform ios --profile release --non-interactive > ../buildLogIOS.txt
+          npx eas-cli build --platform ios --profile release --non-interactive --auto-submit > ../buildLogIOS.txt
           cat ../buildLogIOS.txt
       - name: Gather build info
         id: iosInfo
