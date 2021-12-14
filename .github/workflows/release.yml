@@ -7,8 +7,6 @@ jobs:
   on-release-branch-check:
     name: Confirm that tag is on the release branch
     runs-on: ubuntu-latest
-    outputs:
-      on_release: ${{ steps.contains_tag.outputs.retval }}
     steps:
       - uses: actions/checkout@v2
         with:
@@ -16,7 +14,6 @@ jobs:
   quality-check:
     name: Lint & Test
     needs: on-release-branch-check
-    if: ${{ needs.on-release-branch-check.outputs.on_release == 'true' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
