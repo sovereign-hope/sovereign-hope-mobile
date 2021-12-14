@@ -23,6 +23,19 @@
       "releaseChannel": "development"
     }
   },
+  "submit": {
+    "production": {
+      "android": {
+        "serviceAccountKeyPath": "./google/pc-api-9141559558462961285-722-c9f05a29ed38.json",
+        "track": "internal"
+      },
+      "ios": {
+        "appleId": "tech@sovhope.com",
+        "ascAppId": "1600118781",
+        "appleTeamId": "57P74S25U4"
+      }
+    }
+  },
   "cli": {
     "version": ">= 0.35.0"
   }

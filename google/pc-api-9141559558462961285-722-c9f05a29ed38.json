@@ -1,0 +1,12 @@
+{
+  "type": "service_account",
+  "project_id": "pc-api-9141559558462961285-722",
+  "private_key_id": "c9f05a29ed381e3a0461165c9bb76fbd2ef33e48",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvwIBADANBgkqhkiG9w0BAQEFAASCBKkwggSlAgEAAoIBAQC4a9+CLrNc4Uko\nTmvxoEj3JRlfZTTiktLJCQYR/DVFHoXWgOdADgZ/FJK/aXkhpHM/xMi7DAO526+o\npTb8Xx4423SselxInZkA5K1wufVclHjKhogkBcw6mHgc/4M9vie9nDfqfehPvRuL\nnRMV+u4VAT+r062WwLpI7CpE7tzdiokMj1VXB2X2je/Yy/KuHSLLH4aaVT1ceHwg\nhCwnpDyE1OuZS68cbuWPoTs/qI644t4T3FlvnO/Z84kn/SKoIjY90O8Q1kfUMmvm\nCoxu7AhGN+8y6OOy/Kqo+ozKSOviAFhZ80tEhRSzERw7qw504uWgjOlZKrZQlDA4\n85k1cJOVAgMBAAECggEAJJOQgrtMa5Fq9wmGsyd9ETdUbu0drgo8sA6QG6UP06OY\nG9D5DGU7uJyV9kyu75M0IGOhBCf/3S7LCgGqhCdBUTmFTGgAQY6wN9Mi6waWuUPh\nKRnBipNzy/NNb0Ll/qrmKt7+4A0UtCvneKswi912tsfGnweemBWlXK0qPP265F0s\ncHGO98Hbw7+LkViT5SeNcsavFFv6ULe8bADVWkgT+Yd+QTVW98u0gV9ACnL7yVNj\n+bpmcdb9BMUfmAVllAuLgeY0BsXM3DLH2zVOa/filwVsysMdjflYA6HltOX4BEvY\nqK83M96mT8reca1tcI68lt9TVXyjLX9BUb7frnreyQKBgQD7gVIQ0jg4u5e7HMf7\n3DngEzbKtJk2FP0xqIxYpe8BNSEjQeUl4fe6Uypxi8YyL/0tY6BdCT8KfM/yhaKu\n44mcxQ66XiSCK5Sc9gfPQCP/Sm5JNU9/FA/kzvrP4QRMUmdEBB45PphCTU1mBtHW\nBIlIG5uZzhBEKlG7nbh+b3eGFwKBgQC7t6H2OT3ft5uAs5VAfFeRxN21GgZEPgbe\ndutQCbwy47QaGkYxXWRLedbpp4jmjbgW7LENNwfFYiOKtzX7/e1CRY5yrgKl/RO+\nMlxwWIeKo8njb7c+tJyIxttanaT0cU8p6TH+x3RSfL7SmKrBwUtfaGzqIsIKRgoS\nRH0id50rMwKBgQC+k1OYI3MuqhdjVX/EPTAttuGB4C9oZ6ckBc+zLKlahOPDT59P\ngVax/Wrf90YLqYly51cQqHz4eXMpFlIbq5cPD9MFLWkEqflGprdsN/IO9Ft1ZcwD\nQzR38M7kzmDvZFGTnHs6bU/6jZDkiq5eObm8xg62EQsKW/bq76xpQhWTqQKBgQCM\nXh5gLiGUXomLTb43gENDH0DiIVm6Qd+FDsubCAyQyTBtrGP8medbgPoxsjNuo16a\n1db3GMVY1a/aFHHrws9dlQGVw4T7dikDOklhQPHpu9xFk84kt42twXVZZzRoDSqz\nHktiRuc2n01Z0Qsu40lnSIDY+7C5WfJCArDHy0XdfQKBgQDyLswh4gsWMFUKgm5g\nkxHKzmpO8wAFO93EzVeXOGwSxfvwkk14olQs9U4MQXM69VibJbcJJW2eLEXzdqYm\nFsUSY7+tFEdTecuCSVqKsTrqn7jA/yPy+rqYocUCGJtS/uTcqQ5QICg3fagPTmkb\n5Z6Ui0m5Sg79dZnUgrmSfxSZNQ==\n-----END PRIVATE KEY-----\n",
+  "client_email": "expo-sovereign-hope-mobile@pc-api-9141559558462961285-722.iam.gserviceaccount.com",
+  "client_id": "110675489499935628416",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/expo-sovereign-hope-mobile%40pc-api-9141559558462961285-722.iam.gserviceaccount.com"
+}

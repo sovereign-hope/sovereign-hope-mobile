@@ -1,5 +1,5 @@
 import React from "react";
-import { useColorScheme } from "react-native";
+import { useColorScheme } from "src/hooks/useColorScheme";
 import { ReadingPlanScreen } from "src/screens/ReadingPlanScreen/ReadingPlanScreen";
 import { NavigationContainer } from "@react-navigation/native";
 import { lightTheme, darkTheme } from "src/style/themes";
