@@ -4,10 +4,10 @@
       "ios": {
         "autoIncrement": true
       },
-      "releaseChannel": "prod-v0.0.1"
+      "releaseChannel": "prod-v1"
     },
     "staging": {
-      "releaseChannel": "rc-v0.0.1"
+      "releaseChannel": "rc-v1"
     },
     "development": {
       "releaseChannel": "development",
