@@ -20,8 +20,8 @@ import {
 import { colors } from "src/style/colors";
 import { FlatButton } from "src/components";
 import { getDayInWeek, getWeekNumber, parsePassageString } from "src/app/utils";
-import { styles } from "./TodayScreen.styles";
 import { spacing } from "src/style/layout";
+import { styles } from "./TodayScreen.styles";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Today">;
 
