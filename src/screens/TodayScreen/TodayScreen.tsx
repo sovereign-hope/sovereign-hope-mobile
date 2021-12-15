@@ -21,6 +21,7 @@ import { colors } from "src/style/colors";
 import { FlatButton } from "src/components";
 import { getDayInWeek, getWeekNumber, parsePassageString } from "src/app/utils";
 import { styles } from "./TodayScreen.styles";
+import { spacing } from "src/style/layout";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Today">;
 
@@ -93,6 +94,21 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
     }
   };
 
+  const handlePracticePress = () => {
+    if (readingPlanDay) {
+      // Build Memory Passage
+      const memoryPassage = parsePassageString(
+        readingPlanDay.memory.passage,
+        readingPlanDay.memory.heading
+      );
+
+      navigation.navigate("Read", {
+        passages: [memoryPassage],
+        onComplete: () => {},
+      });
+    }
+  };
+
   // Constants
   const themedStyles = styles({ theme });
   const dateOptions: Intl.DateTimeFormatOptions = {
@@ -148,6 +164,7 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
                 >
                   {readingPlanDay?.memory.passage}
                 </Text>
+                <View style={themedStyles.spacer} />
               </View>
             </View>
           </View>
@@ -177,14 +194,28 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
             Write down one way this passage can influence our emotions and
             prayer life and be sure to set aside time to pray for that today.
           </Text>
+          <View style={themedStyles.spacer} />
         </View>
-        <View style={themedStyles.spacer} />
         <View style={themedStyles.footer}>
-          <FlatButton
-            title="Read"
-            onPress={handleReadPress}
-            style={themedStyles.footerButton}
-          />
+          <View style={themedStyles.footerRow}>
+            <FlatButton
+              title="Read"
+              onPress={handleReadPress}
+              style={{
+                ...themedStyles.footerButton,
+                marginRight: spacing.medium,
+                backgroundColor: colors.blue,
+              }}
+            />
+            <FlatButton
+              title="Practice"
+              onPress={handlePracticePress}
+              style={{
+                ...themedStyles.footerButton,
+                backgroundColor: colors.blue,
+              }}
+            />
+          </View>
           <FlatButton
             title={
               readingPlanDayProgress ? "Day completed!" : "Mark as complete"

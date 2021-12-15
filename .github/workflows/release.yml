@@ -4,24 +4,8 @@ on:
     tags:
       - "v[0-9]+.[0-9]+.[0-9]+" # Push events to matching v*, i.e.v20.15.10
 jobs:
-  on-release-branch-check:
-    name: Confirm that tag is on the release branch
-    runs-on: ubuntu-latest
-    outputs:
-      on_release: ${{ steps.contains_tag.outputs.retval }}
-    steps:
-      - uses: actions/checkout@v2
-        with:
-          fetch-depth: 0
-      - uses: rickstaa/action-contains-tag@v1
-        id: contains_tag
-        with:
-          reference: "release/v[0-9]+.[0-9]+.[0-9]+"
-          tag: "${{ github.ref }}"
   quality-check:
     name: Lint & Test
-    needs: on-release-branch-check
-    if: ${{ needs.on-release-branch-check.outputs.on_release == 'true' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2

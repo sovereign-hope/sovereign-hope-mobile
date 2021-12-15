@@ -8,6 +8,7 @@ export const colors = {
   green: "#6CA64B",
   red: "#C94B41",
   mint: "#A6F4CC",
+  blue: "#187AC6",
   accent: "#BA8748",
 };
 

@@ -62,6 +62,7 @@ export const ReadScreen: React.FunctionComponent<Props> = ({
   // Effect hooks
   React.useEffect(() => {
     const passage = passages[passageIndex];
+    setShouldShowMemoryButton(passage.isMemory);
     setHeading(passage.heading ?? "");
     dispatch(getPassageText({ passage, includeFootnotes: true }));
   }, [dispatch]);

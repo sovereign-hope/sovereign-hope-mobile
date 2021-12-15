@@ -25,6 +25,7 @@ interface Style {
   memoryQuestionSubHeader: TextStyle;
   memoryQuestion: TextStyle;
   footer: ViewStyle;
+  footerRow: ViewStyle;
   footerButton: ViewStyle;
   spacer: ViewStyle;
 }
@@ -52,7 +53,7 @@ export const styles = ({ theme }: Props): Style =>
       flexDirection: "column",
     },
     dayTitleIcon: {
-      fontSize: 32,
+      fontSize: 24,
       marginRight: spacing.medium,
     },
     dayReadingContainer: {
@@ -62,7 +63,6 @@ export const styles = ({ theme }: Props): Style =>
     dayReadingColumnPrimary: {
       flex: 1,
       flexDirection: "row",
-      alignItems: "center",
       backgroundColor: colors.darkGrey,
       padding: spacing.large,
       color: colors.white,
@@ -70,7 +70,6 @@ export const styles = ({ theme }: Props): Style =>
     dayReadingColumnSecondary: {
       flex: 1,
       flexDirection: "row",
-      alignItems: "center",
       padding: spacing.large,
       backgroundColor: colors.darkGrey,
       // borderColor: colors.grey2,
@@ -110,11 +109,15 @@ export const styles = ({ theme }: Props): Style =>
       justifyContent: "flex-end",
       backgroundColor: theme.colors.background,
     },
+    footerRow: {
+      flex: 1,
+      flexDirection: "row",
+    },
     footerButton: {
+      flex: 1,
       marginBottom: spacing.medium,
     },
     spacer: {
       flex: 1,
-      backgroundColor: theme.colors.background,
     },
   });
