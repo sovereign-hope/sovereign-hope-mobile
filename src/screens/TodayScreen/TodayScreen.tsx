@@ -129,12 +129,12 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
         <View style={themedStyles.dayContent}>
           <View style={themedStyles.dayReadingContainer}>
             <View style={themedStyles.dayReadingColumnPrimary}>
+              <Ionicons
+                name="document-text"
+                color={colors.white}
+                style={themedStyles.dayTitleIcon}
+              />
               <View style={themedStyles.dayTitle}>
-                <Ionicons
-                  name="document-text"
-                  color={colors.white}
-                  style={themedStyles.dayTitleIcon}
-                />
                 <Text
                   style={{
                     ...themedStyles.dayReadingHeader,
@@ -143,20 +143,20 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
                 >
                   Reading
                 </Text>
+                {readingPlanDay?.reading.map((reading) => (
+                  <Text key={reading} style={themedStyles.whiteText}>
+                    {reading}
+                  </Text>
+                ))}
               </View>
-              {readingPlanDay?.reading.map((reading) => (
-                <Text key={reading} style={themedStyles.whiteText}>
-                  {reading}
-                </Text>
-              ))}
             </View>
             <View style={themedStyles.dayReadingColumnSecondary}>
+              <Ionicons
+                name="heart-half"
+                color={colors.white}
+                style={themedStyles.dayTitleIcon}
+              />
               <View style={themedStyles.dayTitle}>
-                <Ionicons
-                  name="heart-half"
-                  color={colors.white}
-                  style={themedStyles.dayTitleIcon}
-                />
                 <Text style={themedStyles.dayReadingHeader}>Memory</Text>
                 <Text
                   key={readingPlanDay?.memory.passage}

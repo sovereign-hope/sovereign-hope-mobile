@@ -16,7 +16,7 @@
     "userInterfaceStyle": "automatic",
     "ios": {
       "bundleIdentifier": "com.sovereign-hope.sovereign-hope-mobile",
-      "buildNumber": "1",
+      "buildNumber": "2",
       "splash": {
         "image": "./assets/splash-ios.png",
         "resizeMode": "cover",
@@ -30,7 +30,7 @@
     },
     "android": {
       "package": "com.sovereign_hope.sovereign_hope",
-      "versionCode": 2,
+      "versionCode": 3,
       "jsEngine": "hermes",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
