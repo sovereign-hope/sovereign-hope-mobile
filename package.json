@@ -19,6 +19,7 @@
     "@react-navigation/native": "^6.0.2",
     "@react-navigation/native-stack": "^6.1.0",
     "@reduxjs/toolkit": "^1.6.1",
+    "@sentry/react-native": "^3.2.8",
     "axios": "^0.24.0",
     "expo": "^43.0.0",
     "expo-app-loading": "~1.2.1",
@@ -33,7 +34,7 @@
     "expo-random": "~12.0.1",
     "expo-secure-store": "~11.0.3",
     "expo-status-bar": "~1.1.0",
-    "expo-updates": "~0.10.14",
+    "expo-updates": "~0.10.15",
     "firebase": "^9.4.0",
     "react": "17.0.1",
     "react-dom": "17.0.1",
@@ -44,7 +45,8 @@
     "react-native-safe-area-context": "3.3.2",
     "react-native-screens": "~3.8.0",
     "react-native-section-list-get-item-layout": "^2.2.3",
-    "react-redux": "^7.2.4"
+    "react-redux": "^7.2.4",
+    "sentry-expo": "^4.0.0"
   },
   "devDependencies": {
     "@babel/core": "^7.12.9",

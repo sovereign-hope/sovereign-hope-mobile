@@ -11,6 +11,13 @@ import { initializeApp, FirebaseApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 import { RootScreen } from "src/screens/RootScreen/RootScreen";
 import { StatusBar } from "expo-status-bar";
+import * as Sentry from "sentry-expo";
+
+Sentry.init({
+  dsn: "YOUR DSN HERE",
+  enableInExpoDevelopment: true,
+  debug: process.env.ENVIRONMENT !== "production",
+});
 
 const appLoading = async () => {
   await Promise.all([Font.loadAsync(Ionicons.font)]);

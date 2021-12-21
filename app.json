@@ -26,7 +26,8 @@
         "CFBundleAllowMixedLocalizations": true
       },
       "usesAppleSignIn": true,
-      "userInterfaceStyle": "automatic"
+      "userInterfaceStyle": "automatic",
+      "supportsTablet": true
     },
     "android": {
       "package": "com.sovereign_hope.sovereign_hope",
@@ -44,6 +45,7 @@
       "permissions": [],
       "userInterfaceStyle": "automatic"
     },
-    "locales": {}
+    "locales": {},
+    "plugins": ["sentry-expo"]
   }
 }
