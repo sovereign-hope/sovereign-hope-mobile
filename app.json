@@ -31,7 +31,7 @@
     },
     "android": {
       "package": "com.sovereign_hope.sovereign_hope",
-      "versionCode": 3,
+      "versionCode": 4,
       "jsEngine": "hermes",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
