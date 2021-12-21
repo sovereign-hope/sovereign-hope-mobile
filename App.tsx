@@ -14,8 +14,7 @@ import { StatusBar } from "expo-status-bar";
 import * as Sentry from "sentry-expo";
 
 Sentry.init({
-  dsn: "YOUR DSN HERE",
-  enableInExpoDevelopment: true,
+  dsn: "https://dbde8c51f1c9466a8b8544f44558518e@o1095845.ingest.sentry.io/6115782",
   debug: process.env.ENVIRONMENT !== "production",
 });
 
