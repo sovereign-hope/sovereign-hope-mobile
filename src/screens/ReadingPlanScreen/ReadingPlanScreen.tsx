@@ -118,7 +118,11 @@ const ReadingPlanListItem: React.FunctionComponent<{
             <View style={themedStyles.planItemReadingColumn}>
               <Text style={themedStyles.planItemTitle}>Reading</Text>
               {item.reading.map((reading) => (
-                <Text key={reading} style={themedStyles.planItemVerses}>
+                <Text
+                  key={reading}
+                  style={themedStyles.planItemVerses}
+                  lineBreakMode="middle"
+                >
                   {reading}
                 </Text>
               ))}
@@ -128,6 +132,7 @@ const ReadingPlanListItem: React.FunctionComponent<{
               <Text
                 key={item.memory.passage}
                 style={themedStyles.planItemVerses}
+                lineBreakMode="middle"
               >
                 {item.memory.passage}
               </Text>
@@ -245,6 +250,7 @@ export const ReadingPlanScreen: React.FunctionComponent<Props> = ({
     <SafeAreaView edges={["left", "right"]} style={themedStyles.screen}>
       <SectionList
         ref={scrollViewRef}
+        onScrollToIndexFailed={() => {}}
         sections={listData}
         style={themedStyles.planList}
         initialNumToRender={400}

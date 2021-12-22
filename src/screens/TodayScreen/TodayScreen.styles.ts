@@ -51,10 +51,12 @@ export const styles = ({ theme }: Props): Style =>
     },
     dayTitle: {
       flexDirection: "column",
+      flexShrink: 1,
     },
     dayTitleIcon: {
       fontSize: 24,
       marginRight: spacing.medium,
+      marginTop: spacing.small,
     },
     dayReadingContainer: {
       flexDirection: "row",
@@ -70,12 +72,9 @@ export const styles = ({ theme }: Props): Style =>
     dayReadingColumnSecondary: {
       flex: 1,
       flexDirection: "row",
-      padding: spacing.large,
+      paddingVertical: spacing.large,
+      paddingRight: spacing.large,
       backgroundColor: colors.darkGrey,
-      // borderColor: colors.grey2,
-      // borderTopWidth: 2,
-      // borderBottomWidth: 2,
-      // borderLeftWidth: 2,
     },
     dayReadingHeader: {
       ...header2,

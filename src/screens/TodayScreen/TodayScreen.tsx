@@ -112,7 +112,7 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
   // Constants
   const themedStyles = styles({ theme });
   const dateOptions: Intl.DateTimeFormatOptions = {
-    weekday: "long",
+    weekday: "short",
     month: "long",
     day: "numeric",
   };

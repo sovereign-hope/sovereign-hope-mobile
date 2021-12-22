@@ -63,24 +63,73 @@ export const parsePassageString = (
   passage: string,
   heading?: string
 ): Passage => {
-  const splitPassage = passage.trim().split(" ");
-  const firstToken = splitPassage[0];
-  const secondToken = splitPassage[1];
-  const thirdToken = splitPassage[2];
+  const splitPassage = passage.trim()?.split(" ");
+  if (splitPassage?.length === 0) {
+    return {
+      book: "",
+      startChapter: "",
+      endChapter: "",
+      startVerse: "",
+      endVerse: "",
+      isMemory: false,
+      heading,
+    };
+  }
+
+  const firstToken: string | undefined = splitPassage[0];
+  const secondToken: string | undefined = splitPassage[1];
+  const thirdToken: string | undefined = splitPassage[2];
+
   const book =
     splitPassage.length > 2 ? `${firstToken}${secondToken}` : firstToken;
 
   const range =
-    splitPassage.length > 2 ? thirdToken.split("-") : secondToken.split("-");
+    splitPassage.length > 2 ? thirdToken?.split("-") : secondToken?.split("-");
+  if (range.length === 0) {
+    return {
+      book,
+      startChapter: "",
+      endChapter: "",
+      startVerse: "",
+      endVerse: "",
+      isMemory: false,
+      heading,
+    };
+  }
+
   const startPassage = range[0];
   const endPassage = range.length > 1 ? range[1] : startPassage;
 
-  const startPassageArray = startPassage.split(":");
+  const startPassageArray = startPassage?.split(":");
+  if (startPassageArray?.length === 0) {
+    return {
+      book,
+      startChapter: "",
+      endChapter: "",
+      startVerse: "",
+      endVerse: "",
+      isMemory: false,
+      heading,
+    };
+  }
+
   const startPassageChapter = startPassageArray[0];
   const startPassageVerse =
     startPassageArray.length > 1 ? startPassageArray[1] : "";
 
-  const endPassageArray = endPassage.split(":");
+  const endPassageArray = endPassage?.split(":");
+  if (endPassageArray?.length === 0) {
+    return {
+      book,
+      startChapter: startPassageChapter,
+      endChapter: "",
+      startVerse: startPassageVerse,
+      endVerse: "",
+      isMemory: false,
+      heading,
+    };
+  }
+
   const endPassageChapter =
     endPassageArray.length > 1 || startPassageVerse.length === 0
       ? endPassageArray[0]

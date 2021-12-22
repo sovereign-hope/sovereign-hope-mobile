@@ -1,7 +1,8 @@
 import { StyleSheet, ViewStyle, TextStyle, ImageStyle } from "react-native";
-import { spacing, elementSize } from "src/style/layout";
+import { spacing, elementSize, radius } from "src/style/layout";
 import { header1, header2, header3 } from "src/style/typography";
 import { Theme } from "@react-navigation/native";
+import { colors } from "src/style/colors";
 
 type Props = {
   theme: Theme;
@@ -29,8 +30,7 @@ export const styles = ({ theme }: Props): Style =>
       backgroundColor: theme.colors.background,
     },
     planList: {
-      width: "100%",
-      flex: 1,
+      // flex: 1,
     },
     planItem: {
       flexDirection: "row",
@@ -38,17 +38,17 @@ export const styles = ({ theme }: Props): Style =>
       alignItems: "center",
     },
     planItemContent: {
-      flexDirection: "row",
+      flexDirection: "column",
       flex: 1,
-      alignItems: "center",
     },
     planItemReading: {
       flexDirection: "row",
-      justifyContent: "space-around",
+      justifyContent: "space-between",
     },
     planItemReadingColumn: {
       flexDirection: "column",
       padding: spacing.medium,
+      flexShrink: 1,
     },
     planItemCheckbox: {
       margin: spacing.small,
@@ -68,7 +68,10 @@ export const styles = ({ theme }: Props): Style =>
     },
     dayLabel: {
       ...header3,
-      color: theme.colors.text,
-      margin: spacing.medium,
+      color: colors.accent,
+      // backgroundColor: colors.accent,
+      marginHorizontal: spacing.medium,
+      marginTop: spacing.small,
+      borderRadius: radius.large,
     },
   });
