@@ -1,5 +1,5 @@
-import React from "react";
-import { ScrollView, Text, View } from "react-native";
+import React, { useEffect, useRef } from "react";
+import { AppState, AppStateStatus, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useDispatch } from "react-redux";
 import { useAppSelector } from "src/hooks/store";
@@ -36,10 +36,29 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
   const theme = useTheme();
 
   // Ref Hooks
+  const appState = useRef(AppState.currentState);
 
   // Callback hooks
 
   // Effect hooks
+  useEffect(() => {
+    const handler = (nextAppState: AppStateStatus) => {
+      if (
+        /inactive|background/.test(appState.current) &&
+        nextAppState === "active"
+      ) {
+        dispatch(getReadingPlan());
+        dispatch(getReadingPlanProgressState());
+      }
+      appState.current = nextAppState;
+    };
+    AppState.addEventListener("change", handler);
+
+    return () => {
+      AppState.removeEventListener("change", handler);
+    };
+  }, []);
+
   React.useEffect(() => {
     dispatch(getReadingPlan());
     dispatch(getReadingPlanProgressState());

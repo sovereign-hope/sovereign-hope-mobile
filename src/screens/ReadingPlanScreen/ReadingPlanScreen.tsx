@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Button, Pressable, SectionList, Text, View } from "react-native";
+import { Pressable, SectionList, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useDispatch } from "react-redux";
 import { Ionicons } from "@expo/vector-icons";
