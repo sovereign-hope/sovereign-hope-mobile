@@ -170,7 +170,7 @@ export const selectReadingPlan = (state: RootState): ReadingPlan | undefined =>
 export const selectDailyReadingPlan = (
   state: RootState
 ): ReadingPlanDay | undefined => {
-  const currentWeekIndex = getWeekNumber(new Date())[1] - 1;
+  const currentWeekIndex = getWeekNumber(new Date()).week - 1;
   const currentDayIndex = getDayInWeek() - 1;
   const currentWeek = state.readingPlan.readingPlan?.weeks[
     currentWeekIndex
@@ -183,7 +183,7 @@ export const selectDailyReadingPlan = (
 };
 
 export const selectDailyReadingPlanProgress = (state: RootState): boolean => {
-  const currentWeekIndex = getWeekNumber(new Date())[1] - 1;
+  const currentWeekIndex = getWeekNumber(new Date()).week - 1;
   const currentDayIndex = getDayInWeek() - 1;
   const currentWeek = state.readingPlan.readingPlanProgressState?.weeks[
     currentWeekIndex

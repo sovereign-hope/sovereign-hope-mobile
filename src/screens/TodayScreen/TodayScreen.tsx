@@ -80,7 +80,7 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
       void Haptics.selectionAsync();
     }
     if (readingPlanProgress) {
-      const currentWeekIndex = getWeekNumber(new Date())[1] - 1;
+      const currentWeekIndex = getWeekNumber(new Date()).week - 1;
       const currentDayIndex = getDayInWeek() - 1;
       const isEndOfWeek = currentDayIndex > 4;
 

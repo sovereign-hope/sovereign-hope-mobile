@@ -198,7 +198,7 @@ export const ReadingPlanScreen: React.FunctionComponent<Props> = ({
 
   useEffect(() => {
     if (!hasInitializedPosition) {
-      const currentWeek = getWeekNumber(new Date())[1];
+      const currentWeek = getWeekNumber(new Date()).week;
       if (scrollViewRef.current && listData.length > 0) {
         setTimeout(() => {
           if (scrollViewRef.current) {
@@ -217,7 +217,7 @@ export const ReadingPlanScreen: React.FunctionComponent<Props> = ({
   }, [scrollViewRef, listData]);
 
   React.useLayoutEffect(() => {
-    const currentWeek = getWeekNumber(new Date())[1];
+    const currentWeek = getWeekNumber(new Date()).week;
     navigation.setOptions({
       // eslint-disable-next-line react/display-name, react/require-default-props
       headerRight: ({ tintColor }: { tintColor?: string | undefined }) => (

@@ -36,7 +36,9 @@ export const weekDateToDate = (
   return `${result.toLocaleDateString().split("/").slice(0, 2).join("/")}`;
 };
 
-export const getWeekNumber = (d: Date): number[] => {
+export const getWeekNumber = (
+  d: Date
+): { year: number; week: number; isStartOfNewYear: boolean } => {
   // Copy date so don't modify original
   const today = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
   // Set to nearest Thursday: current date + 4 - current day number
@@ -51,17 +53,23 @@ export const getWeekNumber = (d: Date): number[] => {
   );
 
   // In this case, the year has already changed but it will still show the last week of the previous year
+  let isStartOfNewYear = false;
   if (weekNo === 52 && yearStart.getUTCFullYear() !== d.getUTCFullYear()) {
     weekNo = 1;
+    isStartOfNewYear = true;
   }
 
   // Return array of year and week number
-  return [d.getUTCFullYear(), weekNo];
+  return { year: d.getUTCFullYear(), week: weekNo, isStartOfNewYear };
 };
 
 export const getDayInWeek = (): number => {
   const today = new Date();
   const day = today.getDay();
+  const { isStartOfNewYear } = getWeekNumber(today);
+
+  if (isStartOfNewYear) return 1;
+
   return day === 0 ? 7 : day;
 };
 
