@@ -45,10 +45,16 @@ export const getWeekNumber = (d: Date): number[] => {
   // Get first day of year
   const yearStart = new Date(Date.UTC(today.getUTCFullYear(), 0, 1));
   // Calculate full weeks to nearest Thursday
-  const weekNo = Math.ceil(
+  let weekNo = Math.ceil(
     // eslint-disable-next-line unicorn/numeric-separators-style
     ((today.getTime() - yearStart.getTime()) / 86400000 + 1) / 7
   );
+
+  // In this case, the year has already changed but it will still show the last week of the previous year
+  if (weekNo === 52 && yearStart.getUTCFullYear() !== d.getUTCFullYear()) {
+    weekNo = 1;
+  }
+
   // Return array of year and week number
   return [d.getUTCFullYear(), weekNo];
 };
