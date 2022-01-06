@@ -2,7 +2,7 @@
   "expo": {
     "name": "Sov Hope",
     "slug": "sovereign-hope-mobile",
-    "version": "1.1.0",
+    "version": "1.1.1",
     "owner": "sovereign-hope",
     "githubUrl": "https://github.com/sovereign-hope/sovereign-hope-mobile",
     "primaryColor": "#1F1F1F",
@@ -16,7 +16,7 @@
     "userInterfaceStyle": "automatic",
     "ios": {
       "bundleIdentifier": "com.sovereign-hope.sovereign-hope-mobile",
-      "buildNumber": "5",
+      "buildNumber": "6",
       "splash": {
         "image": "./assets/splash-ios.png",
         "resizeMode": "cover",

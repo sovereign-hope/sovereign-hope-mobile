@@ -89,6 +89,7 @@ export const WeekendView: React.FunctionComponent<Props> = ({
 
   // Constants
   const themedStyles = styles({ theme });
+  const shouldShowLoadingIndicator = isLoading && readingPlanWeek === undefined;
 
   return (
     <View style={themedStyles.content}>
@@ -104,7 +105,7 @@ export const WeekendView: React.FunctionComponent<Props> = ({
         Use this time to review the weekly reading and catch up on any missed
         days.
       </Text>
-      {isLoading ? (
+      {shouldShowLoadingIndicator ? (
         <View style={themedStyles.loadingContainer}>
           <ActivityIndicator size="large" color={theme.colors.text} />
         </View>

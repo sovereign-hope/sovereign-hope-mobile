@@ -170,6 +170,7 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
   const formatedDate = date.toLocaleDateString("en-US", dateOptions);
   const currentDayIndex = getDayInWeek() - 1;
   const isEndOfWeek = currentDayIndex > 4;
+  const shouldShowLoadingIndicator = isLoading && readingPlanDay === undefined;
 
   return (
     <SafeAreaView style={themedStyles.screen} edges={["left", "top", "right"]}>
@@ -180,7 +181,7 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
         <Text style={themedStyles.title}>{formatedDate}</Text>
         {isEndOfWeek ? (
           <WeekendView onRowPress={handleWeekendRowPress} />
-        ) : isLoading ? (
+        ) : shouldShowLoadingIndicator ? (
           <View style={themedStyles.loadingContainer}>
             <ActivityIndicator size="large" color={theme.colors.text} />
           </View>
