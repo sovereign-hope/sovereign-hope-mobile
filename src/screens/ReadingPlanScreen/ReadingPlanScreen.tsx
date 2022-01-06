@@ -4,10 +4,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useDispatch } from "react-redux";
 import { Ionicons } from "@expo/vector-icons";
 import { useAppSelector } from "src/hooks/store";
-import {
-  NativeStackNavigationProp,
-  NativeStackScreenProps,
-} from "@react-navigation/native-stack";
+import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { RootStackParamList } from "src/navigation/RootNavigator";
 import { useTheme } from "@react-navigation/native";
 import * as Haptics from "expo-haptics";
@@ -31,18 +28,24 @@ import { styles } from "./ReadingPlanScreen.styles";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Reading Plan">;
 
-const ReadingPlanListItem: React.FunctionComponent<{
+export const ReadingPlanListItem: React.FunctionComponent<{
   item: ReadingPlanDay;
   index: number;
-  navigation: NativeStackNavigationProp<RootStackParamList, "Reading Plan">;
+  handleRowPress: (
+    item: ReadingPlanDay,
+    onCompleteDay: (isComplete: boolean) => void
+  ) => void;
 }> = ({
   item,
   index,
-  navigation,
+  handleRowPress,
 }: {
   item: ReadingPlanDay;
   index: number;
-  navigation: NativeStackNavigationProp<RootStackParamList, "Reading Plan">;
+  handleRowPress: (
+    item: ReadingPlanDay,
+    onCompleteDay: (isComplete: boolean) => void
+  ) => void;
 }) => {
   // Custom hooks
   const theme = useTheme();
@@ -70,26 +73,9 @@ const ReadingPlanListItem: React.FunctionComponent<{
     }
   };
 
-  const handleRowPress = () => {
-    const readingPassages = item.reading.map((reading) =>
-      parsePassageString(reading)
-    );
-
-    // Build Memory Passage
-    const memoryPassage = parsePassageString(
-      item.memory.passage,
-      item.memory.heading
-    );
-
-    navigation.navigate("Read", {
-      passages: readingPassages?.concat(memoryPassage) ?? [],
-      onComplete: () => handleCompleteDay(true),
-    });
-  };
-
   return (
     <Pressable
-      onPress={handleRowPress}
+      onPress={() => handleRowPress(item, handleCompleteDay)}
       style={({ pressed }) => ({
         backgroundColor: pressed ? theme.colors.background : theme.colors.card,
       })}
@@ -243,6 +229,27 @@ export const ReadingPlanScreen: React.FunctionComponent<Props> = ({
     });
   }, [navigation, listData]);
 
+  // Event handlers
+  const handleRowPress = (
+    item: ReadingPlanDay,
+    onCompleteDay: (isComplete: boolean) => void
+  ) => {
+    const readingPassages = item.reading.map((reading) =>
+      parsePassageString(reading)
+    );
+
+    // Build Memory Passage
+    const memoryPassage = parsePassageString(
+      item.memory.passage,
+      item.memory.heading
+    );
+
+    navigation.navigate("Read", {
+      passages: readingPassages?.concat(memoryPassage) ?? [],
+      onComplete: () => onCompleteDay(true),
+    });
+  };
+
   // Constants
   const themedStyles = styles({ theme });
 
@@ -262,7 +269,7 @@ export const ReadingPlanScreen: React.FunctionComponent<Props> = ({
           <ReadingPlanListItem
             item={item}
             index={index}
-            navigation={navigation}
+            handleRowPress={handleRowPress}
           />
         )}
         renderSectionHeader={({ section: { title } }) => (

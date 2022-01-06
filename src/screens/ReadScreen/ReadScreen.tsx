@@ -31,12 +31,15 @@ import RenderHtml, {
 import { FlatButton } from "src/components";
 import { styles } from "./ReadScreen.styles";
 
-type Props = NativeStackScreenProps<RootStackParamList, "Read">;
+export type ReadScreenProps = NativeStackScreenProps<
+  RootStackParamList,
+  "Read"
+>;
 
-export const ReadScreen: React.FunctionComponent<Props> = ({
+export const ReadScreen: React.FunctionComponent<ReadScreenProps> = ({
   route,
   navigation,
-}: Props) => {
+}: ReadScreenProps) => {
   // Props
   const { passages, onComplete } = route.params;
 

@@ -167,6 +167,17 @@ export const readingPlanSlice = createSlice({
 export const selectReadingPlan = (state: RootState): ReadingPlan | undefined =>
   state.readingPlan.readingPlan;
 
+export const selectWeekReadingPlan = (
+  state: RootState
+): ReadingPlanWeek | undefined => {
+  const currentWeekIndex = getWeekNumber(new Date()).week - 1;
+  const currentWeek = state.readingPlan.readingPlan?.weeks[
+    currentWeekIndex
+  ] ?? { days: [] };
+
+  return currentWeek;
+};
+
 export const selectDailyReadingPlan = (
   state: RootState
 ): ReadingPlanDay | undefined => {
@@ -180,6 +191,17 @@ export const selectDailyReadingPlan = (
   return currentWeek.days[
     isEndOfWeek ? currentWeek.days.length - 1 : currentDayIndex
   ];
+};
+
+export const selectWeeklyReadingPlanProgress = (
+  state: RootState
+): Array<boolean> => {
+  const currentWeekIndex = getWeekNumber(new Date()).week - 1;
+  const currentWeek = state.readingPlan.readingPlanProgressState?.weeks[
+    currentWeekIndex
+  ] ?? { days: [] };
+
+  return currentWeek.days.map((day) => day.isCompleted);
 };
 
 export const selectDailyReadingPlanProgress = (state: RootState): boolean => {
@@ -202,5 +224,8 @@ export const selectReadingPlanProgressState = (
 
 export const selectError = (state: RootState): boolean =>
   state.readingPlan.hasError;
+
+export const selectIsLoading = (state: RootState): boolean =>
+  state.readingPlan.isLoading;
 
 export const readingPlanReducer = readingPlanSlice.reducer;

@@ -11,6 +11,7 @@ type Props = {
 interface Style {
   screen: ViewStyle;
   scrollView: ViewStyle;
+  loadingContainer: ViewStyle;
   title: TextStyle;
   dayContent: ViewStyle;
   dayTitle: TextStyle;
@@ -38,6 +39,10 @@ export const styles = ({ theme }: Props): Style =>
     },
     scrollView: {
       backgroundColor: theme.dark ? colors.darkGrey : colors.grey0,
+    },
+    loadingContainer: {
+      flexGrow: 1,
+      marginVertical: spacing.extraExtraLarge,
     },
     title: {
       ...header1,
