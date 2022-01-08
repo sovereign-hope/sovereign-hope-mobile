@@ -101,10 +101,6 @@ export const WeekendView: React.FunctionComponent<Props> = ({
         />
         <Text style={themedStyles.title}>Weekly Review</Text>
       </View>
-      <Text style={themedStyles.bodyText}>
-        Use this time to review the weekly reading and catch up on any missed
-        days.
-      </Text>
       {shouldShowLoadingIndicator ? (
         <View style={themedStyles.loadingContainer}>
           <ActivityIndicator size="large" color={theme.colors.text} />

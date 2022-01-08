@@ -17,6 +17,13 @@ interface Style {
   title: TextStyle;
   content: ViewStyle;
   bodyText: TextStyle;
+  memoryText: TextStyle;
+  memoryQuestionHeader: TextStyle;
+  memoryQuestionSubHeader: TextStyle;
+  memoryQuestion: TextStyle;
+  footer: ViewStyle;
+  footerRow: ViewStyle;
+  footerButton: ViewStyle;
   whiteText: TextStyle;
   spacer: ViewStyle;
 }
@@ -56,6 +63,38 @@ export const styles = ({ theme }: Props): Style =>
     bodyText: {
       color: theme.dark ? colors.white : colors.darkGrey,
       padding: spacing.large,
+    },
+    memoryQuestionHeader: {
+      ...header2,
+      margin: spacing.medium,
+      color: theme.colors.text,
+    },
+    memoryQuestionSubHeader: {
+      fontWeight: "bold",
+      marginHorizontal: spacing.large,
+      marginVertical: spacing.small,
+      color: theme.colors.text,
+    },
+    memoryQuestion: {
+      marginVertical: spacing.small,
+      marginHorizontal: spacing.large,
+      color: theme.colors.text,
+    },
+    memoryText: {
+      color: colors.white,
+    },
+    footer: {
+      padding: spacing.medium,
+      justifyContent: "flex-end",
+      backgroundColor: theme.colors.background,
+    },
+    footerRow: {
+      flex: 1,
+      flexDirection: "row",
+    },
+    footerButton: {
+      flex: 1,
+      marginBottom: spacing.medium,
     },
     whiteText: {
       color: colors.white,

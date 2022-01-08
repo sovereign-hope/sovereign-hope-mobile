@@ -179,120 +179,120 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
         contentContainerStyle={{ flexGrow: 1 }}
       >
         <Text style={themedStyles.title}>{formatedDate}</Text>
-        {isEndOfWeek ? (
-          <WeekendView onRowPress={handleWeekendRowPress} />
-        ) : shouldShowLoadingIndicator ? (
-          <View style={themedStyles.loadingContainer}>
-            <ActivityIndicator size="large" color={theme.colors.text} />
-          </View>
-        ) : (
-          <>
-            <View style={themedStyles.dayContent}>
-              <View style={themedStyles.dayReadingContainer}>
-                <View style={themedStyles.dayReadingColumnPrimary}>
-                  <Ionicons
-                    name="document-text"
-                    color={colors.white}
-                    style={themedStyles.dayTitleIcon}
-                  />
-                  <View style={themedStyles.dayTitle}>
-                    <Text
-                      style={{
-                        ...themedStyles.dayReadingHeader,
-                        ...themedStyles.whiteText,
-                      }}
-                    >
-                      Reading
-                    </Text>
-                    {readingPlanDay?.reading.map((reading) => (
-                      <Text key={reading} style={themedStyles.whiteText}>
-                        {reading}
-                      </Text>
-                    ))}
-                  </View>
-                </View>
-                <View style={themedStyles.dayReadingColumnSecondary}>
-                  <Ionicons
-                    name="heart-half"
-                    color={colors.white}
-                    style={themedStyles.dayTitleIcon}
-                  />
-                  <View style={themedStyles.dayTitle}>
-                    <Text style={themedStyles.dayReadingHeader}>Memory</Text>
-                    <Text
-                      key={readingPlanDay?.memory.passage}
-                      style={themedStyles.memoryText}
-                    >
-                      {readingPlanDay?.memory.passage}
-                    </Text>
-                    <View style={themedStyles.spacer} />
-                  </View>
-                </View>
-              </View>
-              <Text style={themedStyles.memoryQuestionHeader}>
-                Questions for Study
-              </Text>
-              <Text style={themedStyles.memoryQuestionSubHeader}>Look Up</Text>
-              <Text style={themedStyles.memoryQuestion}>
-                What does this passage teach us about the Triune God, his
-                character, and his plan to save us in the gospel?
-              </Text>
-              <Text style={themedStyles.memoryQuestionSubHeader}>Look In</Text>
-              <Text style={themedStyles.memoryQuestion}>
-                What does this passage teach us about our own hearts and lives,
-                and the world we live in?
-              </Text>
-              <Text style={themedStyles.memoryQuestionSubHeader}>Look Out</Text>
-              <Text style={themedStyles.memoryQuestion}>
-                How does this passage influence the way we should act and think
-                as Christians at home, at work, in relationships or as the
-                church?
-              </Text>
-
-              <Text style={themedStyles.memoryQuestionHeader}>
-                Thoughts for Reflection
-              </Text>
-              <Text style={themedStyles.memoryQuestion}>
-                Write down one way this passage can influence our emotions and
-                prayer life and be sure to set aside time to pray for that
-                today.
-              </Text>
-              <View style={themedStyles.spacer} />
+        <View style={themedStyles.dayContent}>
+          {isEndOfWeek ? (
+            <WeekendView onRowPress={handleWeekendRowPress} />
+          ) : shouldShowLoadingIndicator ? (
+            <View style={themedStyles.loadingContainer}>
+              <ActivityIndicator size="large" color={theme.colors.text} />
             </View>
-            <View style={themedStyles.footer}>
-              <View style={themedStyles.footerRow}>
-                <FlatButton
-                  title="Read"
-                  onPress={handleReadPress}
-                  style={{
-                    ...themedStyles.footerButton,
-                    marginRight: spacing.medium,
-                    backgroundColor: colors.blue,
-                  }}
+          ) : (
+            <View style={themedStyles.dayReadingContainer}>
+              <View style={themedStyles.dayReadingColumnPrimary}>
+                <Ionicons
+                  name="document-text"
+                  color={colors.white}
+                  style={themedStyles.dayTitleIcon}
                 />
-                <FlatButton
-                  title="Memorize"
-                  onPress={handlePracticePress}
-                  style={{
-                    ...themedStyles.footerButton,
-                    backgroundColor: colors.blue,
-                  }}
-                />
+                <View style={themedStyles.dayTitle}>
+                  <Text
+                    style={{
+                      ...themedStyles.dayReadingHeader,
+                      ...themedStyles.whiteText,
+                    }}
+                  >
+                    Reading
+                  </Text>
+                  {readingPlanDay?.reading.map((reading) => (
+                    <Text key={reading} style={themedStyles.whiteText}>
+                      {reading}
+                    </Text>
+                  ))}
+                </View>
               </View>
+              <View style={themedStyles.dayReadingColumnSecondary}>
+                <Ionicons
+                  name="heart-half"
+                  color={colors.white}
+                  style={themedStyles.dayTitleIcon}
+                />
+                <View style={themedStyles.dayTitle}>
+                  <Text style={themedStyles.dayReadingHeader}>Memory</Text>
+                  <Text
+                    key={readingPlanDay?.memory.passage}
+                    style={themedStyles.memoryText}
+                  >
+                    {readingPlanDay?.memory.passage}
+                  </Text>
+                  <View style={themedStyles.spacer} />
+                </View>
+              </View>
+            </View>
+          )}
+          <Text style={themedStyles.memoryQuestionHeader}>
+            Questions for Study
+          </Text>
+          <Text style={themedStyles.memoryQuestionSubHeader}>Look Up</Text>
+          <Text style={themedStyles.memoryQuestion}>
+            What does this passage teach us about the Triune God, his character,
+            and his plan to save us in the gospel?
+          </Text>
+          <Text style={themedStyles.memoryQuestionSubHeader}>Look In</Text>
+          <Text style={themedStyles.memoryQuestion}>
+            What does this passage teach us about our own hearts and lives, and
+            the world we live in?
+          </Text>
+          <Text style={themedStyles.memoryQuestionSubHeader}>Look Out</Text>
+          <Text style={themedStyles.memoryQuestion}>
+            How does this passage influence the way we should act and think as
+            Christians at home, at work, in relationships or as the church?
+          </Text>
+
+          <Text style={themedStyles.memoryQuestionHeader}>
+            Thoughts for Reflection
+          </Text>
+          <Text style={themedStyles.memoryQuestion}>
+            Write down one way this passage can influence our emotions and
+            prayer life and be sure to set aside time to pray for that today.
+          </Text>
+          <View style={themedStyles.spacer} />
+        </View>
+        <View style={themedStyles.footer}>
+          <View style={themedStyles.footerRow}>
+            {!isEndOfWeek && (
               <FlatButton
-                title={
-                  readingPlanDayProgress ? "Day completed!" : "Mark as complete"
-                }
-                onPress={() => handleCompleteDay(!readingPlanDayProgress)}
+                title="Read"
+                onPress={handleReadPress}
                 style={{
-                  backgroundColor: readingPlanDayProgress
-                    ? colors.green
-                    : colors.accent,
+                  ...themedStyles.footerButton,
+                  marginRight: spacing.medium,
+                  backgroundColor: colors.blue,
                 }}
               />
-            </View>
-          </>
-        )}
+            )}
+            <FlatButton
+              title="Memorize"
+              onPress={handlePracticePress}
+              style={{
+                ...themedStyles.footerButton,
+                backgroundColor: colors.blue,
+              }}
+            />
+          </View>
+          {!isEndOfWeek && (
+            <FlatButton
+              title={
+                readingPlanDayProgress ? "Day completed!" : "Mark as complete"
+              }
+              onPress={() => handleCompleteDay(!readingPlanDayProgress)}
+              style={{
+                backgroundColor: readingPlanDayProgress
+                  ? colors.green
+                  : colors.accent,
+              }}
+            />
+          )}
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
