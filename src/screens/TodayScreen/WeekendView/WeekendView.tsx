@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Animated,
   AppState,
   AppStateStatus,
   Text,
@@ -16,11 +17,45 @@ import {
   ReadingPlanDay,
   selectWeekReadingPlan,
   selectWeeklyReadingPlanProgress,
-  selectIsLoading,
 } from "src/redux/readingPlanSlice";
-import { colors } from "src/style/colors";
 import { styles } from "./WeekendView.styles";
 import { ReadingPlanListItem } from "../../ReadingPlanScreen/ReadingPlanScreen";
+
+interface ReviewListProps {
+  listData: Array<ReadingPlanDay>;
+  onRowPress: (
+    item: ReadingPlanDay,
+    onCompleteDay: (isComplete: boolean) => void
+  ) => void;
+}
+
+const ReviewList: React.FunctionComponent<ReviewListProps> = ({
+  listData,
+  onRowPress,
+}: ReviewListProps) => {
+  const animation = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.timing(animation, {
+      toValue: 1,
+      duration: 500,
+      useNativeDriver: true,
+    }).start();
+  }, []);
+
+  return (
+    <Animated.View style={{ opacity: animation }}>
+      {listData.map((item: ReadingPlanDay, index: number) => (
+        <ReadingPlanListItem
+          item={item}
+          key={item.reading.toString() ?? 0}
+          index={index}
+          handleRowPress={onRowPress}
+        />
+      ))}
+    </Animated.View>
+  );
+};
 
 interface Props {
   onRowPress: (
@@ -38,7 +73,6 @@ export const WeekendView: React.FunctionComponent<Props> = ({
   const readlingPlanWeekProgress = useAppSelector(
     selectWeeklyReadingPlanProgress
   );
-  const isLoading = useAppSelector(selectIsLoading);
   const theme = useTheme();
 
   // Ref Hooks
@@ -89,15 +123,15 @@ export const WeekendView: React.FunctionComponent<Props> = ({
 
   // Constants
   const themedStyles = styles({ theme });
-  const shouldShowLoadingIndicator = isLoading && readingPlanWeek === undefined;
+  const shouldShowLoadingIndicator = listData.length === 0;
 
   return (
     <View style={themedStyles.content}>
       <View style={themedStyles.header}>
         <Ionicons
           name="play-back"
-          color={colors.white}
           style={themedStyles.headerIcon}
+          color={theme.colors.text}
         />
         <Text style={themedStyles.title}>Weekly Review</Text>
       </View>
@@ -106,14 +140,7 @@ export const WeekendView: React.FunctionComponent<Props> = ({
           <ActivityIndicator size="large" color={theme.colors.text} />
         </View>
       ) : (
-        listData.map((item: ReadingPlanDay, index: number) => (
-          <ReadingPlanListItem
-            item={item}
-            key={item.reading.toString() ?? 0}
-            index={index}
-            handleRowPress={onRowPress}
-          />
-        ))
+        <ReviewList listData={listData} onRowPress={onRowPress} />
       )}
       <View style={themedStyles.spacer} />
     </View>
