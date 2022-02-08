@@ -45,26 +45,25 @@ export const getPassageText = createAsyncThunk(
   }) => {
     try {
       const { book, startChapter, startVerse, endChapter, endVerse } = passage;
-
       const startVerseString =
         !startVerse || Object.is(startVerse, Number.NaN)
-          ? ""
+          ? ".1"
           : `.${startVerse.toString()}`;
       const endVerseString =
         !endVerse || Object.is(endVerse, Number.NaN)
           ? ""
           : `.${endVerse.toString()}`;
+
+      const query = `${book}${
+        Object.is(startChapter, Number.NaN) ? "" : startChapter
+      }${startVerseString}${Object.is(startChapter, Number.NaN) ? "" : "-"}${
+        Object.is(endChapter, Number.NaN) ||
+        (endChapter === startChapter && endVerseString === "")
+          ? ""
+          : endChapter
+      }${endVerseString}`;
       const response = await axios.get(
-        routes.passageText(
-          `${book}${
-            Object.is(startChapter, Number.NaN) ? "" : startChapter
-          }${startVerseString}${
-            Object.is(startChapter, Number.NaN) ? "" : "-"
-          }${
-            Object.is(endChapter, Number.NaN) ? "" : endChapter
-          }${endVerseString}`,
-          includeFootnotes
-        )
+        routes.passageText(query, includeFootnotes)
       );
       return response.data as EsvResponse;
     } catch (error) {
