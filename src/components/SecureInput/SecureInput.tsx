@@ -22,7 +22,7 @@ export const SecureInput: React.ForwardRefExoticComponent<
         onChangeText={onChangeText}
         value={value}
         placeholder={placeholderMessage}
-        autoCompleteType="password"
+        autoComplete="password"
         secureTextEntry
         autoCapitalize="none"
         autoCorrect={false}

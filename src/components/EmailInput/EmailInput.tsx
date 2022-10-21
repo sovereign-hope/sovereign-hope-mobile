@@ -24,7 +24,7 @@ export const EmailInput: React.FunctionComponent<Props> = ({
       onChangeText={onChangeText}
       value={value}
       placeholder={placeholderMessage}
-      autoCompleteType="email"
+      autoComplete="email"
       autoCapitalize="none"
       autoCorrect={false}
       autoFocus

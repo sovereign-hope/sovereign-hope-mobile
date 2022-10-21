@@ -8,3 +8,4 @@ coverage
 .eslintrc.js
 babel.config.js
 app.config.js
+metro.config.js

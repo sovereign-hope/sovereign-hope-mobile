@@ -15,7 +15,7 @@ import { ReadScreen } from "../ReadScreen/ReadScreen";
 // React Navigation configuration
 enableScreens();
 const Stack = createNativeStackNavigator<RootStackParamList>();
-const Tab = createBottomTabNavigator();
+const Tab = createBottomTabNavigator<RootStackParamList>();
 
 const HomeScreen = (): JSX.Element => (
   <Tab.Navigator>
