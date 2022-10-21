@@ -99,7 +99,7 @@ export const parsePassageString = (
 
   const range =
     splitPassage.length > 2 ? thirdToken?.split("-") : secondToken?.split("-");
-  if (range.length === 0) {
+  if (!range || range.length === 0) {
     return {
       book,
       startChapter: "",

@@ -1,7 +1,7 @@
-import React, { useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import axios from "axios";
 import * as Font from "expo-font";
-import AppLoading from "expo-app-loading";
+import * as SplashScreen from "expo-splash-screen";
 import { Alert } from "react-native";
 import { useColorScheme } from "src/hooks/useColorScheme";
 import { Ionicons } from "@expo/vector-icons";
@@ -11,7 +11,12 @@ import { initializeApp, FirebaseApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 import { RootScreen } from "src/screens/RootScreen/RootScreen";
 import { StatusBar } from "expo-status-bar";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 import * as Sentry from "sentry-expo";
+
+// Keep the splash screen visible while we fetch resources
+// eslint-disable-next-line @typescript-eslint/no-floating-promises
+SplashScreen.preventAutoHideAsync();
 
 Sentry.init({
   dsn: "https://dbde8c51f1c9466a8b8544f44558518e@o1095845.ingest.sentry.io/6115782",
@@ -56,22 +61,46 @@ const App = (): JSX.Element => {
   const [isReady, updateIsReady] = useState(false);
   const colorScheme = useColorScheme();
 
+  useEffect(() => {
+    async function prepare() {
+      try {
+        await appLoading();
+      } catch (error) {
+        console.warn(error);
+        showErrorAlert();
+      } finally {
+        // Tell the application to render
+        updateIsReady(true);
+      }
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-floating-promises
+    prepare();
+  }, []);
+
+  const onLayoutRootView = useCallback(async () => {
+    if (isReady) {
+      // This tells the splash screen to hide immediately! If we call this after
+      // `setAppIsReady`, then we may see a blank screen while the app is
+      // loading its initial state and rendering its first pixels. So instead,
+      // we hide the splash screen once we know the root view has already
+      // performed layout.
+      await SplashScreen.hideAsync();
+    }
+  }, [isReady]);
+
+  if (!isReady) {
+    return <></>;
+  }
+
   // Effect hooks
   return (
-    <>
+    <GestureHandlerRootView style={{ flex: 1 }} onLayout={onLayoutRootView}>
       <StatusBar style={colorScheme === "dark" ? "light" : "dark"} />
-      {!isReady ? (
-        <AppLoading
-          startAsync={appLoading}
-          onFinish={() => updateIsReady(true)}
-          onError={showErrorAlert}
-        />
-      ) : (
-        <StoreProvider store={store}>
-          <RootScreen />
-        </StoreProvider>
-      )}
-    </>
+      <StoreProvider store={store}>
+        <RootScreen />
+      </StoreProvider>
+    </GestureHandlerRootView>
   );
 };
 

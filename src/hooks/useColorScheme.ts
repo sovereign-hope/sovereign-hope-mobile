@@ -3,15 +3,18 @@ import { useEffect, useRef, useState } from "react";
 
 export const useColorScheme = (delay = 500): NonNullable<ColorSchemeName> => {
   const [colorScheme, setColorScheme] = useState(Appearance.getColorScheme());
+  const [listener, setListener] =
+    useState<ReturnType<typeof Appearance.addChangeListener>>();
 
   let timeout = useRef<NodeJS.Timeout | null>(null).current;
 
   useEffect(() => {
-    Appearance.addChangeListener(onColorSchemeChange);
+    setListener(Appearance.addChangeListener(onColorSchemeChange));
 
     return () => {
       resetCurrentTimeout();
-      Appearance.removeChangeListener(onColorSchemeChange);
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+      listener?.remove();
     };
   }, []);
 
