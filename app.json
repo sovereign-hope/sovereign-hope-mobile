@@ -2,7 +2,7 @@
   "expo": {
     "name": "Sov Hope",
     "slug": "sovereign-hope-mobile",
-    "version": "1.1.3",
+    "version": "2.0.0",
     "owner": "sovereign-hope",
     "githubUrl": "https://github.com/sovereign-hope/sovereign-hope-mobile",
     "primaryColor": "#1F1F1F",
@@ -11,6 +11,11 @@
     "scheme": "sovereign-hope",
     "updates": {
       "fallbackToCacheTimeout": 0
+    },
+    "extra": {
+      "eas": {
+        "projectId": "7b973a81-c8d2-47ec-94f3-1b9114626fe9"
+      }
     },
     "assetBundlePatterns": ["**/*"],
     "userInterfaceStyle": "automatic",
