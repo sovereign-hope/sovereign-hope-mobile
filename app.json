@@ -51,6 +51,16 @@
       "userInterfaceStyle": "automatic"
     },
     "locales": {},
-    "plugins": ["sentry-expo"]
+    "plugins": [
+      "sentry-expo",
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "useFrameworks": "static"
+          }
+        }
+      ]
+    ]
   }
 }
