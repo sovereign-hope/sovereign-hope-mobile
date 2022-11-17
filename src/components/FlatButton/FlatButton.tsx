@@ -31,6 +31,7 @@ export const FlatButton: React.FunctionComponent<ButtonProps> = ({
         ...style,
         opacity: pressed || disabled ? 0.6 : 1,
       })}
+      accessibilityRole="button"
       onPress={onPress}
       disabled={disabled}
     >

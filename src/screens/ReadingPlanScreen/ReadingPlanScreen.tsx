@@ -1,3 +1,5 @@
+/* eslint-disable react/prop-types */
+// Disabling this because of weird behavior with the react/prop-types rule in this file. It isn't recognizing navigation
 import React, { useEffect, useRef, useState } from "react";
 import { Pressable, SectionList, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -26,7 +28,10 @@ import {
 import { spacing } from "src/style/layout";
 import { styles } from "./ReadingPlanScreen.styles";
 
-type Props = NativeStackScreenProps<RootStackParamList, "Reading Plan">;
+type ReadingPlanProps = NativeStackScreenProps<
+  RootStackParamList,
+  "Reading Plan"
+>;
 
 export const ReadingPlanListItem: React.FunctionComponent<{
   item: ReadingPlanDay;
@@ -137,9 +142,9 @@ export const ReadingPlanListItem: React.FunctionComponent<{
   );
 };
 
-export const ReadingPlanScreen: React.FunctionComponent<Props> = ({
+export const ReadingPlanScreen: React.FunctionComponent<ReadingPlanProps> = ({
   navigation,
-}: Props) => {
+}: ReadingPlanProps) => {
   // Custom hooks
   const dispatch = useDispatch();
   const readingPlan = useAppSelector(selectReadingPlan);
@@ -281,3 +286,5 @@ export const ReadingPlanScreen: React.FunctionComponent<Props> = ({
     </SafeAreaView>
   );
 };
+
+/* eslint-enable react/prop-types */

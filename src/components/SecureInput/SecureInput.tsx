@@ -11,25 +11,26 @@ interface Props extends TextInputProps {
 
 export const SecureInput: React.ForwardRefExoticComponent<
   Props & React.RefAttributes<TextInput>
-> = React.forwardRef<TextInput, Props>(
-  ({ onChangeText, value, placeholderMessage, ...rest }: Props, ref) => {
-    const theme = useTheme();
-    const themedStyles = styles({ theme });
+> = React.forwardRef<TextInput, Props>(function SecureInput(
+  { onChangeText, value, placeholderMessage, ...rest }: Props,
+  ref
+) {
+  const theme = useTheme();
+  const themedStyles = styles({ theme });
 
-    return (
-      <TextInput
-        style={themedStyles.input}
-        onChangeText={onChangeText}
-        value={value}
-        placeholder={placeholderMessage}
-        autoComplete="password"
-        secureTextEntry
-        autoCapitalize="none"
-        autoCorrect={false}
-        ref={ref}
-        // eslint-disable-next-line react/jsx-props-no-spreading
-        {...rest}
-      />
-    );
-  }
-);
+  return (
+    <TextInput
+      style={themedStyles.input}
+      onChangeText={onChangeText}
+      value={value}
+      placeholder={placeholderMessage}
+      autoComplete="password"
+      secureTextEntry
+      autoCapitalize="none"
+      autoCorrect={false}
+      ref={ref}
+      // eslint-disable-next-line react/jsx-props-no-spreading
+      {...rest}
+    />
+  );
+});

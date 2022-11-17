@@ -95,7 +95,12 @@ const App = (): JSX.Element => {
 
   // Effect hooks
   return (
-    <GestureHandlerRootView style={{ flex: 1 }} onLayout={onLayoutRootView}>
+    <GestureHandlerRootView
+      style={{ flex: 1 }}
+      onLayout={() => {
+        void onLayoutRootView();
+      }}
+    >
       <StatusBar style={colorScheme === "dark" ? "light" : "dark"} />
       <StoreProvider store={store}>
         <RootScreen />

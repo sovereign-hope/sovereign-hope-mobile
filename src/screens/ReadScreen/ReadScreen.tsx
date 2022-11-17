@@ -114,6 +114,7 @@ const ReadScrollView: React.FunctionComponent<ReadScrollViewProps> = ({
       <View style={themedStyles.spacer} />
       {showMemoryButton && (
         <Pressable
+          accessibilityRole="button"
           onPressIn={() => {
             setIsPressingHideButton(true);
             Animated.timing(animation, {

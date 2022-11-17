@@ -33,6 +33,7 @@ jest.mock("react-native-screens", () => {
 });
 
 jest.mock("@react-navigation/native/lib/commonjs/useLinking.native", () => ({
+  // eslint-disable-next-line unicorn/no-thenable
   default: () => ({ getInitialState: { then: jest.fn() } }),
   __esModule: true,
 }));
