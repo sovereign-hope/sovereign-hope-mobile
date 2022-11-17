@@ -76,6 +76,7 @@ export const ReadingPlanListItem: React.FunctionComponent<{
   return (
     <Pressable
       onPress={() => handleRowPress(item, handleCompleteDay)}
+      accessibilityRole="button"
       style={({ pressed }) => ({
         backgroundColor: pressed ? theme.colors.background : theme.colors.card,
       })}
@@ -211,6 +212,7 @@ export const ReadingPlanScreen: React.FunctionComponent<Props> = ({
           style={{
             marginRight: spacing.large,
           }}
+          accessibilityRole="button"
           onPress={() => {
             if (scrollViewRef.current) {
               scrollViewRef.current.scrollToLocation({

@@ -8,4 +8,6 @@ export type RootStackParamList = {
     passages: Array<Passage>;
     onComplete: () => void;
   };
+  Settings: undefined;
+  SettingsView: undefined;
 };

@@ -11,14 +11,61 @@ import { RootStackParamList } from "src/navigation/RootNavigator";
 import { colors } from "src/style/colors";
 import { TodayScreen } from "../TodayScreen/TodayScreen";
 import { ReadScreen } from "../ReadScreen/ReadScreen";
+import { SettingsScreen } from "../SettingsScreen/SettingsScreen";
 
 // React Navigation configuration
 enableScreens();
 const Stack = createNativeStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator<RootStackParamList>();
 
+const SettingsStack = (): JSX.Element => {
+  const colorScheme = useColorScheme();
+
+  return (
+    <Stack.Navigator
+      screenOptions={{
+        headerTintColor: colors.accent,
+        headerShadowVisible: false,
+        headerLargeTitle: true,
+        headerTitleStyle: {
+          color:
+            colorScheme === "dark"
+              ? darkTheme.colors.text
+              : lightTheme.colors.text,
+        },
+      }}
+    >
+      <Stack.Screen name="SettingsView" component={SettingsScreen} />
+    </Stack.Navigator>
+  );
+};
+
 const HomeScreen = (): JSX.Element => (
-  <Tab.Navigator>
+  <Tab.Navigator initialRouteName="Today">
+    <Tab.Screen
+      name="Settings"
+      component={SettingsStack}
+      options={{
+        lazy: false,
+        headerShown: false,
+        // eslint-disable-next-line react/display-name
+        tabBarIcon: ({
+          focused,
+          color,
+          size,
+        }: {
+          focused: boolean;
+          color: string;
+          size: number;
+        }) => (
+          <Ionicons
+            name="ios-cog"
+            size={size}
+            color={focused ? colors.accent : color}
+          />
+        ),
+      }}
+    />
     <Tab.Screen
       name="Today"
       component={TodayScreen}

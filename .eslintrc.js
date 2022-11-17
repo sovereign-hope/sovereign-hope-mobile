@@ -2,6 +2,7 @@ module.exports = {
   plugins: [
     "@typescript-eslint",
     "eslint-comments",
+    "import",
     "jest",
     "promise",
     "unicorn",
@@ -33,6 +34,9 @@ module.exports = {
       node: {
         extensions: [".ts", ".tsx", ".js"],
       },
+    },
+    react: {
+      version: "detect",
     },
   },
   rules: {
