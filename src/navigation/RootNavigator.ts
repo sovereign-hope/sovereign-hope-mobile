@@ -10,4 +10,6 @@ export type RootStackParamList = {
   };
   Settings: undefined;
   SettingsView: undefined;
+  Podcast: undefined;
+  PodcastView: undefined;
 };

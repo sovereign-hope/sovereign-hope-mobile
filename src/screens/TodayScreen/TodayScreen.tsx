@@ -15,7 +15,6 @@ import { RootStackParamList } from "src/navigation/RootNavigator";
 import { useTheme } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
-import * as Notifications from "expo-notifications";
 import {
   getReadingPlan,
   selectDailyReadingPlanProgress,

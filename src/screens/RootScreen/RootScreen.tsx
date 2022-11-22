@@ -12,6 +12,7 @@ import { colors } from "src/style/colors";
 import { TodayScreen } from "../TodayScreen/TodayScreen";
 import { ReadScreen } from "../ReadScreen/ReadScreen";
 import { SettingsScreen } from "../SettingsScreen/SettingsScreen";
+import { PodcastScreen } from "../PodcastScreen/PodcastScreen";
 
 // React Navigation configuration
 enableScreens();
@@ -35,7 +36,29 @@ const SettingsStack = (): JSX.Element => {
         },
       }}
     >
-      <Stack.Screen name="SettingsView" component={SettingsScreen} />
+      <Stack.Screen name="Settings" component={SettingsScreen} />
+    </Stack.Navigator>
+  );
+};
+
+const PodcastStack = (): JSX.Element => {
+  const colorScheme = useColorScheme();
+
+  return (
+    <Stack.Navigator
+      screenOptions={{
+        headerTintColor: colors.accent,
+        headerShadowVisible: false,
+        headerLargeTitle: true,
+        headerTitleStyle: {
+          color:
+            colorScheme === "dark"
+              ? darkTheme.colors.text
+              : lightTheme.colors.text,
+        },
+      }}
+    >
+      <Stack.Screen name="Podcast" component={PodcastScreen} />
     </Stack.Navigator>
   );
 };
@@ -106,6 +129,30 @@ const HomeScreen = (): JSX.Element => (
         }) => (
           <Ionicons
             name="ios-book"
+            size={size}
+            color={focused ? colors.accent : color}
+          />
+        ),
+      }}
+    />
+    <Tab.Screen
+      name="Podcast"
+      component={PodcastStack}
+      options={{
+        lazy: false,
+        headerShown: false,
+        // eslint-disable-next-line react/display-name
+        tabBarIcon: ({
+          focused,
+          color,
+          size,
+        }: {
+          focused: boolean;
+          color: string;
+          size: number;
+        }) => (
+          <Ionicons
+            name="ios-logo-rss"
             size={size}
             color={focused ? colors.accent : color}
           />

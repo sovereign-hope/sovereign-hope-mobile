@@ -19,7 +19,7 @@ import { styles } from "./SettingsScreen.styles";
 import { ScrollView } from "react-native-gesture-handler";
 import DateTimePickerModal from "react-native-modal-datetime-picker";
 
-type Props = NativeStackScreenProps<RootStackParamList, "SettingsView">;
+type Props = NativeStackScreenProps<RootStackParamList, "Settings">;
 
 export const SettingsScreen: React.FunctionComponent<Props> = ({}: Props) => {
   // Custom hooks
