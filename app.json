@@ -2,7 +2,7 @@
   "expo": {
     "name": "Sov Hope",
     "slug": "sovereign-hope-mobile",
-    "version": "3.0.0",
+    "version": "3.0.1",
     "owner": "sovereign-hope",
     "githubUrl": "https://github.com/sovereign-hope/sovereign-hope-mobile",
     "primaryColor": "#1F1F1F",
@@ -21,7 +21,7 @@
     "userInterfaceStyle": "automatic",
     "ios": {
       "bundleIdentifier": "com.sovereign-hope.sovereign-hope-mobile",
-      "buildNumber": "8",
+      "buildNumber": "9",
       "splash": {
         "image": "./assets/splash-ios.png",
         "resizeMode": "cover",
@@ -37,7 +37,7 @@
     },
     "android": {
       "package": "com.sovereign_hope.sovereign_hope",
-      "versionCode": 8,
+      "versionCode": 9,
       "jsEngine": "hermes",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
@@ -62,7 +62,7 @@
           },
           "android": {
             "compileSdkVersion": 33,
-            "targetSdkVersion": 33
+            "targetSdkVersion": 31
           }
         }
       ],
