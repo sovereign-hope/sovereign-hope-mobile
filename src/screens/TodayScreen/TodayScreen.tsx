@@ -25,6 +25,7 @@ import {
   selectReadingPlanProgressState,
   ReadingPlanDay,
   selectIsLoading,
+  selectReadingPlan,
 } from "src/redux/readingPlanSlice";
 import { colors } from "src/style/colors";
 import { FlatButton } from "src/components";
@@ -44,6 +45,7 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
   const readingPlanDayProgress = useAppSelector(selectDailyReadingPlanProgress);
   const readingPlanProgress = useAppSelector(selectReadingPlanProgressState);
   const isLoading = useAppSelector(selectIsLoading);
+  const readingPlan = useAppSelector(selectReadingPlan);
   const theme = useTheme();
 
   // Ref Hooks
@@ -169,7 +171,8 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
   const date = new Date();
   const formatedDate = date.toLocaleDateString("en-US", dateOptions);
   const currentDayIndex = getDayInWeek() - 1;
-  const isEndOfWeek = currentDayIndex > 4;
+  const readingsPerWeek = readingPlan?.weeks[0].days.length ?? 5;
+  const isEndOfWeek = currentDayIndex > readingsPerWeek - 1;
   const shouldShowLoadingIndicator = isLoading && readingPlanDay === undefined;
 
   return (

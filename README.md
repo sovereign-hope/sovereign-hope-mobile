@@ -316,5 +316,3 @@ The release process should proceed as follows:
 [Accessiblity]()
 
 [React Native Performance]()
-
-[Sovereign Hope's Mobile Framework Exploration from 2021 (why we chose RN vs. Native vs. Flutter)](https://docs.google.com/document/d/1GuF-BajGPTWwt-iRXH-1TvLcBBYCBj-fV-FeI8myR_4/edit?usp=sharing)

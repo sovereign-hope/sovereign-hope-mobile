@@ -169,10 +169,11 @@ export const ReadingPlanScreen: React.FunctionComponent<ReadingPlanProps> = ({
 
   useEffect(() => {
     if (readingPlan) {
+      const currentYear = new Date().getFullYear();
       const data = readingPlan.weeks.map(
         (week: ReadingPlanWeek, weekIndex: number) => ({
           title: `Week ${weekIndex + 1} - ${weekDateToDate(
-            2021,
+            currentYear,
             weekIndex + 1,
             1
           )}`,
