@@ -1,8 +1,7 @@
-name: Create Production Release
+name: Create Release
 on:
   push:
-    tags:
-      - "v[0-9]+.[0-9]+.[0-9]+" # Push events to matching v*, i.e.v20.15.10
+    branch: main
 jobs:
   quality-check:
     name: Lint & Test
@@ -19,11 +18,10 @@ jobs:
       - name: Lint
         run: yarn lint
   deploy_prod:
-    name: Deploy To Production Release Channel
+    name: Stage Expo Updates
     needs: quality-check
     runs-on: ubuntu-latest
     outputs:
-      releaseChannel: ${{ steps.releaseChannel.outputs.releaseChannel }}
       latestBinaryVersion: ${{ steps.latestBinaryVersion.outputs.version }}
       isMajorRelease: ${{ steps.determineMajorRelease.outputs.isMajorRelease }}
     steps:
@@ -43,42 +41,41 @@ jobs:
           eas-cache: true
           eas-version: latest
           token: ${{ secrets.EXPO_TOKEN }}
-      - uses: rlespinasse/github-slug-action@v3.x
-      - name: Generate Release Channel # Release Channels are named v<Major Release>, i.e. v1, v3
-        id: releaseChannel
-        run: |
-          RELEASE_CHANNEL=prod-$(echo ${{ env.GITHUB_REF_SLUG }} | sed -E 's/\.[0-9]+\.[0-9]+$//')
-          echo "::set-output name=releaseChannel::$RELEASE_CHANNEL"
-      - name: Get previous release tag
-        id: previous-release
-        uses: sammcoe/get-previous-release-action@v1.0.3
-      - name: Determine whether there was a major version bump
-        id: determineMajorRelease
-        run: |
-          PREVIOUS_RELEASE_CHANNEL=prod-$(echo ${{ steps.previous-release.outputs.tag }} | sed -E 's/\.[0-9]+\.[0-9]+$//')
-          [ ${PREVIOUS_RELEASE_CHANNEL} != ${{ steps.releaseChannel.outputs.releaseChannel }} ] && IS_MAJOR_RELEASE=1 || IS_MAJOR_RELEASE=0
-          echo Previous release channel was $PREVIOUS_RELEASE_CHANNEL
-          echo Current release channel is ${{ steps.releaseChannel.outputs.releaseChannel }}
-          [ ${IS_MAJOR_RELEASE} -eq 1 ] && echo This is a major release, binaries will be built || echo This is not a major release, binaries will not be built
-          echo "::set-output name=isMajorRelease::$IS_MAJOR_RELEASE"
+      # - uses: rlespinasse/github-slug-action@v3.x
+      # - name: Generate Release Channel # Release Channels are named v<Major Release>, i.e. v1, v3
+      #   id: releaseChannel
+      #   run: |
+      #     RELEASE_CHANNEL=prod-$(echo ${{ env.GITHUB_REF_SLUG }} | sed -E 's/\.[0-9]+\.[0-9]+$//')
+      #     echo "::set-output name=releaseChannel::$RELEASE_CHANNEL"
+      # - name: Get previous release tag
+      #   id: previous-release
+      #   uses: sammcoe/get-previous-release-action@v1.0.3
+      # - name: Determine whether there was a major version bump
+      #   id: determineMajorRelease
+      #   run: |
+      #     PREVIOUS_RELEASE_CHANNEL=prod-$(echo ${{ steps.previous-release.outputs.tag }} | sed -E 's/\.[0-9]+\.[0-9]+$//')
+      #     [ ${PREVIOUS_RELEASE_CHANNEL} != ${{ steps.releaseChannel.outputs.releaseChannel }} ] && IS_MAJOR_RELEASE=1 || IS_MAJOR_RELEASE=0
+      #     echo Previous release channel was $PREVIOUS_RELEASE_CHANNEL
+      #     echo Current release channel is ${{ steps.releaseChannel.outputs.releaseChannel }}
+      #     [ ${IS_MAJOR_RELEASE} -eq 1 ] && echo This is a major release, binaries will be built || echo This is not a major release, binaries will not be built
+      #     echo "::set-output name=isMajorRelease::$IS_MAJOR_RELEASE"
       - name: Install Packages
         run: yarn install
-      - name: Get Latest Binary Version # Binary Version will be x.x.x based on the latest tag
-        id: latestBinaryVersion
-        run: |
-          # Release tag finds the lastest tag in the tree branch - i.e. prod-x.x.x
-          RELEASE_TAG=$(echo $(git describe --tags --abbrev=0))
-          # Using param substitution, we output x.x.x instead
-          echo "::set-output name=version::${RELEASE_TAG#*-}"
-      - name: Echo Version Details
-        run: |
-          echo Build number is $GITHUB_RUN_NUMBER
-          echo Latest release is ${{ steps.latestBinaryVersion.outputs.version }}
-      - name: Expo Publish Versioned Channel
-        run: expo publish --non-interactive --release-channel=${{ steps.releaseChannel.outputs.releaseChannel }}
+      # - name: Get Latest Binary Version # Binary Version will be x.x.x based on the latest tag
+      #   id: latestBinaryVersion
+      #   run: |
+      #     # Release tag finds the lastest tag in the tree branch - i.e. prod-x.x.x
+      #     RELEASE_TAG=$(echo $(git describe --tags --abbrev=0))
+      #     # Using param substitution, we output x.x.x instead
+      #     echo "::set-output name=version::${RELEASE_TAG#*-}"
+      # - name: Echo Version Details
+      #   run: |
+      #     echo Build number is $GITHUB_RUN_NUMBER
+      #     echo Latest release is ${{ steps.latestBinaryVersion.outputs.version }}
+      - name: Stage Expo Updates on Development
+        run: npx eas-cli update --branch development
   build_android:
     needs: deploy_prod
-    if: ${{ needs.deploy_prod.outputs.isMajorRelease == 1 }}
     runs-on: ubuntu-latest
     outputs:
       androidBuildInfo: ${{ steps.androidInfo.outputs.buildInfo }}
@@ -96,7 +93,7 @@ jobs:
         run: yarn install --pure-lockfile
       - name: Build Android Release
         run: |
-          npx eas-cli build --platform android --profile production --non-interactive --auto-submit > ../buildLogAndroid.txt
+          npx eas-cli build --platform android --profile production --non-interactive > ../buildLogAndroid.txt
           cat ../buildLogAndroid.txt
       - name: Gather build info
         id: androidInfo
@@ -106,7 +103,6 @@ jobs:
           echo "::set-output name=buildInfo::$BUILD_INFO"
   build_ios:
     needs: deploy_prod
-    if: ${{ needs.deploy_prod.outputs.isMajorRelease == 1 }}
     runs-on: ubuntu-latest
     outputs:
       iosBuildInfo: ${{ steps.iosInfo.outputs.buildInfo }}
@@ -124,7 +120,7 @@ jobs:
         run: yarn install --pure-lockfile
       - name: Build iOS Release
         run: |
-          npx eas-cli build --platform ios --profile production --non-interactive --auto-submit > ../buildLogIOS.txt
+          npx eas-cli build --platform ios --profile production --non-interactive > ../buildLogIOS.txt
           cat ../buildLogIOS.txt
       - name: Gather build info
         id: iosInfo
@@ -132,34 +128,34 @@ jobs:
           BUILD_INFO=$(cat buildLogIOS.txt | tail | egrep -A1 'Open this link on your iOS')
           echo $BUILD_INFO
           echo "::set-output name=buildInfo::$BUILD_INFO"
-  update_release:
-    name: Update Release
-    needs: [build_android, build_ios]
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-        with:
-          ref: main
-          fetch-depth: 0
-      - name: Get previous release tag
-        id: previous-release
-        uses: sammcoe/get-previous-release-action@v1.0.3
-      - name: Generate Changelog
-        id: changelog
-        uses: metcalfc/changelog-generator@v1.0.0
-        with:
-          mytoken: ${{ secrets.GITHUB_TOKEN }}
-          base-ref: ${{ steps.previous-release.outputs.rev }}
-      - uses: rlespinasse/github-slug-action@v3.x
-      - name: Updating Release
-        uses: ncipollo/release-action@v1.8.6
-        with:
-          body: |
-            Changes in this Release: 
-            ${{ steps.changelog.outputs.changelog }}
+  # update_release:
+  #   name: Update Release
+  #   needs: [build_android, build_ios]
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v2
+  #       with:
+  #         ref: main
+  #         fetch-depth: 0
+  #     - name: Get previous release tag
+  #       id: previous-release
+  #       uses: sammcoe/get-previous-release-action@v1.0.3
+  #     - name: Generate Changelog
+  #       id: changelog
+  #       uses: metcalfc/changelog-generator@v1.0.0
+  #       with:
+  #         mytoken: ${{ secrets.GITHUB_TOKEN }}
+  #         base-ref: ${{ steps.previous-release.outputs.rev }}
+  #     - uses: rlespinasse/github-slug-action@v3.x
+  #     - name: Updating Release
+  #       uses: ncipollo/release-action@v1.8.6
+  #       with:
+  #         body: |
+  #           Changes in this Release:
+  #           ${{ steps.changelog.outputs.changelog }}
 
-            Android build URL: ${{ needs.build_android.outputs.androidBuildInfo }}
-            iOS build URL: ${{ needs.build_ios.outputs.iosBuildInfo }}
-          token: ${{ secrets.GITHUB_TOKEN }}
-          name: Release ${{ env.GITHUB_REF_SLUG }}
-          allowUpdates: true
+  #           Android build URL: ${{ needs.build_android.outputs.androidBuildInfo }}
+  #           iOS build URL: ${{ needs.build_ios.outputs.iosBuildInfo }}
+  #         token: ${{ secrets.GITHUB_TOKEN }}
+  #         name: Release ${{ env.GITHUB_REF_SLUG }}
+  #         allowUpdates: true

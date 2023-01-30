@@ -4,13 +4,13 @@
       "ios": {
         "autoIncrement": true
       },
-      "releaseChannel": "prod-v1"
+      "channel": "production"
     },
     "staging": {
-      "releaseChannel": "rc-v1"
+      "channel": "staging"
     },
     "development": {
-      "releaseChannel": "development",
+      "channel": "development",
       "distribution": "internal",
       "developmentClient": true
     },
@@ -21,7 +21,7 @@
       "ios": {
         "simulator": true
       },
-      "releaseChannel": "development"
+      "channel": "development"
     }
   },
   "submit": {
