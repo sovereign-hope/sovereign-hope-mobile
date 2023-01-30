@@ -105,7 +105,7 @@ jobs:
       - name: Gather build info
         id: androidInfo
         run: |
-          BUILD_INFO=$(cat ../buildLogAndroid.txt | tail | egrep -A1 'Open this link on your Android')
+          BUILD_INFO=$(cat ../buildLogAndroid.txt | tail | egrep -A1 'Android app:')
           echo $BUILD_INFO
           echo "::set-output name=buildInfo::$BUILD_INFO"
   build_ios:
@@ -132,7 +132,7 @@ jobs:
       - name: Gather build info
         id: iosInfo
         run: |
-          BUILD_INFO=$(cat buildLogIOS.txt | tail | egrep -A1 'Open this link on your iOS')
+          BUILD_INFO=$(cat buildLogIOS.txt | tail | egrep -A1 'iOS app:')
           echo $BUILD_INFO
           echo "::set-output name=buildInfo::$BUILD_INFO"
   # update_release:
