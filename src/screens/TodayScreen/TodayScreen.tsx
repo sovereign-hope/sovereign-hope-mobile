@@ -65,10 +65,10 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
       }
       appState.current = nextAppState;
     };
-    AppState.addEventListener("change", handler);
+    const listener = AppState.addEventListener("change", handler);
 
     return () => {
-      AppState.removeEventListener("change", handler);
+      listener.remove();
     };
   }, []);
 
