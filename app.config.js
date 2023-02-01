@@ -15,7 +15,4 @@ export default ({ config }) =>
           ],
         },
       }
-    : {
-        ...config,
-        name: "Sov Hope Dev",
-      };
+    : config;
