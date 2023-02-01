@@ -171,7 +171,7 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
   const date = new Date();
   const formatedDate = date.toLocaleDateString("en-US", dateOptions);
   const currentDayIndex = getDayInWeek() - 1;
-  const readingsPerWeek = readingPlan?.weeks[0].days.length ?? 5;
+  const readingsPerWeek = readingPlan?.weeks[0]?.days.length ?? 5;
   const isEndOfWeek = currentDayIndex > readingsPerWeek - 1;
   const shouldShowLoadingIndicator = isLoading && readingPlanDay === undefined;
 
