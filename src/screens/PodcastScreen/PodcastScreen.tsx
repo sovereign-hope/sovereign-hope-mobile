@@ -199,7 +199,9 @@ export const PodcastScreen: React.FunctionComponent<Props> = ({}: Props) => {
                   break;
                 }
                 case "castro": {
-                  void Linking.openURL("https://castro.fm/itunes/337407161");
+                  void Linking.openURL(
+                    "https://castro.fm/podcast/24f2841a-93e8-4599-8a5a-c451bb5ca7da"
+                  );
 
                   break;
                 }

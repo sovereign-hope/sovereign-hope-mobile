@@ -200,7 +200,8 @@ export const ReadingPlanScreen: React.FunctionComponent<ReadingPlanProps> = ({
                 currentWeek < listData.length
                   ? currentWeek - 1
                   : listData.length - 1,
-              itemIndex: 0,
+              // Note to self: this doesn't work if index is 0!!!
+              itemIndex: 1,
             });
             setHasInitializedPosition(true);
           }
@@ -221,12 +222,14 @@ export const ReadingPlanScreen: React.FunctionComponent<ReadingPlanProps> = ({
           accessibilityRole="button"
           onPress={() => {
             if (scrollViewRef.current) {
+              const sectionIndex =
+                currentWeek < listData.length
+                  ? currentWeek - 1
+                  : listData.length - 1;
               scrollViewRef.current.scrollToLocation({
-                sectionIndex:
-                  currentWeek < listData.length
-                    ? currentWeek - 1
-                    : listData.length - 1,
-                itemIndex: 0,
+                sectionIndex,
+                // Note to self: this doesn't work if index is 0!!!
+                itemIndex: 1,
               });
             }
           }}
@@ -265,7 +268,9 @@ export const ReadingPlanScreen: React.FunctionComponent<ReadingPlanProps> = ({
     <SafeAreaView edges={["left", "right"]} style={themedStyles.screen}>
       <SectionList
         ref={scrollViewRef}
-        onScrollToIndexFailed={() => {}}
+        onScrollToIndexFailed={(info) => {
+          console.log(info);
+        }}
         sections={listData}
         style={themedStyles.planList}
         initialNumToRender={400}
