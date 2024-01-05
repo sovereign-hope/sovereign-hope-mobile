@@ -1,7 +1,7 @@
 name: Create Production Release
 on:
   push:
-    branch: production
+    branches: production
 jobs:
   quality-check:
     name: Lint & Test
