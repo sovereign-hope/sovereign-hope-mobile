@@ -27,12 +27,17 @@ import {
   selectIsLoading,
   selectReadingPlan,
 } from "src/redux/readingPlanSlice";
+import { selectIsLoading as selectIsMemoryLoading } from "src/redux/memorySlice";
 import { colors } from "src/style/colors";
 import { FlatButton } from "src/components";
 import { getDayInWeek, getWeekNumber, parsePassageString } from "src/app/utils";
 import { spacing } from "src/style/layout";
 import { styles } from "./TodayScreen.styles";
 import { WeekendView } from "./WeekendView/WeekendView";
+import {
+  getMemoryPassageText,
+  selectMemoryAcronym,
+} from "src/redux/memorySlice";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Today">;
 
@@ -44,7 +49,9 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
   const readingPlanDay = useAppSelector(selectDailyReadingPlan);
   const readingPlanDayProgress = useAppSelector(selectDailyReadingPlanProgress);
   const readingPlanProgress = useAppSelector(selectReadingPlanProgressState);
+  const memoryPassageAcronym = useAppSelector(selectMemoryAcronym);
   const isLoading = useAppSelector(selectIsLoading);
+  const isMemoryPassageLoading = useAppSelector(selectIsMemoryLoading);
   const readingPlan = useAppSelector(selectReadingPlan);
   const theme = useTheme();
 
@@ -72,10 +79,21 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
     };
   }, []);
 
-  React.useEffect(() => {
+  useEffect(() => {
     dispatch(getReadingPlan());
     dispatch(getReadingPlanProgressState());
   }, [dispatch]);
+
+  useEffect(() => {
+    const passage = readingPlanDay?.memory.passage;
+    if (passage) {
+      dispatch(
+        getMemoryPassageText({
+          passage: parsePassageString(passage),
+        })
+      );
+    }
+  }, [readingPlanDay]);
 
   React.useLayoutEffect(() => {
     navigation.setOptions({
@@ -174,6 +192,8 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
   const readingsPerWeek = readingPlan?.weeks[0]?.days.length ?? 5;
   const isEndOfWeek = currentDayIndex > readingsPerWeek - 1;
   const shouldShowLoadingIndicator = isLoading && readingPlanDay === undefined;
+  const shouldShowMemoryLoadingIndicator =
+    isMemoryPassageLoading || memoryPassageAcronym === undefined;
 
   return (
     <SafeAreaView style={themedStyles.screen} edges={["left", "top", "right"]}>
@@ -232,6 +252,52 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
               </View>
             </View>
           )}
+          <View style={themedStyles.footer}>
+            <View style={themedStyles.footerRow}>
+              {!isEndOfWeek && (
+                <FlatButton
+                  title="Read"
+                  onPress={handleReadPress}
+                  style={{
+                    ...themedStyles.footerButton,
+                    marginRight: spacing.medium,
+                    backgroundColor: colors.blue,
+                  }}
+                />
+              )}
+              <FlatButton
+                title="Memorize"
+                onPress={handlePracticePress}
+                style={{
+                  ...themedStyles.footerButton,
+                  backgroundColor: colors.blue,
+                }}
+              />
+            </View>
+            {!isEndOfWeek && (
+              <FlatButton
+                title={
+                  readingPlanDayProgress ? "Day completed!" : "Mark as complete"
+                }
+                onPress={() => handleCompleteDay(!readingPlanDayProgress)}
+                style={{
+                  backgroundColor: readingPlanDayProgress
+                    ? colors.green
+                    : colors.accent,
+                }}
+              />
+            )}
+          </View>
+          <Text style={themedStyles.memoryQuestionHeader}>Memory Helper</Text>
+          {!shouldShowMemoryLoadingIndicator ? (
+            <Text style={themedStyles.memoryHelperText}>
+              {memoryPassageAcronym}
+            </Text>
+          ) : (
+            <View style={themedStyles.memoryLoadingContainer}>
+              <ActivityIndicator size="small" color={theme.colors.text} />
+            </View>
+          )}
           <Text style={themedStyles.memoryQuestionHeader}>
             Questions for Study
           </Text>
@@ -259,42 +325,6 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
             prayer life and be sure to set aside time to pray for that today.
           </Text>
           <View style={themedStyles.spacer} />
-        </View>
-        <View style={themedStyles.footer}>
-          <View style={themedStyles.footerRow}>
-            {!isEndOfWeek && (
-              <FlatButton
-                title="Read"
-                onPress={handleReadPress}
-                style={{
-                  ...themedStyles.footerButton,
-                  marginRight: spacing.medium,
-                  backgroundColor: colors.blue,
-                }}
-              />
-            )}
-            <FlatButton
-              title="Memorize"
-              onPress={handlePracticePress}
-              style={{
-                ...themedStyles.footerButton,
-                backgroundColor: colors.blue,
-              }}
-            />
-          </View>
-          {!isEndOfWeek && (
-            <FlatButton
-              title={
-                readingPlanDayProgress ? "Day completed!" : "Mark as complete"
-              }
-              onPress={() => handleCompleteDay(!readingPlanDayProgress)}
-              style={{
-                backgroundColor: readingPlanDayProgress
-                  ? colors.green
-                  : colors.accent,
-              }}
-            />
-          )}
         </View>
       </ScrollView>
     </SafeAreaView>

@@ -23,20 +23,33 @@ import {
 } from "src/redux/podcastSlice";
 import { styles } from "./PodcastScreen.styles";
 import { FeedItem } from "react-native-rss-parser";
-import TrackPlayer, {
-  Capability,
-  ResourceObject,
-  Track,
-} from "react-native-track-player";
+import TrackPlayer, { Capability, Track } from "react-native-track-player";
 import playerService from "../../../service";
 import thumbnail from "../../../assets/podcast-icon.png";
 import icon from "../../../assets/icon.png";
-import { MiniPlayer } from "./MiniPlayer";
+import { MiniPlayer } from "../../components/MiniPlayer/MiniPlayer";
 import * as Haptics from "expo-haptics";
 import { MenuView } from "@react-native-menu/menu";
 import { FlatButton } from "src/components";
 
-type Props = NativeStackScreenProps<RootStackParamList, "Podcast">;
+type Props = NativeStackScreenProps<RootStackParamList, "Sermons">;
+
+const playEpisode = async (episode: FeedItem) => {
+  await TrackPlayer.reset();
+  const track: Track = {
+    url: episode.enclosures[0].url,
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    artwork: icon,
+    title: episode.title,
+    artist: "Sovereign Hope Church",
+    date: episode.published,
+    description: episode.description,
+    duration: Number.parseInt(episode.enclosures[0].length, 10) / 60,
+  };
+  await TrackPlayer.add(track);
+  await TrackPlayer.play();
+  void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+};
 
 export const PodcastScreen: React.FunctionComponent<Props> = ({}: Props) => {
   // Custom hooks
@@ -49,7 +62,6 @@ export const PodcastScreen: React.FunctionComponent<Props> = ({}: Props) => {
   const mountAnimation = useRef(new Animated.Value(0)).current;
 
   // State hooks
-  const [currentTrack, setCurrentTrack] = useState<Track>();
 
   // Callback hooks
 
@@ -69,7 +81,11 @@ export const PodcastScreen: React.FunctionComponent<Props> = ({}: Props) => {
     TrackPlayer.registerPlaybackService(() => playerService);
 
     async function setupPlayer() {
-      await TrackPlayer.setupPlayer();
+      try {
+        await TrackPlayer.setupPlayer();
+      } catch (error) {
+        console.log(error);
+      }
       await TrackPlayer.updateOptions({
         capabilities: [
           Capability.Play,
@@ -91,22 +107,6 @@ export const PodcastScreen: React.FunctionComponent<Props> = ({}: Props) => {
   }, [dispatch]);
 
   // Event handlers
-  const playEpisode = async (episode: FeedItem) => {
-    await TrackPlayer.reset();
-    const track: Track = {
-      url: episode.enclosures[0].url,
-      artwork: icon as ResourceObject,
-      title: episode.title,
-      artist: "Sovereign Hope Church",
-      date: episode.published,
-      description: episode.description,
-      duration: Number.parseInt(episode.enclosures[0].length, 10) / 60,
-    };
-    await TrackPlayer.add(track);
-    await TrackPlayer.play();
-    setCurrentTrack(track);
-    void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-  };
 
   // Constants
   const themedStyles = styles({ theme });
@@ -158,7 +158,7 @@ export const PodcastScreen: React.FunctionComponent<Props> = ({}: Props) => {
               </Pressable>
             )}
           />
-          {<MiniPlayer track={currentTrack} />}
+          <MiniPlayer id="sermons-mini-player" />
           <MenuView
             title="Menu Title"
             onPressAction={({ nativeEvent }) => {

@@ -58,7 +58,7 @@ const PodcastStack = (): JSX.Element => {
         },
       }}
     >
-      <Stack.Screen name="Podcast" component={PodcastScreen} />
+      <Stack.Screen name="Sermons" component={PodcastScreen} />
     </Stack.Navigator>
   );
 };
@@ -136,7 +136,7 @@ const HomeScreen = (): JSX.Element => (
       }}
     />
     <Tab.Screen
-      name="Podcast"
+      name="Sermons"
       component={PodcastStack}
       options={{
         lazy: false,

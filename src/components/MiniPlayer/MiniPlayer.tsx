@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Animated, Pressable, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "@react-navigation/native";
@@ -18,7 +18,7 @@ import * as Haptics from "expo-haptics";
 import Bar from "react-native-progress/Bar";
 
 interface Props {
-  track?: Track;
+  id: string;
 }
 
 const jumpBack = async () => {
@@ -45,9 +45,7 @@ const pause = async () => {
 
 // MiniPlayer
 
-export const MiniPlayer: React.FunctionComponent<Props> = ({
-  track,
-}: Props) => {
+export const MiniPlayer: React.FunctionComponent<Props> = ({ id }: Props) => {
   // Custom hooks
   const theme = useTheme();
   const playbackState = usePlaybackState();
@@ -59,6 +57,7 @@ export const MiniPlayer: React.FunctionComponent<Props> = ({
   // State hooks
   const [isPlaybackEnded, setIsPlaybackEnded] = useState<boolean>(true);
   const [isPlayerOffscreen, setIsPlayerOffscreen] = useState<boolean>(true);
+  const [track, setTrack] = useState<Track | null>();
 
   useTrackPlayerEvents(
     [
@@ -67,53 +66,66 @@ export const MiniPlayer: React.FunctionComponent<Props> = ({
       Event.RemoteStop,
       Event.PlaybackState,
       Event.PlaybackError,
+      Event.PlaybackMetadataReceived,
     ],
     (event) => {
+      TrackPlayer.getTrack(0)
+        .then((currentTrack) => {
+          setTrack(currentTrack);
+          return;
+        })
+        .catch((error) => {
+          console.log(error);
+        });
+
       if (event.type === Event.PlaybackError) {
         console.error("An error occured while playing the current track.");
       }
       if (event.type === Event.PlaybackQueueEnded) {
-        console.log("playback ended, playback state:", playbackState);
         // This doesn't ever seem to fire?
         setIsPlaybackEnded(true);
       }
-      if (event.type === Event.PlaybackState) {
-        console.log("playback state changed:", playbackState);
-        if (
-          playbackState === State.Playing ||
+      if (
+        event.type === Event.PlaybackState &&
+        (playbackState === State.Playing ||
           playbackState === State.Buffering ||
-          playbackState === State.Connecting
-        ) {
-          setIsPlaybackEnded(false);
-        }
+          playbackState === State.Connecting)
+      ) {
+        setIsPlaybackEnded(false);
       }
     }
   );
 
   // Effect hooks
 
-  useEffect(() => {
+  useLayoutEffect(() => {
+    const umountTiming = Animated.timing(mountAnimation, {
+      toValue: 1000,
+      duration: 500,
+      useNativeDriver: true,
+    });
+    const mountTiming = Animated.timing(mountAnimation, {
+      toValue: 0,
+      duration: 500,
+      useNativeDriver: true,
+    });
     if (isPlaybackEnded && !isPlayerOffscreen) {
-      Animated.timing(mountAnimation, {
-        toValue: 1000,
-        duration: 500,
-        useNativeDriver: true,
-      }).start(() => {
-        setIsPlayerOffscreen(true);
+      mountTiming.stop();
+      umountTiming.start(({ finished }) => {
+        if (finished) {
+          setIsPlayerOffscreen(true);
+        }
       });
     } else if (!isPlaybackEnded) {
       setIsPlayerOffscreen(false);
-      Animated.timing(mountAnimation, {
-        toValue: 0,
-        duration: 500,
-        useNativeDriver: true,
-      }).start();
+      umountTiming.stop();
+      mountTiming.start();
     }
-  }, [isPlaybackEnded]);
+  }, [isPlaybackEnded, track]);
 
   // Event handlers
-  const stopPlayback = async () => {
-    await TrackPlayer.reset();
+  const stopPlayback = () => {
+    // await TrackPlayer.reset();
     setIsPlaybackEnded(true);
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   };
@@ -128,12 +140,13 @@ export const MiniPlayer: React.FunctionComponent<Props> = ({
 
   return (
     <Animated.View
+      id={id}
       style={[
         themedStyles.player,
         {
           transform: [
             {
-              translateX: mountAnimation,
+              translateY: mountAnimation,
             },
           ],
         },

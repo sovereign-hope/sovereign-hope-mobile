@@ -22,7 +22,9 @@ interface Style {
   dayReadingHeader: TextStyle;
   whiteText: TextStyle;
   memoryText: TextStyle;
+  memoryLoadingContainer: ViewStyle;
   memoryQuestionHeader: TextStyle;
+  memoryHelperText: TextStyle;
   memoryQuestionSubHeader: TextStyle;
   memoryQuestion: TextStyle;
   footer: ViewStyle;
@@ -89,7 +91,17 @@ export const styles = ({ theme }: Props): Style =>
     whiteText: {
       color: colors.white,
     },
+    memoryLoadingContainer: {
+      flex: 1,
+      flexDirection: "row",
+      justifyContent: "space-around",
+    },
     memoryQuestionHeader: {
+      ...header2,
+      margin: spacing.medium,
+      color: colors.accent,
+    },
+    memoryHelperText: {
       ...header2,
       margin: spacing.medium,
       color: theme.colors.text,
@@ -109,7 +121,7 @@ export const styles = ({ theme }: Props): Style =>
       color: colors.white,
     },
     footer: {
-      padding: spacing.medium,
+      paddingHorizontal: spacing.medium,
       justifyContent: "flex-end",
       backgroundColor: theme.colors.background,
     },

@@ -10,6 +10,6 @@ export type RootStackParamList = {
   };
   Settings: undefined;
   SettingsView: undefined;
-  Podcast: undefined;
+  Sermons: undefined;
   PodcastView: undefined;
 };

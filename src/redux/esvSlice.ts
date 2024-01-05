@@ -11,7 +11,7 @@ export interface EsvState {
   hasError: boolean;
 }
 
-interface EsvResponse {
+export interface EsvResponse {
   query: string;
   canonical: string;
   parsed: Array<Array<number>>;
@@ -34,42 +34,63 @@ const initialState: EsvState = {
   hasError: false,
 };
 
+export const getPassageFromEsvApi = async ({
+  passage,
+  includeFootnotes,
+  includeVerseNumbers = true,
+}: {
+  passage: Passage;
+  includeFootnotes: boolean;
+  includeVerseNumbers?: boolean;
+}) => {
+  try {
+    const { book, startChapter, startVerse, endChapter, endVerse } = passage;
+    const startVerseString =
+      !startVerse || Object.is(startVerse, Number.NaN)
+        ? ".1"
+        : `.${startVerse.toString()}`;
+    const endVerseString =
+      !endVerse || Object.is(endVerse, Number.NaN)
+        ? ""
+        : `.${endVerse.toString()}`;
+
+    const query = `${book}${
+      Object.is(startChapter, Number.NaN) ? "" : startChapter
+    }${startVerseString}${Object.is(startChapter, Number.NaN) ? "" : "-"}${
+      Object.is(endChapter, Number.NaN) ||
+      (endChapter === startChapter && endVerseString === "")
+        ? ""
+        : endChapter
+    }${endVerseString}`;
+    const response = await axios.get(
+      routes.passageText(query, includeFootnotes, includeVerseNumbers)
+    );
+    const passageHtml = response.data as EsvResponse;
+    const audioRegex = /\(.*https:\/\/audio.esv.org\/.*.mp3.*Listen.*\)/g;
+    const listenTagMatches = passageHtml.passages[0].match(audioRegex);
+    let listenTag = listenTagMatches ? listenTagMatches[0] : undefined;
+    // Remove listen link since we've extracted it for the player
+    passageHtml.passages[0] = passageHtml.passages[0].replace(
+      audioRegex,
+      "<p></p>"
+    );
+    // Change listen text
+    if (listenTag) {
+      listenTag = listenTag.replace("Listen", "Listen in browser");
+      // eslint-disable-next-line unicorn/prefer-spread
+      passageHtml.passages[0] = passageHtml.passages[0].concat(
+        `<p>${listenTag}</p>`
+      );
+    }
+    return passageHtml;
+  } catch (error) {
+    console.error(error);
+  }
+};
+
 export const getPassageText = createAsyncThunk(
   "esv/getPassageText",
-  async ({
-    passage,
-    includeFootnotes,
-  }: {
-    passage: Passage;
-    includeFootnotes: boolean;
-  }) => {
-    try {
-      const { book, startChapter, startVerse, endChapter, endVerse } = passage;
-      const startVerseString =
-        !startVerse || Object.is(startVerse, Number.NaN)
-          ? ".1"
-          : `.${startVerse.toString()}`;
-      const endVerseString =
-        !endVerse || Object.is(endVerse, Number.NaN)
-          ? ""
-          : `.${endVerse.toString()}`;
-
-      const query = `${book}${
-        Object.is(startChapter, Number.NaN) ? "" : startChapter
-      }${startVerseString}${Object.is(startChapter, Number.NaN) ? "" : "-"}${
-        Object.is(endChapter, Number.NaN) ||
-        (endChapter === startChapter && endVerseString === "")
-          ? ""
-          : endChapter
-      }${endVerseString}`;
-      const response = await axios.get(
-        routes.passageText(query, includeFootnotes)
-      );
-      return response.data as EsvResponse;
-    } catch (error) {
-      console.error(error);
-    }
-  }
+  getPassageFromEsvApi
 );
 
 export const esvSlice = createSlice({
@@ -98,6 +119,15 @@ export const esvSlice = createSlice({
 export const selectCurrentPassage = (
   state: RootState
 ): EsvResponse | undefined => state.esv.currentPassage;
+export const selectAudioUrl = (state: RootState): string | undefined => {
+  // Regex to match https://audio.esv.org/david-cochran-heath/mq/20001001-20001033.mp3
+  const audioRegex = /https:\/\/audio.esv.org\/.*.mp3/g;
+  // Extract audio url from passageHtml
+  const audioUrl = state.esv.currentPassage?.passages[0].match(audioRegex);
+  return audioUrl ? audioUrl[0] : undefined;
+};
+export const selectPassageHeader = (state: RootState): string | undefined =>
+  state.esv.currentPassage?.canonical;
 export const selectError = (state: RootState): boolean => state.esv.hasError;
 export const selectIsLoading = (state: RootState): boolean =>
   state.esv.isLoading;

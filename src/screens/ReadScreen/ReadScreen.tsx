@@ -1,3 +1,5 @@
+/* eslint-disable react/prop-types */
+// Disabling this because of weird behavior with the react/prop-types rule in this file. It isn't recognizing navigation
 import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -18,18 +20,23 @@ import * as Haptics from "expo-haptics";
 import { colors } from "src/style/colors";
 import { header1, header3 } from "src/style/typography";
 import { Ionicons } from "@expo/vector-icons";
+import TrackPlayer, { Capability, Track } from "react-native-track-player";
 import {
   getPassageText,
+  selectAudioUrl,
   selectCurrentPassage,
   selectIsLoading,
+  selectPassageHeader,
 } from "src/redux/esvSlice";
 import RenderHtml, {
   HTMLElementModel,
   HTMLContentModel,
   MixedStyleDeclaration,
 } from "react-native-render-html";
-import { FlatButton } from "src/components";
+import { FlatButton, MiniPlayer } from "src/components";
 import { styles } from "./ReadScreen.styles";
+import { spacing } from "src/style/layout";
+import playerService from "../../../service";
 
 interface ReadScrollViewProps {
   showMemoryButton: boolean;
@@ -74,6 +81,7 @@ const ReadScrollView: React.FunctionComponent<ReadScrollViewProps> = ({
 
   // Constants
   const themedStyles = styles({ theme });
+
   const tagsStyles: Record<string, MixedStyleDeclaration> = {
     body: {
       whiteSpace: "normal",
@@ -175,13 +183,29 @@ export const ReadScreen: React.FunctionComponent<ReadScreenProps> = ({
   const [passageIndex, setPassageIndex] = useState(0);
   const [shouldShowMemoryButton, setShouldShowMemoryButton] = useState(false);
   const [heading, setHeading] = useState("");
+  const [currentTrack, setCurrentTrack] = useState<Track>();
 
   // Custom hooks
   const dispatch = useDispatch();
 
   // Custom hooks
+  const audioUrl = useAppSelector(selectAudioUrl);
+  const audioTitle = useAppSelector(selectPassageHeader);
   const isLoading = useAppSelector(selectIsLoading);
   const theme = useTheme();
+
+  // Navbar handlers
+  const playAudio = async () => {
+    await TrackPlayer.reset();
+    const track: Track = {
+      url: audioUrl ?? "",
+      title: audioTitle ?? "",
+      artist: "ESV Bible",
+    };
+    await TrackPlayer.add(track);
+    await TrackPlayer.play();
+    void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+  };
 
   // Effect hooks
   useLayoutEffect(() => {
@@ -196,6 +220,51 @@ export const ReadScreen: React.FunctionComponent<ReadScreenProps> = ({
     setHeading(passage.heading ?? "");
     dispatch(getPassageText({ passage, includeFootnotes: true }));
   }, [dispatch]);
+
+  useEffect(() => {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return, unicorn/prefer-module
+    TrackPlayer.registerPlaybackService(() => playerService);
+
+    async function setupPlayer() {
+      try {
+        await TrackPlayer.setupPlayer();
+      } catch (error) {
+        console.log(error);
+      }
+      await TrackPlayer.updateOptions({
+        capabilities: [
+          Capability.Play,
+          Capability.Pause,
+          Capability.JumpForward,
+          Capability.JumpBackward,
+          Capability.Stop,
+          Capability.SeekTo,
+        ],
+        compactCapabilities: [Capability.Play, Capability.Pause],
+      });
+    }
+
+    void setupPlayer();
+  }, []);
+
+  useEffect(() => {
+    if (audioUrl && audioUrl !== "") {
+      navigation.setOptions({
+        // eslint-disable-next-line react/display-name, react/require-default-props
+        headerRight: ({ tintColor }: { tintColor?: string | undefined }) => (
+          <Pressable
+            style={{
+              marginRight: spacing.large,
+            }}
+            accessibilityRole="button"
+            onPress={() => void playAudio()}
+          >
+            <Text style={{ color: colors.accent, fontSize: 18 }}>Listen</Text>
+          </Pressable>
+        ),
+      });
+    }
+  }, [navigation, audioUrl]);
 
   // Constants
   const themedStyles = styles({ theme });
@@ -231,13 +300,18 @@ export const ReadScreen: React.FunctionComponent<ReadScreenProps> = ({
       {isLoading ? (
         <ActivityIndicator size="large" color={theme.colors.text} />
       ) : (
-        <ReadScrollView
-          showMemoryButton={shouldShowMemoryButton}
-          heading={heading}
-          onNextPassage={handleNextPassage}
-          isFinalPassage={passageIndex < passages.length - 1}
-        />
+        <>
+          <ReadScrollView
+            showMemoryButton={shouldShowMemoryButton}
+            heading={heading}
+            onNextPassage={handleNextPassage}
+            isFinalPassage={passageIndex < passages.length - 1}
+          />
+          <MiniPlayer id="read-mini-player" />
+        </>
       )}
     </SafeAreaView>
   );
 };
+
+/* eslint-enable react/prop-types */
