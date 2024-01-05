@@ -132,7 +132,7 @@ jobs:
       - name: Gather build info
         id: iosInfo
         run: |
-          BUILD_INFO=$(cat buildLogIOS.txt | tail | egrep -A1 'iOS app:')
+          BUILD_INFO=$(cat ../buildLogIOS.txt | tail | egrep -A1 'iOS app:')
           echo $BUILD_INFO
           echo "::set-output name=buildInfo::$BUILD_INFO"
   # update_release:
