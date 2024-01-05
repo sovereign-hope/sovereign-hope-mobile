@@ -41,8 +41,14 @@ jobs:
           token: ${{ secrets.EXPO_TOKEN }}
       - name: Install Packages
         run: yarn install
-      - name: Expo Publish Development Channel
-        run: expo publish --non-interactive --release-channel=development
+      - name: Generate Changelog
+        id: changelog
+        uses: metcalfc/changelog-generator@v1.0.0
+        with:
+          mytoken: ${{ secrets.GITHUB_TOKEN }}
+          base-ref: ${{ steps.previous-release.outputs.rev }}
+      - name: Stage Expo Updates on Development
+        run: npx eas-cli update --non-interactive --branch development --message "${{ steps.changelog.outputs.changelog }}"
   build_all_platforms:
     name: Build All Platforms (iOS and Android)
     needs: deploy_develop
