@@ -82,7 +82,7 @@ const HomeScreen = (): JSX.Element => (
           size: number;
         }) => (
           <Ionicons
-            name="ios-cog"
+            name="cog"
             size={size}
             color={focused ? colors.accent : color}
           />
@@ -128,7 +128,7 @@ const HomeScreen = (): JSX.Element => (
           size: number;
         }) => (
           <Ionicons
-            name="ios-book"
+            name="book"
             size={size}
             color={focused ? colors.accent : color}
           />
@@ -152,7 +152,7 @@ const HomeScreen = (): JSX.Element => (
           size: number;
         }) => (
           <Ionicons
-            name="ios-logo-rss"
+            name="logo-rss"
             size={size}
             color={focused ? colors.accent : color}
           />
