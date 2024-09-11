@@ -68,12 +68,14 @@
         "expo-build-properties",
         {
           "ios": {
-            "useFrameworks": "static"
+            "useFrameworks": "static",
+            "newArchEnabled": true
+          },
+          "android": {
+            "newArchEnabled": true
+            //   "compileSdkVersion": 33,
+            //   "targetSdkVersion": 31
           }
-          // "android": {
-          //   "compileSdkVersion": 33,
-          //   "targetSdkVersion": 31
-          // }
         }
       ],
       "expo-notifications",
