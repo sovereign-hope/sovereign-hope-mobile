@@ -24,7 +24,7 @@ Sentry.init({
 });
 
 const appLoading = async () => {
-  await Promise.all([Font.loadAsync(Ionicons.font)]);
+  await Font.loadAsync(Ionicons.font);
 
   // Configure axios
   axios.defaults.headers.common = {
@@ -109,5 +109,4 @@ const App = (): JSX.Element => {
   );
 };
 
-// eslint-disable-next-line import/no-default-export
 export default Sentry.wrap(App);

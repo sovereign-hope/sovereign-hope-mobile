@@ -113,10 +113,8 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
   // Event handlers
   const handleCompleteDay = (isComplete: boolean) => {
     if (isComplete) {
-      // eslint-disable-next-line no-void
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } else {
-      // eslint-disable-next-line no-void
       void Haptics.selectionAsync();
     }
     if (readingPlanProgress) {
@@ -124,9 +122,8 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
       const currentDayIndex = getDayInWeek() - 1;
       const isEndOfWeek = currentDayIndex > 4;
 
-      const tempPlan: ReadingPlanProgressState = JSON.parse(
-        JSON.stringify(readingPlanProgress)
-      ) as ReadingPlanProgressState;
+      const tempPlan: ReadingPlanProgressState =
+        structuredClone(readingPlanProgress);
       tempPlan.weeks[currentWeekIndex].days[
         isEndOfWeek ? 4 : currentDayIndex
       ].isCompleted = isComplete;
@@ -328,14 +325,14 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
             )}
           </View>
           <Text style={themedStyles.memoryQuestionHeader}>Memory Helper</Text>
-          {!shouldShowMemoryLoadingIndicator ? (
-            <Text style={themedStyles.memoryHelperText}>
-              {memoryPassageAcronym}
-            </Text>
-          ) : (
+          {shouldShowMemoryLoadingIndicator ? (
             <View style={themedStyles.memoryLoadingContainer}>
               <ActivityIndicator size="small" color={theme.colors.text} />
             </View>
+          ) : (
+            <Text style={themedStyles.memoryHelperText}>
+              {memoryPassageAcronym}
+            </Text>
           )}
           <Text style={themedStyles.memoryQuestionHeader}>
             Questions for Study

@@ -71,7 +71,7 @@ const HomeScreen = (): JSX.Element => (
       options={{
         lazy: false,
         headerShown: false,
-        // eslint-disable-next-line react/display-name
+
         tabBarIcon: ({
           focused,
           color,
@@ -94,7 +94,7 @@ const HomeScreen = (): JSX.Element => (
       component={TodayScreen}
       options={{
         headerShown: false,
-        // eslint-disable-next-line react/display-name
+
         tabBarIcon: ({
           focused,
           color,
@@ -117,7 +117,7 @@ const HomeScreen = (): JSX.Element => (
       component={ReadingPlanScreen}
       options={{
         lazy: false,
-        // eslint-disable-next-line react/display-name
+
         tabBarIcon: ({
           focused,
           color,
@@ -141,7 +141,7 @@ const HomeScreen = (): JSX.Element => (
       options={{
         lazy: false,
         headerShown: false,
-        // eslint-disable-next-line react/display-name
+
         tabBarIcon: ({
           focused,
           color,

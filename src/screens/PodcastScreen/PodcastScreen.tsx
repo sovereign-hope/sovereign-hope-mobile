@@ -77,7 +77,6 @@ export const PodcastScreen: React.FunctionComponent<Props> = ({}: Props) => {
   }, [isLoading]);
 
   useEffect(() => {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-return, unicorn/prefer-module
     TrackPlayer.registerPlaybackService(() => playerService);
 
     async function setupPlayer() {
