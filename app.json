@@ -69,10 +69,10 @@
         {
           "ios": {
             "useFrameworks": "static",
-            "newArchEnabled": true
+            "newArchEnabled": false
           },
           "android": {
-            "newArchEnabled": true
+            "newArchEnabled": false
             //   "compileSdkVersion": 33,
             //   "targetSdkVersion": 31
           }

@@ -6927,6 +6927,7 @@ expo-web-browser@~13.0.0:
 
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 expo@^49.0.4:
   version "49.0.4"
   resolved "https://registry.npmjs.org/expo/-/expo-49.0.4.tgz"
@@ -6939,6 +6940,9 @@ expo@50:
 >>>>>>> 5b30a0c (Updated to Expo 50)
 =======
 expo@~51.0.31:
+=======
+expo@^51.0.32:
+>>>>>>> b04e8db (Actually disable new runtime)
   version "51.0.32"
   resolved "https://registry.yarnpkg.com/expo/-/expo-51.0.32.tgz#2e6068f33cb6a361a3aa35e03bf6d5ce21a4ee2d"
   integrity sha512-6GEhYvHRnyS/6BytQagGkClsaqbuwAtlN3A6oDfnNMRKLmz6NE/r+Rjg9zbQgUO6zigqb60Yj5lAX32DmixRDw==
