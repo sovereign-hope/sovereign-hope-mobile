@@ -69,7 +69,11 @@ export const ReadingPlanListItem: React.FunctionComponent<{
     }
     if (readingPlanProgress) {
       const tempPlan: ReadingPlanProgressState =
-        structuredClone(readingPlanProgress);
+        // This is disabled because structuredClone isn't available on hermes
+        // eslint-disable-next-line unicorn/prefer-structured-clone
+        JSON.parse(
+          JSON.stringify(readingPlanProgress)
+        ) as ReadingPlanProgressState;
       tempPlan.weeks[item.weekIndex ?? 0].days[index].isCompleted = isComplete;
       dispatch(storeReadingPlanProgressState(tempPlan));
     }
