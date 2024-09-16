@@ -13,7 +13,7 @@ export const useColorScheme = (delay = 500): NonNullable<ColorSchemeName> => {
 
     return () => {
       resetCurrentTimeout();
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+
       listener?.remove();
     };
   }, []);

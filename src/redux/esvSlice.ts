@@ -70,7 +70,7 @@ export const getPassageFromEsvApi = async ({
     const listenTagMatches = passageHtml.passages[0].match(audioRegex);
     let listenTag = listenTagMatches ? listenTagMatches[0] : undefined;
     // Remove listen link since we've extracted it for the player
-    passageHtml.passages[0] = passageHtml.passages[0].replace(
+    passageHtml.passages[0] = passageHtml.passages[0].replaceAll(
       audioRegex,
       "<p></p>"
     );

@@ -29,7 +29,6 @@ export const SecureInput: React.ForwardRefExoticComponent<
       autoCapitalize="none"
       autoCorrect={false}
       ref={ref}
-      // eslint-disable-next-line react/jsx-props-no-spreading
       {...rest}
     />
   );

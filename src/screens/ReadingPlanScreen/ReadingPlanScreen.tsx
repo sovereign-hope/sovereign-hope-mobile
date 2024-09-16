@@ -63,16 +63,13 @@ export const ReadingPlanListItem: React.FunctionComponent<{
   // Event handlers
   const handleCompleteDay = (isComplete: boolean) => {
     if (isComplete) {
-      // eslint-disable-next-line no-void
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } else {
-      // eslint-disable-next-line no-void
       void Haptics.selectionAsync();
     }
     if (readingPlanProgress) {
-      const tempPlan: ReadingPlanProgressState = JSON.parse(
-        JSON.stringify(readingPlanProgress)
-      ) as ReadingPlanProgressState;
+      const tempPlan: ReadingPlanProgressState =
+        structuredClone(readingPlanProgress);
       tempPlan.weeks[item.weekIndex ?? 0].days[index].isCompleted = isComplete;
       dispatch(storeReadingPlanProgressState(tempPlan));
     }
@@ -213,7 +210,6 @@ export const ReadingPlanScreen: React.FunctionComponent<ReadingPlanProps> = ({
   React.useLayoutEffect(() => {
     const currentWeek = getWeekNumber(new Date()).week;
     navigation.setOptions({
-      // eslint-disable-next-line react/display-name, react/require-default-props
       headerRight: ({ tintColor }: { tintColor?: string | undefined }) => (
         <Pressable
           style={{

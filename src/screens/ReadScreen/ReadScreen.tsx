@@ -222,7 +222,6 @@ export const ReadScreen: React.FunctionComponent<ReadScreenProps> = ({
   }, [dispatch]);
 
   useEffect(() => {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-return, unicorn/prefer-module
     TrackPlayer.registerPlaybackService(() => playerService);
 
     async function setupPlayer() {
@@ -250,7 +249,6 @@ export const ReadScreen: React.FunctionComponent<ReadScreenProps> = ({
   useEffect(() => {
     if (audioUrl && audioUrl !== "") {
       navigation.setOptions({
-        // eslint-disable-next-line react/display-name, react/require-default-props
         headerRight: ({ tintColor }: { tintColor?: string | undefined }) => (
           <Pressable
             style={{
@@ -282,10 +280,9 @@ export const ReadScreen: React.FunctionComponent<ReadScreenProps> = ({
         })
       );
       setPassageIndex(passageIndex + 1);
-      // eslint-disable-next-line no-void
+
       void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
     } else {
-      // eslint-disable-next-line no-void
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       onComplete();
       navigation.goBack();

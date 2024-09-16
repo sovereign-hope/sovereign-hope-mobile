@@ -33,5 +33,4 @@ const service = async function () {
   });
 };
 
-// eslint-disable-next-line import/no-default-export
 export default service;

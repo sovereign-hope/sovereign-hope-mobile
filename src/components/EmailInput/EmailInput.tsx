@@ -28,7 +28,6 @@ export const EmailInput: React.FunctionComponent<Props> = ({
       autoCapitalize="none"
       autoCorrect={false}
       autoFocus
-      // eslint-disable-next-line react/jsx-props-no-spreading
       {...rest}
     />
   );
