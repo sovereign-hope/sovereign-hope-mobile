@@ -123,7 +123,11 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
       const isEndOfWeek = currentDayIndex > 4;
 
       const tempPlan: ReadingPlanProgressState =
-        structuredClone(readingPlanProgress);
+        // structuredClone isn't available in hermes
+        // eslint-disable-next-line unicorn/prefer-structured-clone
+        JSON.parse(
+          JSON.stringify(readingPlanProgress)
+        ) as ReadingPlanProgressState;
       tempPlan.weeks[currentWeekIndex].days[
         isEndOfWeek ? 4 : currentDayIndex
       ].isCompleted = isComplete;
