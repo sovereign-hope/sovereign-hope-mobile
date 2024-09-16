@@ -59,6 +59,7 @@ export const styles = ({ theme }: Props): Style =>
     content: {
       flex: 1,
       backgroundColor: theme.colors.background,
+      marginBottom: spacing.large,
     },
     bodyText: {
       color: theme.dark ? colors.white : colors.darkGrey,

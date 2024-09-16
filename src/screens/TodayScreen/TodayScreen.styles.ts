@@ -1,5 +1,5 @@
 import { StyleSheet, ViewStyle, TextStyle, ImageStyle } from "react-native";
-import { spacing, elementSize } from "src/style/layout";
+import { spacing, elementSize, radius } from "src/style/layout";
 import { header1, header2, header3 } from "src/style/typography";
 import { Theme } from "@react-navigation/native";
 import { colors } from "src/style/colors";
@@ -20,6 +20,12 @@ interface Style {
   dayReadingColumnPrimary: ViewStyle;
   dayReadingColumnSecondary: ViewStyle;
   dayReadingHeader: TextStyle;
+  notifications: ViewStyle;
+  notificationBox: ViewStyle;
+  notificationTitle: TextStyle;
+  notificationDetails: TextStyle;
+  notificationInfo: ViewStyle;
+  disclosureIcon: ViewStyle;
   whiteText: TextStyle;
   memoryText: TextStyle;
   memoryLoadingContainer: ViewStyle;
@@ -87,6 +93,30 @@ export const styles = ({ theme }: Props): Style =>
       ...header2,
       marginBottom: spacing.medium,
       color: colors.white,
+    },
+    notifications: {
+      padding: spacing.medium,
+    },
+    notificationBox: {
+      flexDirection: "row",
+      alignItems: "center",
+      borderRadius: radius.large,
+      backgroundColor: colors.accent,
+      padding: spacing.medium,
+      paddingStart: spacing.large,
+    },
+    notificationInfo: {
+      flex: 1,
+    },
+    notificationTitle: {
+      ...header3,
+      color: colors.white,
+    },
+    notificationDetails: {
+      color: colors.white,
+    },
+    disclosureIcon: {
+      marginLeft: spacing.large,
     },
     whiteText: {
       color: colors.white,

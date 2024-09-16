@@ -17,9 +17,11 @@ import {
   ReadingPlanDay,
   selectWeekReadingPlan,
   selectWeeklyReadingPlanProgress,
+  selectReadingPlanProgressState,
 } from "src/redux/readingPlanSlice";
 import { styles } from "./WeekendView.styles";
 import { ReadingPlanListItem } from "../../ReadingPlanScreen/ReadingPlanScreen";
+import { getWeekNumber } from "src/app/utils";
 
 interface ReviewListProps {
   listData: Array<ReadingPlanDay>;
@@ -70,7 +72,7 @@ export const WeekendView: React.FunctionComponent<Props> = ({
   // Custom hooks
   const dispatch = useDispatch();
   const readingPlanWeek = useAppSelector(selectWeekReadingPlan);
-  const readlingPlanWeekProgress = useAppSelector(
+  const readingPlanWeekProgress = useAppSelector(
     selectWeeklyReadingPlanProgress
   );
   const theme = useTheme();
@@ -104,15 +106,17 @@ export const WeekendView: React.FunctionComponent<Props> = ({
 
   useEffect(() => {
     if (readingPlanWeek) {
+      const currentWeekIndex = getWeekNumber(new Date()).week - 1;
       const data = readingPlanWeek.days.map(
         (day: ReadingPlanDay, dayIndex) => ({
           ...day,
-          isComplete: readlingPlanWeekProgress[dayIndex],
+          weekIndex: currentWeekIndex,
+          isComplete: readingPlanWeekProgress[dayIndex],
         })
       );
       setListData(data);
     }
-  }, [readingPlanWeek, readlingPlanWeekProgress]);
+  }, [readingPlanWeek, readingPlanWeekProgress]);
 
   React.useEffect(() => {
     dispatch(getReadingPlan());
