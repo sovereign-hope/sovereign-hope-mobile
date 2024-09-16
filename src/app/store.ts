@@ -4,6 +4,7 @@ import { readingPlanReducer } from "src/redux/readingPlanSlice";
 import { settingsReducer } from "src/redux/settingsSlice";
 import { podcastReducer } from "src/redux/podcastSlice";
 import { memoryReducer } from "src/redux/memorySlice";
+import { notificationsReducer } from "src/redux/notificationsSlice";
 
 export const store = configureStore({
   reducer: {
@@ -12,6 +13,7 @@ export const store = configureStore({
     settings: settingsReducer,
     podcast: podcastReducer,
     memory: memoryReducer,
+    notifications: notificationsReducer,
   },
 });
 

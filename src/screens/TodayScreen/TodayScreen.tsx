@@ -3,6 +3,8 @@ import {
   ActivityIndicator,
   AppState,
   AppStateStatus,
+  Linking,
+  Pressable,
   ScrollView,
   Text,
   View,
@@ -38,6 +40,10 @@ import {
   getMemoryPassageText,
   selectMemoryAcronym,
 } from "src/redux/memorySlice";
+import {
+  getNotifications,
+  selectNotifications,
+} from "src/redux/notificationsSlice";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Today">;
 
@@ -54,6 +60,7 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
   const isMemoryPassageLoading = useAppSelector(selectIsMemoryLoading);
   const readingPlan = useAppSelector(selectReadingPlan);
   const theme = useTheme();
+  const notifications = useAppSelector(selectNotifications);
 
   // Ref Hooks
   const appState = useRef(AppState.currentState);
@@ -69,6 +76,7 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
       ) {
         dispatch(getReadingPlan());
         dispatch(getReadingPlanProgressState());
+        dispatch(getNotifications());
       }
       appState.current = nextAppState;
     };
@@ -82,6 +90,7 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
   useEffect(() => {
     dispatch(getReadingPlan());
     dispatch(getReadingPlanProgressState());
+    dispatch(getNotifications());
   }, [dispatch]);
 
   useEffect(() => {
@@ -202,6 +211,36 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
         contentContainerStyle={{ flexGrow: 1 }}
       >
         <Text style={themedStyles.title}>{formatedDate}</Text>
+        <View style={themedStyles.notifications}>
+          {notifications?.map((notification) => (
+            <Pressable
+              onPress={() => void Linking.openURL(notification.link ?? "")}
+              accessibilityRole="button"
+              key={notification.id}
+              style={({ pressed }) => [
+                themedStyles.notificationBox,
+                {
+                  opacity: pressed ? 0.5 : 1,
+                },
+              ]}
+            >
+              <View style={themedStyles.notificationInfo}>
+                <Text style={themedStyles.notificationTitle}>
+                  {notification.title}
+                </Text>
+                <Text style={themedStyles.notificationDetails}>
+                  {notification.details}
+                </Text>
+              </View>
+              <Ionicons
+                name="chevron-forward"
+                size={24}
+                color={colors.white}
+                style={themedStyles.disclosureIcon}
+              />
+            </Pressable>
+          ))}
+        </View>
         <View style={themedStyles.dayContent}>
           {isEndOfWeek ? (
             <WeekendView onRowPress={handleWeekendRowPress} />
