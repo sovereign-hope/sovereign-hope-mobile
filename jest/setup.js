@@ -1,9 +1,4 @@
 /* This setup file will be fairly static and pragmatic */
-/* eslint-disable eslint-comments/disable-enable-pair */
-/* eslint-disable @typescript-eslint/no-unsafe-return */
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable @typescript-eslint/no-var-requires */
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { Ionicons } from "@expo/vector-icons";
 import * as Font from "expo-font";
 
@@ -33,7 +28,6 @@ jest.mock("react-native-screens", () => {
 });
 
 jest.mock("@react-navigation/native/lib/commonjs/useLinking.native", () => ({
-  // eslint-disable-next-line unicorn/no-thenable
   default: () => ({ getInitialState: { then: jest.fn() } }),
   __esModule: true,
 }));

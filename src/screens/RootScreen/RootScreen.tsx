@@ -71,7 +71,7 @@ const HomeScreen = (): JSX.Element => (
       options={{
         lazy: false,
         headerShown: false,
-        // eslint-disable-next-line react/display-name
+
         tabBarIcon: ({
           focused,
           color,
@@ -82,7 +82,7 @@ const HomeScreen = (): JSX.Element => (
           size: number;
         }) => (
           <Ionicons
-            name="ios-cog"
+            name="cog"
             size={size}
             color={focused ? colors.accent : color}
           />
@@ -94,7 +94,7 @@ const HomeScreen = (): JSX.Element => (
       component={TodayScreen}
       options={{
         headerShown: false,
-        // eslint-disable-next-line react/display-name
+
         tabBarIcon: ({
           focused,
           color,
@@ -117,7 +117,7 @@ const HomeScreen = (): JSX.Element => (
       component={ReadingPlanScreen}
       options={{
         lazy: false,
-        // eslint-disable-next-line react/display-name
+
         tabBarIcon: ({
           focused,
           color,
@@ -128,7 +128,7 @@ const HomeScreen = (): JSX.Element => (
           size: number;
         }) => (
           <Ionicons
-            name="ios-book"
+            name="book"
             size={size}
             color={focused ? colors.accent : color}
           />
@@ -141,7 +141,7 @@ const HomeScreen = (): JSX.Element => (
       options={{
         lazy: false,
         headerShown: false,
-        // eslint-disable-next-line react/display-name
+
         tabBarIcon: ({
           focused,
           color,
@@ -152,7 +152,7 @@ const HomeScreen = (): JSX.Element => (
           size: number;
         }) => (
           <Ionicons
-            name="ios-logo-rss"
+            name="logo-rss"
             size={size}
             color={focused ? colors.accent : color}
           />

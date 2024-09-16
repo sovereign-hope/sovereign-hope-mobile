@@ -2,16 +2,14 @@
   "expo": {
     "name": "Sov Hope",
     "slug": "sovereign-hope-mobile",
-    "version": "4.0.2",
+    "version": "5.0.0",
+    "runtimeVersion": "5.0.0",
     "owner": "sovereign-hope",
     "githubUrl": "https://github.com/sovereign-hope/sovereign-hope-mobile",
     "primaryColor": "#1F1F1F",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "scheme": "sovereign-hope",
-    "runtimeVersion": {
-      "policy": "appVersion"
-    },
     "updates": {
       "url": "https://u.expo.dev/7b973a81-c8d2-47ec-94f3-1b9114626fe9"
     },
@@ -56,20 +54,30 @@
     },
     "locales": {},
     "plugins": [
-      "sentry-expo",
+      [
+        "@sentry/react-native/expo",
+        {
+          "url": "https://sentry.io/",
+          "organization": "sovereign-hope-church",
+          "project": "sovereign-hope-mobile"
+        }
+      ],
       [
         "expo-build-properties",
         {
           "ios": {
-            "useFrameworks": "static"
+            "useFrameworks": "static",
+            "newArchEnabled": false
+          },
+          "android": {
+            "newArchEnabled": false
+            //   "compileSdkVersion": 33,
+            //   "targetSdkVersion": 31
           }
-          // "android": {
-          //   "compileSdkVersion": 33,
-          //   "targetSdkVersion": 31
-          // }
         }
       ],
-      "expo-notifications"
+      "expo-notifications",
+      "expo-secure-store"
     ]
   }
 }

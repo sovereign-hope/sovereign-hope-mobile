@@ -12,7 +12,7 @@ import { getFirestore } from "firebase/firestore";
 import { RootScreen } from "src/screens/RootScreen/RootScreen";
 import { StatusBar } from "expo-status-bar";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import * as Sentry from "sentry-expo";
+import * as Sentry from "@sentry/react-native";
 
 // Keep the splash screen visible while we fetch resources
 // eslint-disable-next-line @typescript-eslint/no-floating-promises
@@ -24,7 +24,7 @@ Sentry.init({
 });
 
 const appLoading = async () => {
-  await Promise.all([Font.loadAsync(Ionicons.font)]);
+  await Font.loadAsync(Ionicons.font);
 
   // Configure axios
   axios.defaults.headers.common = {
@@ -109,5 +109,4 @@ const App = (): JSX.Element => {
   );
 };
 
-// eslint-disable-next-line import/no-default-export
-export default App;
+export default Sentry.wrap(App);
