@@ -22,13 +22,15 @@ interface Props {
 }
 
 const jumpBack = async () => {
-  const currentPosition = await TrackPlayer.getPosition();
+  const progress = await TrackPlayer.getProgress();
+  const currentPosition = progress.position;
   await TrackPlayer.seekTo(currentPosition - 15);
   void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 };
 
 const jumpForward = async () => {
-  const currentPosition = await TrackPlayer.getPosition();
+  const progress = await TrackPlayer.getProgress();
+  const currentPosition = progress.position;
   await TrackPlayer.seekTo(currentPosition + 15);
   void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 };
@@ -62,11 +64,11 @@ export const MiniPlayer: React.FunctionComponent<Props> = ({ id }: Props) => {
   useTrackPlayerEvents(
     [
       Event.PlaybackQueueEnded,
-      Event.PlaybackTrackChanged,
+      Event.PlaybackActiveTrackChanged,
       Event.RemoteStop,
       Event.PlaybackState,
       Event.PlaybackError,
-      Event.PlaybackMetadataReceived,
+      Event.MetadataCommonReceived,
     ],
     (event) => {
       TrackPlayer.getTrack(0)
@@ -87,9 +89,9 @@ export const MiniPlayer: React.FunctionComponent<Props> = ({ id }: Props) => {
       }
       if (
         event.type === Event.PlaybackState &&
-        (playbackState === State.Playing ||
-          playbackState === State.Buffering ||
-          playbackState === State.Connecting)
+        (playbackState.state === State.Playing ||
+          playbackState.state === State.Buffering ||
+          playbackState.state === State.Loading)
       ) {
         setIsPlaybackEnded(false);
       }
@@ -177,7 +179,7 @@ export const MiniPlayer: React.FunctionComponent<Props> = ({ id }: Props) => {
             // eslint-disable-next-line unicorn/no-null
             width={null}
             color={colors.accent}
-            indeterminate={playbackState === State.Buffering}
+            indeterminate={playbackState.state === State.Buffering}
           />
         </View>
         <Text style={themedStyles.progressText}>
@@ -203,7 +205,7 @@ export const MiniPlayer: React.FunctionComponent<Props> = ({ id }: Props) => {
         >
           <Ionicons name="play-back" size={48} color={colors.accent} />
         </Pressable>
-        {playbackState === State.Playing ? (
+        {playbackState.state === State.Playing ? (
           <Pressable
             onPress={() => void pause()}
             accessibilityRole="button"
