@@ -2,8 +2,8 @@
   "expo": {
     "name": "Sov Hope",
     "slug": "sovereign-hope-mobile",
-    "version": "6.0.0",
-    "runtimeVersion": "6.0.0",
+    "version": "6.1.0",
+    "runtimeVersion": "6.1.0",
     "owner": "sovereign-hope",
     "githubUrl": "https://github.com/sovereign-hope/sovereign-hope-mobile",
     "primaryColor": "#1F1F1F",

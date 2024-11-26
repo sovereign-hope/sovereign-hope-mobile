@@ -13,6 +13,8 @@ import { TodayScreen } from "../TodayScreen/TodayScreen";
 import { ReadScreen } from "../ReadScreen/ReadScreen";
 import { SettingsScreen } from "../SettingsScreen/SettingsScreen";
 import { PodcastScreen } from "../PodcastScreen/PodcastScreen";
+import { SelectPlanScreen } from "../SelectPlanScreen/SelectPlanScreen";
+import { FontSizePickerScreen } from "../FontSizePickerScreen/FontSizePickerScreen";
 
 // React Navigation configuration
 enableScreens();
@@ -63,8 +65,30 @@ const PodcastStack = (): JSX.Element => {
   );
 };
 
+const WeekStack = (): JSX.Element => {
+  const colorScheme = useColorScheme();
+
+  return (
+    <Stack.Navigator
+      screenOptions={{
+        headerTintColor: colors.accent,
+        headerShadowVisible: false,
+        headerLargeTitle: true,
+        headerTitleStyle: {
+          color:
+            colorScheme === "dark"
+              ? darkTheme.colors.text
+              : lightTheme.colors.text,
+        },
+      }}
+    >
+      <Stack.Screen name="This Week" component={TodayScreen} />
+    </Stack.Navigator>
+  );
+};
+
 const HomeScreen = (): JSX.Element => (
-  <Tab.Navigator initialRouteName="Today">
+  <Tab.Navigator initialRouteName="This Week">
     <Tab.Screen
       name="Settings"
       component={SettingsStack}
@@ -90,8 +114,8 @@ const HomeScreen = (): JSX.Element => (
       }}
     />
     <Tab.Screen
-      name="Today"
-      component={TodayScreen}
+      name="This Week"
+      component={WeekStack}
       options={{
         headerShown: false,
 
@@ -187,6 +211,8 @@ export const RootScreen = (): JSX.Element => {
           options={{ headerShown: false }}
         />
         <Stack.Screen name="Read" component={ReadScreen} />
+        <Stack.Screen name="Available Plans" component={SelectPlanScreen} />
+        <Stack.Screen name="Font Size" component={FontSizePickerScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

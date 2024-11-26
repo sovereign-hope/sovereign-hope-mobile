@@ -20,7 +20,7 @@ import * as Haptics from "expo-haptics";
 import { colors } from "src/style/colors";
 import { header1, header3 } from "src/style/typography";
 import { Ionicons } from "@expo/vector-icons";
-import TrackPlayer, { Capability, Track } from "react-native-track-player";
+import TrackPlayer, { Track } from "react-native-track-player";
 import {
   getPassageText,
   selectAudioUrl,
@@ -36,7 +36,7 @@ import RenderHtml, {
 import { FlatButton, MiniPlayer } from "src/components";
 import { styles } from "./ReadScreen.styles";
 import { spacing } from "src/style/layout";
-import playerService from "../../../service";
+import { selectReadingFontSize } from "src/redux/settingsSlice";
 
 interface ReadScrollViewProps {
   showMemoryButton: boolean;
@@ -57,6 +57,7 @@ const ReadScrollView: React.FunctionComponent<ReadScrollViewProps> = ({
   // Custom hooks
   const theme = useTheme();
   const passageText = useAppSelector(selectCurrentPassage);
+  const fontSize = useAppSelector(selectReadingFontSize);
   const { width } = useWindowDimensions();
 
   // Ref Hooks
@@ -86,12 +87,15 @@ const ReadScrollView: React.FunctionComponent<ReadScrollViewProps> = ({
     body: {
       whiteSpace: "normal",
       color: theme.colors.text,
+      fontSize: fontSize,
     },
     h2: {
       fontSize: header1.fontSize,
+      height: 50,
     },
     h3: {
       fontSize: header3.fontSize,
+      // marginTop: spacing.small,
     },
     a: {
       color: colors.accent,
@@ -221,47 +225,41 @@ export const ReadScreen: React.FunctionComponent<ReadScreenProps> = ({
     dispatch(getPassageText({ passage, includeFootnotes: true }));
   }, [dispatch]);
 
-  useEffect(() => {
-    TrackPlayer.registerPlaybackService(() => playerService);
-
-    async function setupPlayer() {
-      try {
-        await TrackPlayer.setupPlayer();
-      } catch (error) {
-        console.log(error);
-      }
-      await TrackPlayer.updateOptions({
-        capabilities: [
-          Capability.Play,
-          Capability.Pause,
-          Capability.JumpForward,
-          Capability.JumpBackward,
-          Capability.Stop,
-          Capability.SeekTo,
-        ],
-        compactCapabilities: [Capability.Play, Capability.Pause],
-      });
-    }
-
-    void setupPlayer();
-  }, []);
+  const showSelectFontSize = () => {
+    navigation.push("Font Size");
+  };
 
   useEffect(() => {
-    if (audioUrl && audioUrl !== "") {
-      navigation.setOptions({
-        headerRight: ({ tintColor }: { tintColor?: string | undefined }) => (
+    navigation.setOptions({
+      headerRight: ({ tintColor }: { tintColor?: string | undefined }) => (
+        <>
           <Pressable
             style={{
               marginRight: spacing.large,
             }}
             accessibilityRole="button"
-            onPress={() => void playAudio()}
+            onPress={() => showSelectFontSize()}
           >
-            <Text style={{ color: colors.accent, fontSize: 18 }}>Listen</Text>
+            <Ionicons name="text-outline" size={24} color={colors.accent} />
           </Pressable>
-        ),
-      });
-    }
+          {audioUrl && audioUrl !== "" && (
+            <Pressable
+              style={{
+                marginRight: spacing.large,
+              }}
+              accessibilityRole="button"
+              onPress={() => void playAudio()}
+            >
+              <Ionicons
+                name="volume-high-outline"
+                size={24}
+                color={colors.accent}
+              />
+            </Pressable>
+          )}
+        </>
+      ),
+    });
   }, [navigation, audioUrl]);
 
   // Constants

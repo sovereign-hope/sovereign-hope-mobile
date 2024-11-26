@@ -6,6 +6,7 @@ import { Passage } from "src/app/utils";
 
 export interface EsvState {
   currentPassage?: EsvResponse;
+  audioURL: string;
   isLoading: boolean;
   isSignout: boolean;
   hasError: boolean;
@@ -29,6 +30,7 @@ export interface EsvResponse {
 
 const initialState: EsvState = {
   currentPassage: undefined,
+  audioURL: "",
   isLoading: false,
   isSignout: false,
   hasError: false,
@@ -66,20 +68,32 @@ export const getPassageFromEsvApi = async ({
       routes.passageText(query, includeFootnotes, includeVerseNumbers)
     );
     const passageHtml = response.data as EsvResponse;
+
     const audioRegex = /\(.*https:\/\/audio.esv.org\/.*.mp3.*Listen.*\)/g;
     const listenTagMatches = passageHtml.passages[0].match(audioRegex);
     let listenTag = listenTagMatches ? listenTagMatches[0] : undefined;
     // Remove listen link since we've extracted it for the player
     passageHtml.passages[0] = passageHtml.passages[0].replaceAll(
       audioRegex,
-      "<p></p>"
+      ""
     );
-    // Change listen text
     if (listenTag) {
-      listenTag = listenTag.replace("Listen", "Listen in browser");
+      listenTag = listenTag?.slice(1).slice(0, -1);
+      listenTag = listenTag.replace("Listen", "");
       // eslint-disable-next-line unicorn/prefer-spread
-      passageHtml.passages[0] = passageHtml.passages[0].concat(
-        `<p>${listenTag}</p>`
+      passageHtml.passages[0] = passageHtml.passages[0].concat(`${listenTag}`);
+    }
+
+    // Change ESV attribution
+    const esvRegex = /\(.*http:\/\/www.esv.org.*ESV.*\)/g;
+    const esvTagMatches = passageHtml.passages[0].match(esvRegex);
+    let esvTag = esvTagMatches ? esvTagMatches[0] : undefined;
+    passageHtml.passages[0] = passageHtml.passages[0].replaceAll(esvRegex, "");
+    if (esvTag) {
+      esvTag = esvTag?.slice(1).slice(0, -1);
+      esvTag = esvTag.replace("ESV", "ESV Bible");
+      passageHtml.passages[0] = `<h3>${esvTag}</h3>`.concat(
+        passageHtml.passages[0]
       );
     }
     return passageHtml;

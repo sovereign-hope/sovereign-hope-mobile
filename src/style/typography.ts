@@ -1,5 +1,9 @@
 import { TextStyle } from "react-native";
 
+export const body: TextStyle = {
+  fontSize: 15,
+};
+
 export const header1: TextStyle = {
   fontSize: 36,
   fontWeight: "600",

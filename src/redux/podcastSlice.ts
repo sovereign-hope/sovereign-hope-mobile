@@ -55,6 +55,10 @@ export const podcastSlice = createSlice({
 export const selectEpisodes = (
   state: RootState
 ): rssParser.FeedItem[] | undefined => state.podcast.episodes;
+export const selectCurrentEpisode = (
+  state: RootState
+): rssParser.FeedItem | undefined =>
+  state.podcast.episodes ? state.podcast.episodes[0] : undefined;
 export const selectError = (state: RootState): boolean =>
   state.podcast.hasError;
 export const selectIsLoading = (state: RootState): boolean =>

@@ -28,6 +28,7 @@ export const styles = ({ theme }: Props): Style =>
       left: 0,
       width: "100%",
       padding: spacing.medium,
+      paddingBottom: spacing.extraLarge,
       backgroundColor: theme.colors.card,
       borderTopColor: colors.accent,
       borderTopWidth: 2,
@@ -40,7 +41,7 @@ export const styles = ({ theme }: Props): Style =>
       },
       shadowOpacity: 0.15,
       shadowRadius: 10,
-      zIndex: 1,
+      zIndex: 100,
     },
     header: {
       flexDirection: "row",

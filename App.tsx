@@ -12,6 +12,8 @@ import { getFirestore } from "firebase/firestore";
 import { RootScreen } from "src/screens/RootScreen/RootScreen";
 import { StatusBar } from "expo-status-bar";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+import TrackPlayer, { Capability, Track } from "react-native-track-player";
+import playerService from "./service";
 import * as Sentry from "@sentry/react-native";
 
 // Keep the splash screen visible while we fetch resources
@@ -76,6 +78,31 @@ const App = (): JSX.Element => {
 
     // eslint-disable-next-line @typescript-eslint/no-floating-promises
     prepare();
+  }, []);
+
+  useEffect(() => {
+    TrackPlayer.registerPlaybackService(() => playerService);
+
+    async function setupPlayer() {
+      try {
+        await TrackPlayer.setupPlayer();
+      } catch (error) {
+        console.log(error);
+      }
+      await TrackPlayer.updateOptions({
+        capabilities: [
+          Capability.Play,
+          Capability.Pause,
+          Capability.JumpForward,
+          Capability.JumpBackward,
+          Capability.Stop,
+          Capability.SeekTo,
+        ],
+        compactCapabilities: [Capability.Play, Capability.Pause],
+      });
+    }
+
+    void setupPlayer();
   }, []);
 
   const onLayoutRootView = useCallback(async () => {

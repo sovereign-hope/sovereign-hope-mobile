@@ -1,9 +1,12 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   AppState,
   AppStateStatus,
+  FlatList,
+  Image,
   Linking,
+  ListRenderItem,
   Pressable,
   ScrollView,
   Text,
@@ -19,7 +22,6 @@ import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import {
   getReadingPlan,
-  selectDailyReadingPlanProgress,
   storeReadingPlanProgressState,
   getReadingPlanProgressState,
   ReadingPlanProgressState,
@@ -27,15 +29,16 @@ import {
   selectReadingPlanProgressState,
   ReadingPlanDay,
   selectIsLoading,
-  selectReadingPlan,
+  selectAvailablePlans,
+  getAvailablePlans,
+  selectWeekReadingPlan,
 } from "src/redux/readingPlanSlice";
 import { selectIsLoading as selectIsMemoryLoading } from "src/redux/memorySlice";
 import { colors } from "src/style/colors";
-import { FlatButton } from "src/components";
+import { MiniPlayer } from "src/components";
 import { getDayInWeek, getWeekNumber, parsePassageString } from "src/app/utils";
 import { spacing } from "src/style/layout";
 import { styles } from "./TodayScreen.styles";
-import { WeekendView } from "./WeekendView/WeekendView";
 import {
   getMemoryPassageText,
   selectMemoryAcronym,
@@ -44,8 +47,37 @@ import {
   getNotifications,
   selectNotifications,
 } from "src/redux/notificationsSlice";
+import {
+  getSubscribedPlans,
+  selectHasLoadedSubscribedPlans,
+  selectSubscribedPlans,
+  storeSubscribedPlans,
+} from "src/redux/settingsSlice";
+import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
+import { selectCurrentEpisode } from "src/redux/podcastSlice";
+import thumbnail from "../../../assets/podcast-icon.png";
+import icon from "../../../assets/icon.png";
+import { FeedItem } from "react-native-rss-parser";
+import TrackPlayer, { Track } from "react-native-track-player";
 
-type Props = NativeStackScreenProps<RootStackParamList, "Today">;
+const playEpisode = async (episode: FeedItem) => {
+  await TrackPlayer.reset();
+  const track: Track = {
+    url: episode.enclosures[0].url,
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    artwork: icon,
+    title: episode.title,
+    artist: "Sovereign Hope Church",
+    date: episode.published,
+    description: episode.description,
+    duration: Number.parseInt(episode.enclosures[0].length, 10) / 60,
+  };
+  await TrackPlayer.add(track);
+  await TrackPlayer.play();
+  void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+};
+
+type Props = NativeStackScreenProps<RootStackParamList, "This Week">;
 
 export const TodayScreen: React.FunctionComponent<Props> = ({
   navigation,
@@ -53,19 +85,24 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
   // Custom hooks
   const dispatch = useDispatch();
   const readingPlanDay = useAppSelector(selectDailyReadingPlan);
-  const readingPlanDayProgress = useAppSelector(selectDailyReadingPlanProgress);
   const readingPlanProgress = useAppSelector(selectReadingPlanProgressState);
+  const readingPlanWeek = useAppSelector(selectWeekReadingPlan);
   const memoryPassageAcronym = useAppSelector(selectMemoryAcronym);
   const isLoading = useAppSelector(selectIsLoading);
   const isMemoryPassageLoading = useAppSelector(selectIsMemoryLoading);
-  const readingPlan = useAppSelector(selectReadingPlan);
   const theme = useTheme();
   const notifications = useAppSelector(selectNotifications);
+  const subscribedPlans = useAppSelector(selectSubscribedPlans);
+  const hasLoadedSubscribedPlans = useAppSelector(
+    selectHasLoadedSubscribedPlans
+  );
+  const availablePlans = useAppSelector(selectAvailablePlans);
+  const [hasInitializedPosition, setHasInitializedPosition] = useState(false);
+  const podcastEpisode = useAppSelector(selectCurrentEpisode);
 
   // Ref Hooks
   const appState = useRef(AppState.currentState);
-
-  // Callback hooks
+  const readingScrollViewRef = useRef<FlatList<ReadingPlanDay>>(null);
 
   // Effect hooks
   useEffect(() => {
@@ -74,6 +111,8 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
         /inactive|background/.test(appState.current) &&
         nextAppState === "active"
       ) {
+        dispatch(getAvailablePlans());
+        dispatch(getSubscribedPlans());
         dispatch(getReadingPlan());
         dispatch(getReadingPlanProgressState());
         dispatch(getNotifications());
@@ -88,13 +127,40 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
   }, []);
 
   useEffect(() => {
+    dispatch(getAvailablePlans());
+    dispatch(getSubscribedPlans());
     dispatch(getReadingPlan());
     dispatch(getReadingPlanProgressState());
     dispatch(getNotifications());
   }, [dispatch]);
 
   useEffect(() => {
-    const passage = readingPlanDay?.memory.passage;
+    dispatch(getReadingPlan());
+  }, [availablePlans, subscribedPlans]);
+
+  useEffect(() => {
+    const hasActivePlan = subscribedPlans.length > 0;
+    if (
+      !hasActivePlan &&
+      hasLoadedSubscribedPlans &&
+      availablePlans.length > 0
+    ) {
+      // Do a quick check for old plans
+      const newSubscriptions = subscribedPlans.filter((subscribedPlan) => {
+        return availablePlans.some((plan) => plan.id === subscribedPlan);
+      });
+      // If any plans were culled because they aren't available, remove them
+      if (newSubscriptions.length !== subscribedPlans.length) {
+        dispatch(storeSubscribedPlans(newSubscriptions));
+      }
+      if (newSubscriptions.length === 0) {
+        navigation.navigate("Available Plans");
+      }
+    }
+  }, [subscribedPlans, hasLoadedSubscribedPlans, availablePlans]);
+
+  useEffect(() => {
+    const passage = readingPlanWeek?.days[0]?.memory.passage;
     if (passage) {
       dispatch(
         getMemoryPassageText({
@@ -104,6 +170,28 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
     }
   }, [readingPlanDay]);
 
+  useEffect(() => {
+    if (!hasInitializedPosition) {
+      const currentDayIndex = getDayInWeek() - 1;
+      const readingPlanDayCount = readingPlanWeek?.days.length ?? 0;
+      if (
+        readingScrollViewRef.current &&
+        readingPlanDayCount > 0 &&
+        readingPlanDayCount > currentDayIndex
+      ) {
+        setTimeout(() => {
+          if (readingScrollViewRef.current) {
+            readingScrollViewRef.current.scrollToIndex({
+              // Note to self: this doesn't work if index is 0!!!
+              index: currentDayIndex,
+            });
+            setHasInitializedPosition(true);
+          }
+        }, 100);
+      }
+    }
+  }, [readingScrollViewRef, readingPlanWeek]);
+
   React.useLayoutEffect(() => {
     navigation.setOptions({
       headerRight: undefined,
@@ -111,7 +199,7 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
   }, [navigation]);
 
   // Event handlers
-  const handleCompleteDay = (isComplete: boolean) => {
+  const handleCompleteDay = (isComplete: boolean, dayIndex: number) => {
     if (isComplete) {
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } else {
@@ -119,23 +207,18 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
     }
     if (readingPlanProgress) {
       const currentWeekIndex = getWeekNumber(new Date()).week - 1;
-      const currentDayIndex = getDayInWeek() - 1;
-      const isEndOfWeek = currentDayIndex > 4;
-
       const tempPlan: ReadingPlanProgressState =
-        // structuredClone isn't available in hermes
+        // This is disabled because structuredClone isn't available on hermes
         // eslint-disable-next-line unicorn/prefer-structured-clone
         JSON.parse(
           JSON.stringify(readingPlanProgress)
         ) as ReadingPlanProgressState;
-      tempPlan.weeks[currentWeekIndex].days[
-        isEndOfWeek ? 4 : currentDayIndex
-      ].isCompleted = isComplete;
+      tempPlan.weeks[currentWeekIndex].days[dayIndex].isCompleted = isComplete;
       dispatch(storeReadingPlanProgressState(tempPlan));
     }
   };
 
-  const handleReadPress = () => {
+  const handleReadPress = (dayIndex: number) => {
     if (readingPlanDay) {
       const readingPassages = readingPlanDay.reading.map((reading) =>
         parsePassageString(reading)
@@ -149,7 +232,7 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
 
       navigation.navigate("Read", {
         passages: readingPassages?.concat(memoryPassage) ?? [],
-        onComplete: () => handleCompleteDay(true),
+        onComplete: () => handleCompleteDay(true, dayIndex),
       });
     }
   };
@@ -169,49 +252,99 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
     }
   };
 
-  const handleWeekendRowPress = (
-    item: ReadingPlanDay,
-    onCompleteDay: (isComplete: boolean) => void
-  ) => {
-    const readingPassages = item.reading.map((reading) =>
-      parsePassageString(reading)
-    );
-
-    // Build Memory Passage
-    const memoryPassage = parsePassageString(
-      item.memory.passage,
-      item.memory.heading
-    );
-
-    navigation.navigate("Read", {
-      passages: readingPassages?.concat(memoryPassage) ?? [],
-      onComplete: () => onCompleteDay(true),
-    });
-  };
-
   // Constants
   const themedStyles = styles({ theme });
-  const dateOptions: Intl.DateTimeFormatOptions = {
-    weekday: "short",
-    month: "long",
-    day: "numeric",
-  };
-  const date = new Date();
-  const formatedDate = date.toLocaleDateString("en-US", dateOptions);
   const currentDayIndex = getDayInWeek() - 1;
-  const readingsPerWeek = readingPlan?.weeks[0]?.days.length ?? 5;
-  const isEndOfWeek = currentDayIndex > readingsPerWeek - 1;
   const shouldShowLoadingIndicator = isLoading && readingPlanDay === undefined;
   const shouldShowMemoryLoadingIndicator =
     isMemoryPassageLoading || memoryPassageAcronym === undefined;
+  // We can do this because we really only need en US
+  const weekdayMap = [
+    "Monday",
+    "Tuesday",
+    "Wednesday",
+    "Thursday",
+    "Friday",
+    "Saturday",
+  ];
+
+  const renderReadingItem: ListRenderItem<ReadingPlanDay> = ({
+    item,
+    index,
+  }) => {
+    const key = item.reading.join("");
+    return (
+      <Pressable
+        key={key}
+        onPress={() => handleReadPress(index)}
+        accessibilityRole="button"
+        style={({ pressed }) => [
+          themedStyles.contentCard,
+          {
+            marginRight: 0,
+            opacity: pressed ? 0.7 : 1,
+          },
+        ]}
+      >
+        <Pressable
+          onPress={() => handleCompleteDay(!item.isComplete, index)}
+          accessibilityRole="button"
+          style={({ pressed }) => ({
+            opacity: pressed ? 0.7 : 1,
+          })}
+        >
+          {item.isComplete ? (
+            <Animated.View
+              entering={FadeIn.duration(250)}
+              exiting={FadeOut.duration(250)}
+            >
+              <Ionicons name="checkbox" size={36} color={colors.green} />
+            </Animated.View>
+          ) : (
+            <Ionicons
+              name="square-outline"
+              size={36}
+              color={theme.colors.border}
+            />
+          )}
+        </Pressable>
+
+        <View
+          style={{
+            ...themedStyles.contentCardColumn,
+            marginLeft: spacing.medium,
+          }}
+        >
+          <Text style={themedStyles.contentCardHeader}>
+            {currentDayIndex === index
+              ? "Today"
+              : currentDayIndex === index - 1
+              ? "Tomorrow"
+              : currentDayIndex === index + 1
+              ? "Yesterday"
+              : weekdayMap[index]}
+          </Text>
+          {item?.reading.map((reading) => (
+            <Text key={reading}>{reading}</Text>
+          ))}
+        </View>
+        <Ionicons
+          name="chevron-forward"
+          size={24}
+          color={colors.grey}
+          style={themedStyles.disclosureIcon}
+        />
+      </Pressable>
+    );
+  };
 
   return (
-    <SafeAreaView style={themedStyles.screen} edges={["left", "top", "right"]}>
+    <SafeAreaView style={themedStyles.screen} edges={["left", "right"]}>
+      <MiniPlayer id="sermons-mini-player" />
       <ScrollView
         style={themedStyles.scrollView}
-        contentContainerStyle={{ flexGrow: 1 }}
+        contentInsetAdjustmentBehavior="automatic"
       >
-        <Text style={themedStyles.title}>{formatedDate}</Text>
         <View style={themedStyles.notifications}>
           {notifications?.map((notification) => (
             <Pressable
@@ -236,134 +369,174 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
               <Ionicons
                 name="chevron-forward"
                 size={24}
-                color={colors.white}
+                color={colors.grey}
                 style={themedStyles.disclosureIcon}
               />
             </Pressable>
           ))}
         </View>
-        <View style={themedStyles.dayContent}>
-          {isEndOfWeek ? (
-            <WeekendView onRowPress={handleWeekendRowPress} />
-          ) : shouldShowLoadingIndicator ? (
+        <View style={themedStyles.content}>
+          {shouldShowLoadingIndicator ? (
             <View style={themedStyles.loadingContainer}>
               <ActivityIndicator size="large" color={theme.colors.text} />
             </View>
           ) : (
-            <View style={themedStyles.dayReadingContainer}>
-              <View style={themedStyles.dayReadingColumnPrimary}>
-                <Ionicons
-                  name="document-text"
-                  color={colors.white}
-                  style={themedStyles.dayTitleIcon}
-                />
-                <View style={themedStyles.dayTitle}>
-                  <Text
-                    style={{
-                      ...themedStyles.dayReadingHeader,
-                      ...themedStyles.whiteText,
-                    }}
-                  >
-                    Reading
-                  </Text>
-                  {readingPlanDay?.reading.map((reading) => (
-                    <Text key={reading} style={themedStyles.whiteText}>
-                      {reading}
-                    </Text>
-                  ))}
-                </View>
-              </View>
-              <View style={themedStyles.dayReadingColumnSecondary}>
-                <Ionicons
-                  name="heart-half"
-                  color={colors.white}
-                  style={themedStyles.dayTitleIcon}
-                />
-                <View style={themedStyles.dayTitle}>
-                  <Text style={themedStyles.dayReadingHeader}>Memory</Text>
-                  <Text
-                    key={readingPlanDay?.memory.passage}
-                    style={themedStyles.memoryText}
-                  >
-                    {readingPlanDay?.memory.passage}
-                  </Text>
-                  <View style={themedStyles.spacer} />
-                </View>
-              </View>
-            </View>
-          )}
-          <View style={themedStyles.footer}>
-            <View style={themedStyles.footerRow}>
-              {!isEndOfWeek && (
-                <FlatButton
-                  title="Read"
-                  onPress={handleReadPress}
+            <>
+              <View style={themedStyles.headerRow}>
+                <Text
                   style={{
-                    ...themedStyles.footerButton,
-                    marginRight: spacing.medium,
-                    backgroundColor: colors.blue,
+                    ...themedStyles.header,
                   }}
-                />
-              )}
-              <FlatButton
-                title="Memorize"
-                onPress={handlePracticePress}
-                style={{
-                  ...themedStyles.footerButton,
-                  backgroundColor: colors.blue,
+                >
+                  Reading
+                </Text>
+                <Pressable
+                  style={({ pressed }) => [
+                    themedStyles.textButton,
+                    { opacity: pressed ? 0.7 : 1 },
+                  ]}
+                  accessibilityRole="button"
+                  onPress={() => {
+                    if (readingScrollViewRef.current) {
+                      readingScrollViewRef.current.scrollToIndex({
+                        index: currentDayIndex,
+                      });
+                    }
+                  }}
+                >
+                  <Text style={{ color: colors.accent, fontSize: 18 }}>
+                    Show Today
+                  </Text>
+                </Pressable>
+              </View>
+              <FlatList
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                data={readingPlanWeek?.days}
+                renderItem={renderReadingItem}
+                style={themedStyles.scrollRow}
+                ref={readingScrollViewRef}
+                onScrollToIndexFailed={(info) => {
+                  console.log(info);
+                }}
+                contentContainerStyle={{
+                  marginTop: spacing.small,
+                  paddingRight: spacing.large,
                 }}
               />
-            </View>
-            {!isEndOfWeek && (
-              <FlatButton
-                title={
-                  readingPlanDayProgress ? "Day completed!" : "Mark as complete"
-                }
-                onPress={() => handleCompleteDay(!readingPlanDayProgress)}
-                style={{
-                  backgroundColor: readingPlanDayProgress
-                    ? colors.green
-                    : colors.accent,
-                }}
-              />
-            )}
-          </View>
-          <Text style={themedStyles.memoryQuestionHeader}>Memory Helper</Text>
-          {shouldShowMemoryLoadingIndicator ? (
-            <View style={themedStyles.memoryLoadingContainer}>
-              <ActivityIndicator size="small" color={theme.colors.text} />
-            </View>
-          ) : (
-            <Text style={themedStyles.memoryHelperText}>
-              {memoryPassageAcronym}
-            </Text>
+            </>
           )}
-          <Text style={themedStyles.memoryQuestionHeader}>
-            Questions for Study
-          </Text>
-          <Text style={themedStyles.memoryQuestionSubHeader}>Look Up</Text>
-          <Text style={themedStyles.memoryQuestion}>
-            What does this passage teach us about the Triune God, his character,
-            and his plan to save us in the gospel?
-          </Text>
-          <Text style={themedStyles.memoryQuestionSubHeader}>Look In</Text>
-          <Text style={themedStyles.memoryQuestion}>
-            What does this passage teach us about our own hearts and lives, and
-            the world we live in?
-          </Text>
-          <Text style={themedStyles.memoryQuestionSubHeader}>Look Out</Text>
-          <Text style={themedStyles.memoryQuestion}>
-            How does this passage influence the way we should act and think as
-            Christians at home, at work, in relationships or as the church?
-          </Text>
-
-          <Text style={themedStyles.memoryQuestionHeader}>
-            Thoughts for Reflection
-          </Text>
-          <Text style={themedStyles.memoryQuestion}>
-            Write down one way this passage can influence our emotions and
-            prayer life and be sure to set aside time to pray for that today.
-          </Text>
+          <View style={themedStyles.headerRow}>
+            <Text style={themedStyles.header}>Memory</Text>
+          </View>
+          <Pressable
+            onPress={handlePracticePress}
+            accessibilityRole="button"
+            style={({ pressed }) => [
+              themedStyles.contentCard,
+              {
+                opacity: pressed ? 0.7 : 1,
+              },
+            ]}
+          >
+            <View style={themedStyles.contentCardColumn}>
+              <Text style={themedStyles.contentCardHeader}>
+                {readingPlanWeek?.days[0]?.memory.heading}
+              </Text>
+              <Text>{readingPlanWeek?.days[0]?.memory.passage}</Text>
+              {shouldShowMemoryLoadingIndicator ? (
+                <View style={themedStyles.memoryLoadingContainer}>
+                  <ActivityIndicator size="small" color={theme.colors.text} />
+                </View>
+              ) : (
+                <Text style={themedStyles.memoryHelperText}>
+                  {memoryPassageAcronym}
+                </Text>
+              )}
+            </View>
+            <Ionicons
+              name="chevron-forward"
+              size={24}
+              color={colors.grey}
+              style={themedStyles.disclosureIcon}
+            />
+          </Pressable>
+          <View style={themedStyles.headerRow}>
+            <Text style={themedStyles.header}>Resources</Text>
+          </View>
+          {podcastEpisode && (
+            <Pressable
+              onPress={() => void playEpisode(podcastEpisode)}
+              accessibilityRole="button"
+              key={podcastEpisode.title}
+              style={({ pressed }) => [
+                themedStyles.contentCard,
+                {
+                  opacity: pressed ? 0.7 : 1,
+                },
+              ]}
+            >
+              <Image
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+                source={thumbnail}
+                style={themedStyles.image}
+                accessibilityIgnoresInvertColors
+              />
+              <View
+                style={{
+                  ...themedStyles.contentCardColumn,
+                  marginLeft: spacing.medium,
+                }}
+              >
+                <Text style={themedStyles.contentCardHeader}>
+                  {podcastEpisode.title}
+                </Text>
+                <Text>{podcastEpisode.description.trim()}</Text>
+              </View>
+              <Ionicons
+                name="chevron-forward"
+                size={24}
+                color={colors.grey}
+                style={themedStyles.disclosureIcon}
+              />
+            </Pressable>
+          )}
+          <View style={themedStyles.contentCard}>
+            <View style={themedStyles.contentCardColumn}>
+              <Text style={themedStyles.memoryQuestionHeader}>
+                Study Questions
+              </Text>
+              <Text style={themedStyles.memoryQuestionSubHeader}>Look Up</Text>
+              <Text style={themedStyles.memoryQuestion}>
+                What does this passage teach us about the Triune God, his
+                character, and his plan to save us in the gospel?
+              </Text>
+              <Text style={themedStyles.memoryQuestionSubHeader}>Look In</Text>
+              <Text style={themedStyles.memoryQuestion}>
+                What does this passage teach us about our own hearts and lives,
+                and the world we live in?
+              </Text>
+              <Text style={themedStyles.memoryQuestionSubHeader}>Look Out</Text>
+              <Text style={themedStyles.memoryQuestion}>
+                How does this passage influence the way we should act and think
+                as Christians at home, at work, in relationships or as the
+                church?
+              </Text>
+              <Text
+                style={{
+                  ...themedStyles.memoryQuestionHeader,
+                  marginTop: spacing.large,
+                }}
+              >
+                Thoughts for Reflection
+              </Text>
+              <Text style={themedStyles.memoryQuestion}>
+                Write down one way this passage can influence our emotions and
+                prayer life and be sure to set aside time to pray for that
+                today.
+              </Text>
+            </View>
+          </View>
           <View style={themedStyles.spacer} />
         </View>
       </ScrollView>

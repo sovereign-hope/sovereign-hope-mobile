@@ -2,13 +2,17 @@ import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import { RootState } from "src/app/store";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Notifications from "expo-notifications";
-import { Platform } from "react-native";
+import { body } from "src/style/typography";
 
 export interface SettingsState {
   enableNotifications: boolean;
   notificationTime: string;
+  subscribedPlans: Array<string>;
+  readingFontSize: number;
+  readingBackgroundColor: string | undefined;
   isLoading: boolean;
   hasError: boolean;
+  hasLoadedSubscribedPlans: boolean;
 }
 
 const defaultTimeString = "8:00 AM";
@@ -16,8 +20,12 @@ const defaultTimeString = "8:00 AM";
 const initialState: SettingsState = {
   enableNotifications: true,
   notificationTime: defaultTimeString,
+  subscribedPlans: [],
+  readingFontSize: body.fontSize ?? 13,
+  readingBackgroundColor: undefined,
   isLoading: false,
   hasError: false,
+  hasLoadedSubscribedPlans: false,
 };
 
 Notifications.setNotificationHandler({
@@ -34,7 +42,6 @@ const getSecondsUntilNextOccuranceOfTime = (time: string) => {
   let hour = Number.parseInt(time.split(":")[0]);
   const minute = Number.parseInt(time.split(":")[1].split(" ")[0]);
   const ampm = time.split(":")[1].split(" ")[1];
-  console.log(hour, minute, ampm);
 
   if (ampm === "PM" && hour !== 12) {
     hour += 12;
@@ -68,7 +75,6 @@ export const storeEnableNotificationsState = createAsyncThunk(
         let hour = Number.parseInt(time.split(":")[0]);
         const minute = Number.parseInt(time.split(":")[1].split(" ")[0]);
         const ampm = time.split(":")[1].split(" ")[1];
-        console.log(hour, minute, ampm);
 
         if (ampm === "PM" && hour !== 12) {
           hour += 12;
@@ -131,7 +137,6 @@ export const storeNotificationTime = createAsyncThunk(
         let hour = Number.parseInt(time.split(":")[0]);
         const minute = Number.parseInt(time.split(":")[1].split(" ")[0]);
         const ampm = time.split(":")[1].split(" ")[1];
-        console.log(hour, minute, ampm);
 
         if (ampm === "PM" && hour !== 12) {
           hour += 12;
@@ -177,6 +182,107 @@ export const getNotificationTime = createAsyncThunk(
       console.error(error);
     }
     return defaultTimeString;
+  }
+);
+
+export const storeSubscribedPlans = createAsyncThunk(
+  "settings/storeSubscribedPlans",
+  async (subscribedPlans: Array<string>, { getState }) => {
+    try {
+      await AsyncStorage.setItem(
+        "@settings/subscribedPlans",
+        subscribedPlans.toString()
+      );
+      return subscribedPlans;
+    } catch (error) {
+      console.error(error);
+      return [];
+    }
+  }
+);
+
+export const getSubscribedPlans = createAsyncThunk(
+  "settings/getSubscribedPlans",
+  async () => {
+    try {
+      const stringValue = await AsyncStorage.getItem(
+        `@settings/subscribedPlans`
+      );
+      if (!stringValue) {
+        return [];
+      }
+      const splitArray = stringValue.split(",");
+      if (!splitArray) {
+        return [stringValue];
+      }
+      return splitArray;
+    } catch (error) {
+      console.error(error);
+    }
+    return [];
+  }
+);
+
+export const storeReadingFontSize = createAsyncThunk(
+  "settings/storeReadingFontSize",
+  async (readingFontSize: number, { getState }) => {
+    try {
+      await AsyncStorage.setItem(
+        "@settings/readingFontSize",
+        readingFontSize.toString()
+      );
+      return readingFontSize;
+    } catch (error) {
+      console.error(error);
+      return body.fontSize;
+    }
+  }
+);
+
+export const getReadingFontSize = createAsyncThunk(
+  "settings/getReadingFontSize",
+  async () => {
+    try {
+      const stringValue = await AsyncStorage.getItem(
+        `@settings/readingFontSize`
+      );
+      if (!stringValue) {
+        return body.fontSize;
+      }
+      return Number.parseInt(stringValue);
+    } catch (error) {
+      console.error(error);
+    }
+    return body.fontSize;
+  }
+);
+
+export const storeReadingBackgroundColor = createAsyncThunk(
+  "settings/storeReadingBackgroundColor",
+  async (readingBackgroundColor: string, { getState }) => {
+    try {
+      await AsyncStorage.setItem(
+        "@settings/readingBackgroundColor",
+        readingBackgroundColor.toString()
+      );
+      return readingBackgroundColor;
+    } catch (error) {
+      console.error(error);
+    }
+  }
+);
+
+export const getReadingBackgroundColor = createAsyncThunk(
+  "settings/getReadingBackgroundColor",
+  async () => {
+    try {
+      const stringValue = await AsyncStorage.getItem(
+        `@settings/readingBackgroundColor`
+      );
+      return stringValue;
+    } catch (error) {
+      console.error(error);
+    }
   }
 );
 
@@ -249,6 +355,100 @@ export const settingsSlice = createSlice({
       state.isLoading = false;
       state.hasError = true;
     });
+
+    // storeSubscribedPlans
+    builder.addCase(storeSubscribedPlans.pending, (state) => {
+      state.isLoading = true;
+      state.hasError = false;
+    });
+    builder.addCase(storeSubscribedPlans.fulfilled, (state, action) => {
+      state.subscribedPlans = action.payload;
+      state.isLoading = false;
+      state.hasError = false;
+    });
+    builder.addCase(storeSubscribedPlans.rejected, (state) => {
+      state.isLoading = false;
+      state.hasError = true;
+    });
+
+    // getSubscribedPlans
+    builder.addCase(getSubscribedPlans.pending, (state) => {
+      state.isLoading = true;
+      state.hasError = false;
+    });
+    builder.addCase(getSubscribedPlans.fulfilled, (state, action) => {
+      state.subscribedPlans = action.payload;
+      state.isLoading = false;
+      state.hasError = false;
+      state.hasLoadedSubscribedPlans = true;
+    });
+    builder.addCase(getSubscribedPlans.rejected, (state) => {
+      state.subscribedPlans = [];
+      state.isLoading = false;
+      state.hasError = true;
+      state.hasLoadedSubscribedPlans = true;
+    });
+
+    // storeReadingFontSize
+    builder.addCase(storeReadingFontSize.pending, (state) => {
+      state.isLoading = true;
+      state.hasError = false;
+    });
+    builder.addCase(storeReadingFontSize.fulfilled, (state, action) => {
+      state.readingFontSize = action.payload ?? 13;
+      state.isLoading = false;
+      state.hasError = false;
+    });
+    builder.addCase(storeReadingFontSize.rejected, (state) => {
+      state.isLoading = false;
+      state.hasError = true;
+    });
+
+    // getReadingFontSize
+    builder.addCase(getReadingFontSize.pending, (state) => {
+      state.isLoading = true;
+      state.hasError = false;
+    });
+    builder.addCase(getReadingFontSize.fulfilled, (state, action) => {
+      state.readingFontSize = action.payload ?? 13;
+      state.isLoading = false;
+      state.hasError = false;
+    });
+    builder.addCase(getReadingFontSize.rejected, (state) => {
+      state.readingFontSize = 13;
+      state.isLoading = false;
+      state.hasError = true;
+    });
+
+    // storeReadingBackgroundColor
+    builder.addCase(storeReadingBackgroundColor.pending, (state) => {
+      state.isLoading = true;
+      state.hasError = false;
+    });
+    builder.addCase(storeReadingBackgroundColor.fulfilled, (state, action) => {
+      state.readingBackgroundColor = action.payload;
+      state.isLoading = false;
+      state.hasError = false;
+    });
+    builder.addCase(storeReadingBackgroundColor.rejected, (state) => {
+      state.isLoading = false;
+      state.hasError = true;
+    });
+
+    // getReadingBackgroundColor
+    builder.addCase(getReadingBackgroundColor.pending, (state) => {
+      state.isLoading = true;
+      state.hasError = false;
+    });
+    builder.addCase(getReadingBackgroundColor.fulfilled, (state, action) => {
+      state.readingBackgroundColor = action.payload ?? undefined;
+      state.isLoading = false;
+      state.hasError = false;
+    });
+    builder.addCase(getReadingBackgroundColor.rejected, (state) => {
+      state.isLoading = false;
+      state.hasError = true;
+    });
   },
 });
 
@@ -257,6 +457,19 @@ export const selectEnableNotifications = (state: RootState): boolean =>
 
 export const selectNotificationTime = (state: RootState): string =>
   state.settings.notificationTime;
+
+export const selectSubscribedPlans = (state: RootState): Array<string> =>
+  state.settings.subscribedPlans;
+
+export const selectHasLoadedSubscribedPlans = (state: RootState): boolean =>
+  state.settings.hasLoadedSubscribedPlans;
+
+export const selectReadingFontSize = (state: RootState): number =>
+  state.settings.readingFontSize;
+
+export const selectReadingBackgroundColor = (
+  state: RootState
+): string | undefined => state.settings.readingBackgroundColor;
 
 export const selectError = (state: RootState): boolean =>
   state.settings.hasError;

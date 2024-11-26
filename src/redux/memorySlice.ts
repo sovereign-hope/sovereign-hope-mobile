@@ -27,7 +27,11 @@ export const getMemoryPassageText = createAsyncThunk(
         `@memoryState-${passage.book}-${passage.startChapter}-${passage.startVerse}-${passage.endChapter}-${passage.endVerse}`
       );
 
-      if (storedMemoryState && storedMemoryState.length > 0) {
+      if (
+        storedMemoryState &&
+        storedMemoryState.length > 0 &&
+        storedMemoryState !== '""'
+      ) {
         const parsedMemoryState = JSON.parse(storedMemoryState) as string;
         return parsedMemoryState;
       }
@@ -43,7 +47,7 @@ export const getMemoryPassageText = createAsyncThunk(
       const parsedHtml = parse(passageHtml.passages[0]);
       const passageLines = parsedHtml.querySelectorAll("p");
       const passageLineTextArray = passageLines.map((line) => line.text);
-      const passageLineText = passageLineTextArray.slice(1, -2).join(" ");
+      const passageLineText = passageLineTextArray.slice(0, -1).join(" ");
 
       try {
         const jsonValue = JSON.stringify(passageLineText);

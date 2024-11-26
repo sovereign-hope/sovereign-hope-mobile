@@ -87,13 +87,16 @@ export const MiniPlayer: React.FunctionComponent<Props> = ({ id }: Props) => {
         // This doesn't ever seem to fire?
         setIsPlaybackEnded(true);
       }
-      if (
-        event.type === Event.PlaybackState &&
-        (playbackState.state === State.Playing ||
+      if (event.type === Event.PlaybackState) {
+        if (
+          playbackState.state === State.Playing ||
           playbackState.state === State.Buffering ||
-          playbackState.state === State.Loading)
-      ) {
-        setIsPlaybackEnded(false);
+          playbackState.state === State.Loading
+        ) {
+          setIsPlaybackEnded(false);
+        } else if (playbackState.state === State.None) {
+          setIsPlaybackEnded(true);
+        }
       }
     }
   );
@@ -108,7 +111,7 @@ export const MiniPlayer: React.FunctionComponent<Props> = ({ id }: Props) => {
     });
     const mountTiming = Animated.timing(mountAnimation, {
       toValue: 0,
-      duration: 500,
+      duration: 250,
       useNativeDriver: true,
     });
     if (isPlaybackEnded && !isPlayerOffscreen) {
@@ -126,8 +129,8 @@ export const MiniPlayer: React.FunctionComponent<Props> = ({ id }: Props) => {
   }, [isPlaybackEnded, track]);
 
   // Event handlers
-  const stopPlayback = () => {
-    // await TrackPlayer.reset();
+  const stopPlayback = async () => {
+    await TrackPlayer.reset();
     setIsPlaybackEnded(true);
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   };
@@ -180,6 +183,10 @@ export const MiniPlayer: React.FunctionComponent<Props> = ({ id }: Props) => {
             width={null}
             color={colors.accent}
             indeterminate={playbackState.state === State.Buffering}
+            animationType="timing"
+            animationConfig={{
+              duration: 1250,
+            }}
           />
         </View>
         <Text style={themedStyles.progressText}>

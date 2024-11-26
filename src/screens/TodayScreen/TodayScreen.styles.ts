@@ -1,6 +1,6 @@
 import { StyleSheet, ViewStyle, TextStyle, ImageStyle } from "react-native";
 import { spacing, elementSize, radius } from "src/style/layout";
-import { header1, header2, header3 } from "src/style/typography";
+import { body, header1, header2, header3 } from "src/style/typography";
 import { Theme } from "@react-navigation/native";
 import { colors } from "src/style/colors";
 
@@ -13,13 +13,17 @@ interface Style {
   scrollView: ViewStyle;
   loadingContainer: ViewStyle;
   title: TextStyle;
-  dayContent: ViewStyle;
+  content: ViewStyle;
   dayTitle: TextStyle;
   dayTitleIcon: ImageStyle;
-  dayReadingContainer: ViewStyle;
-  dayReadingColumnPrimary: ViewStyle;
+  headerRow: ViewStyle;
+  textButton: TextStyle;
+  contentCard: ViewStyle;
+  contentCardColumn: ViewStyle;
+  contentCardHeader: TextStyle;
+  scrollRow: ViewStyle;
   dayReadingColumnSecondary: ViewStyle;
-  dayReadingHeader: TextStyle;
+  header: TextStyle;
   notifications: ViewStyle;
   notificationBox: ViewStyle;
   notificationTitle: TextStyle;
@@ -37,16 +41,17 @@ interface Style {
   footerRow: ViewStyle;
   footerButton: ViewStyle;
   spacer: ViewStyle;
+  image: ImageStyle;
 }
 
 export const styles = ({ theme }: Props): Style =>
   StyleSheet.create({
     screen: {
       flex: 1,
-      backgroundColor: theme.dark ? colors.darkGrey : colors.grey0,
+      backgroundColor: theme.colors.background,
     },
     scrollView: {
-      backgroundColor: theme.dark ? colors.darkGrey : colors.grey0,
+      backgroundColor: theme.colors.background,
     },
     loadingContainer: {
       flexGrow: 1,
@@ -56,10 +61,8 @@ export const styles = ({ theme }: Props): Style =>
       ...header1,
       padding: spacing.large,
       color: theme.dark ? colors.white : colors.darkGrey,
-      backgroundColor: theme.dark ? colors.darkGrey : colors.grey0,
     },
-    dayContent: {
-      flex: 1,
+    content: {
       backgroundColor: theme.colors.background,
     },
     dayTitle: {
@@ -71,16 +74,42 @@ export const styles = ({ theme }: Props): Style =>
       marginRight: spacing.medium,
       marginTop: spacing.small,
     },
-    dayReadingContainer: {
+    headerRow: {
       flexDirection: "row",
-      marginBottom: spacing.large,
+      justifyContent: "space-between",
+      marginHorizontal: spacing.medium,
     },
-    dayReadingColumnPrimary: {
-      flex: 1,
+    textButton: {
+      ...body,
+      color: colors.accent,
+      margin: spacing.medium,
+    },
+    contentCard: {
+      flexShrink: 1,
       flexDirection: "row",
-      backgroundColor: colors.darkGrey,
-      padding: spacing.large,
-      color: colors.white,
+      justifyContent: "center",
+      alignItems: "center",
+      marginBottom: spacing.large,
+      marginHorizontal: spacing.large,
+      padding: spacing.lmedium,
+      borderRadius: radius.large,
+      backgroundColor: theme.colors.card,
+      shadowColor: colors.black,
+      shadowOffset: {
+        width: 0,
+        height: 2,
+      },
+      shadowOpacity: 0.1,
+    },
+    contentCardColumn: {
+      flex: 1,
+      flexDirection: "column",
+      color: theme.dark ? colors.white : colors.darkGrey,
+    },
+    contentCardHeader: {
+      ...header3,
+      color: theme.dark ? colors.white : colors.darkGrey,
+      marginBottom: spacing.medium,
     },
     dayReadingColumnSecondary: {
       flex: 1,
@@ -89,11 +118,12 @@ export const styles = ({ theme }: Props): Style =>
       paddingRight: spacing.large,
       backgroundColor: colors.darkGrey,
     },
-    dayReadingHeader: {
+    header: {
       ...header2,
-      marginBottom: spacing.medium,
-      color: colors.white,
+      margin: spacing.medium,
+      color: theme.colors.text,
     },
+    scrollRow: {},
     notifications: {
       padding: spacing.medium,
     },
@@ -116,7 +146,7 @@ export const styles = ({ theme }: Props): Style =>
       color: colors.white,
     },
     disclosureIcon: {
-      marginLeft: spacing.large,
+      marginLeft: spacing.medium,
     },
     whiteText: {
       color: colors.white,
@@ -128,27 +158,24 @@ export const styles = ({ theme }: Props): Style =>
     },
     memoryQuestionHeader: {
       ...header2,
-      margin: spacing.medium,
       color: colors.accent,
     },
     memoryHelperText: {
       ...header2,
-      margin: spacing.medium,
       color: theme.colors.text,
+      marginTop: spacing.medium,
     },
     memoryQuestionSubHeader: {
       fontWeight: "bold",
-      marginHorizontal: spacing.large,
       marginVertical: spacing.small,
       color: theme.colors.text,
     },
     memoryQuestion: {
       marginVertical: spacing.small,
-      marginHorizontal: spacing.large,
       color: theme.colors.text,
     },
     memoryText: {
-      color: colors.white,
+      color: theme.dark ? colors.white : colors.darkGrey,
     },
     footer: {
       paddingHorizontal: spacing.medium,
@@ -165,5 +192,12 @@ export const styles = ({ theme }: Props): Style =>
     },
     spacer: {
       flex: 1,
+    },
+    image: {
+      width: 50,
+      height: 50,
+      borderColor: theme.dark ? colors.white : colors.darkGrey,
+      borderWidth: 1,
+      borderRadius: radius.medium,
     },
   });

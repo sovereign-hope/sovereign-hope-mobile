@@ -18,15 +18,23 @@ import {
 import { styles } from "./SettingsScreen.styles";
 import { ScrollView } from "react-native-gesture-handler";
 import DateTimePickerModal from "react-native-modal-datetime-picker";
+import {
+  selectAvailablePlans,
+  selectReadingPlan,
+} from "src/redux/readingPlanSlice";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Settings">;
 
-export const SettingsScreen: React.FunctionComponent<Props> = ({}: Props) => {
+export const SettingsScreen: React.FunctionComponent<Props> = ({
+  navigation,
+}: Props) => {
   // Custom hooks
   const dispatch = useDispatch();
   const theme = useTheme();
   const enableNotifications = useAppSelector(selectEnableNotifications);
   const notificationTime = useAppSelector(selectNotificationTime);
+  const readingPlan = useAppSelector(selectReadingPlan);
+  const availablePlans = useAppSelector(selectAvailablePlans);
 
   // Ref Hooks
 
@@ -49,6 +57,14 @@ export const SettingsScreen: React.FunctionComponent<Props> = ({}: Props) => {
   const handleSetNotificationTime = (value: Date) => {
     dispatch(storeNotificationTime(value));
     setIsDatePickerVisible(false);
+  };
+
+  const showSelectReadingPlan = () => {
+    navigation.push("Available Plans");
+  };
+
+  const showSelectFontSize = () => {
+    navigation.push("Font Size");
   };
 
   // Constants
@@ -96,6 +112,59 @@ export const SettingsScreen: React.FunctionComponent<Props> = ({}: Props) => {
             onConfirm={handleSetNotificationTime}
             onCancel={() => setIsDatePickerVisible(false)}
           />
+        </Pressable>
+
+        <Text style={themedStyles.settingsSectionHeader}>Reading</Text>
+
+        {availablePlans.length > 1 && (
+          <Pressable
+            onPress={showSelectReadingPlan}
+            accessibilityRole="button"
+            style={({ pressed }) => [
+              themedStyles.settingsRow,
+              {
+                backgroundColor: pressed
+                  ? theme.colors.background
+                  : theme.colors.card,
+              },
+            ]}
+          >
+            <Text style={themedStyles.settingsRowText}>Reading Plan</Text>
+            <View style={themedStyles.settingsRowValueContainer}>
+              <Text style={themedStyles.settingsRowText}>
+                {readingPlan?.title}
+              </Text>
+              <Ionicons
+                name="chevron-forward"
+                size={24}
+                color={theme.colors.border}
+                style={themedStyles.disclosureIcon}
+              />
+            </View>
+          </Pressable>
+        )}
+
+        <Pressable
+          onPress={showSelectFontSize}
+          accessibilityRole="button"
+          style={({ pressed }) => [
+            themedStyles.settingsRow,
+            {
+              backgroundColor: pressed
+                ? theme.colors.background
+                : theme.colors.card,
+            },
+          ]}
+        >
+          <Text style={themedStyles.settingsRowText}>Reading Font Size</Text>
+          <View style={themedStyles.settingsRowValueContainer}>
+            <Ionicons
+              name="chevron-forward"
+              size={24}
+              color={theme.colors.border}
+              style={themedStyles.disclosureIcon}
+            />
+          </View>
         </Pressable>
       </ScrollView>
     </SafeAreaView>

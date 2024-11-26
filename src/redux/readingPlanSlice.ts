@@ -1,15 +1,23 @@
-import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
+import { createAsyncThunk, createSlice, current } from "@reduxjs/toolkit";
 import { RootState } from "src/app/store";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { getFirestore, doc, getDoc } from "firebase/firestore";
+import {
+  getFirestore,
+  doc,
+  getDoc,
+  collection,
+  getDocs,
+} from "firebase/firestore";
 import { getDayInWeek, getWeekNumber } from "src/app/utils";
 
 export interface ReadingPlanState {
+  availablePlans: Array<ReadingPlan>;
   readingPlan?: ReadingPlan;
   readingPlanProgressState?: ReadingPlanProgressState;
   isLoading: boolean;
   isSignout: boolean;
   hasError: boolean;
+  hasLoaded: boolean;
 }
 
 export interface ReadingPlanDay {
@@ -18,7 +26,7 @@ export interface ReadingPlanDay {
     passage: string;
     heading: string;
   };
-  isComplete: boolean;
+  isComplete: boolean; // This is only here as a convenience for mapping into ReadingPlanDay on the ReadinngPlan screen; should change it at somepoint and remove this to avoid confusion since it isn't availalbe elsewhere
   weekIndex?: number;
 }
 
@@ -27,7 +35,10 @@ export interface ReadingPlanWeek {
 }
 
 export interface ReadingPlan {
+  id: string;
   weeks: Array<ReadingPlanWeek>;
+  title: string;
+  description: string;
 }
 
 export interface ReadingPlanProgressState {
@@ -39,20 +50,58 @@ export interface ReadingPlanProgressState {
 }
 
 const initialState: ReadingPlanState = {
+  availablePlans: [],
   readingPlan: undefined,
   isLoading: false,
   isSignout: false,
   hasError: false,
+  hasLoaded: false,
 };
 
-export const getReadingPlan = createAsyncThunk(
-  "readingPlan/getReadingPlan",
+export const getAvailablePlans = createAsyncThunk(
+  "readingPlan/getAvailablePlans",
   async () => {
     try {
       const db = getFirestore();
+      const collectionRef = collection(db, "readingPlans");
+      const querySnapshot = await getDocs(collectionRef);
+
+      if (!querySnapshot.empty) {
+        const availablePlans: Array<ReadingPlan> = [];
+        querySnapshot.docs.forEach((doc) => {
+          // For testing next year
+          // const currentYear = new Date().getFullYear() + 1;
+          const currentYear = new Date().getFullYear();
+          if (doc.id.includes(currentYear.toString())) {
+            availablePlans.push(doc.data() as ReadingPlan);
+          }
+        });
+        return availablePlans;
+      }
+    } catch (error) {
+      console.log("error", error);
+    }
+    return [];
+  }
+);
+
+export const getReadingPlan = createAsyncThunk(
+  "readingPlan/getReadingPlan",
+  async (_, { getState }) => {
+    try {
+      const state = getState() as RootState;
       const today = new Date();
       const year = today.getFullYear();
-      const docRef = doc(db, "readingPlans", year.toString());
+      let subscribedPlans = state.settings.subscribedPlans;
+      if (subscribedPlans.length === 0 && year > 2024) {
+        return { id: "", weeks: [], title: "", description: "" };
+      } else if (year < 2025) {
+        subscribedPlans = [year.toString()];
+      }
+      // For now, we only allow one plan
+      const subscribedPlan = subscribedPlans[0];
+      const db = getFirestore();
+      const docRef = doc(db, "readingPlans", subscribedPlan);
       const docSnap = await getDoc(docRef);
 
       if (docSnap.exists()) {
@@ -61,18 +110,26 @@ export const getReadingPlan = createAsyncThunk(
     } catch (error) {
       console.log("error", error);
     }
-    return { weeks: [] };
+    return { id: "", weeks: [], title: "", description: "" };
   }
 );
 
 export const storeReadingPlanProgressState = createAsyncThunk(
   "readingPlan/storeReadingPlanProgressState",
-  async (readingPlanState: ReadingPlanProgressState) => {
+  async (readingPlanState: ReadingPlanProgressState, { getState }) => {
+    const state = getState() as RootState;
+    const subscribedPlans = state.settings.subscribedPlans;
+    if (subscribedPlans.length === 0) {
+      return readingPlanState;
+    }
+    // For now, we only allow one plan
+    const subscribedPlan = subscribedPlans[0];
     try {
-      const today = new Date();
-      const year = today.getFullYear();
       const jsonValue = JSON.stringify(readingPlanState);
-      await AsyncStorage.setItem(`@readingPlanState${year}`, jsonValue);
+      await AsyncStorage.setItem(
+        `@readingPlanState${subscribedPlan}`,
+        jsonValue
+      );
     } catch (error) {
       console.error(error);
     }
@@ -82,7 +139,7 @@ export const storeReadingPlanProgressState = createAsyncThunk(
 
 export const getReadingPlanProgressState = createAsyncThunk(
   "readingPlan/getReadingPlanProgressState",
-  async () => {
+  async (_, { getState }) => {
     const blankState = {
       // eslint-disable-next-line unicorn/new-for-builtins
       weeks: Array(52).fill({
@@ -93,10 +150,18 @@ export const getReadingPlanProgressState = createAsyncThunk(
       }),
     };
 
+    const state = getState() as RootState;
+    const subscribedPlans = state.settings.subscribedPlans;
+    if (subscribedPlans.length === 0) {
+      return blankState;
+    }
+    // For now, we only allow one plan
+    const subscribedPlan = subscribedPlans[0];
+
     try {
-      const today = new Date();
-      const year = today.getFullYear();
-      const jsonValue = await AsyncStorage.getItem(`@readingPlanState${year}`);
+      const jsonValue = await AsyncStorage.getItem(
+        `@readingPlanState${subscribedPlan}`
+      );
       return jsonValue
         ? (JSON.parse(jsonValue) as ReadingPlanProgressState)
         : blankState;
@@ -112,6 +177,24 @@ export const readingPlanSlice = createSlice({
   initialState,
   reducers: {},
   extraReducers: (builder) => {
+    // getAvailablePlans
+    builder.addCase(getAvailablePlans.pending, (state) => {
+      state.isLoading = true;
+      state.hasError = false;
+    });
+    builder.addCase(getAvailablePlans.fulfilled, (state, action) => {
+      state.availablePlans = action.payload;
+      state.isLoading = false;
+      state.hasError = false;
+      state.hasLoaded = true;
+    });
+    builder.addCase(getAvailablePlans.rejected, (state) => {
+      state.availablePlans = [];
+      state.isLoading = false;
+      state.hasError = true;
+      state.hasLoaded = true;
+    });
+
     // getReadingPlan
     builder.addCase(getReadingPlan.pending, (state) => {
       state.isLoading = true;
@@ -121,11 +204,13 @@ export const readingPlanSlice = createSlice({
       state.readingPlan = action.payload || undefined;
       state.isLoading = false;
       state.hasError = false;
+      state.hasLoaded = true;
     });
     builder.addCase(getReadingPlan.rejected, (state) => {
       state.readingPlan = undefined;
       state.isLoading = false;
       state.hasError = true;
+      state.hasLoaded = true;
     });
 
     // storeReadingProgressPlanState
@@ -164,6 +249,9 @@ export const readingPlanSlice = createSlice({
   },
 });
 
+export const selectAvailablePlans = (state: RootState): Array<ReadingPlan> =>
+  state.readingPlan.availablePlans;
+
 export const selectReadingPlan = (state: RootState): ReadingPlan | undefined =>
   state.readingPlan.readingPlan;
 
@@ -175,7 +263,15 @@ export const selectWeekReadingPlan = (
     currentWeekIndex
   ] ?? { days: [] };
 
-  return currentWeek;
+  const plan = {
+    days: currentWeek.days.map((day, index) => ({
+      ...day,
+      isComplete:
+        state.readingPlan.readingPlanProgressState?.weeks[currentWeekIndex]
+          .days[index].isCompleted ?? false,
+    })),
+  };
+  return plan;
 };
 
 export const selectDailyReadingPlan = (

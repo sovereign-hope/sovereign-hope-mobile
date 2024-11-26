@@ -10,7 +10,14 @@
     "testDebugCurrent": "jest -o --watch --coverage=false",
     "test": "jest",
     "updateSnapshots": "jest -u --coverage=false",
-    "postinstall": "patch-package"
+    "postinstall": "patch-package",
+    "buildProduction:android": "EAS_BUILD_PROFILE=production npx eas-cli build --platform android --profile production",
+    "buildProduction:ios": "EAS_BUILD_PROFILE=production npx eas-cli build --platform ios --profile production",
+    "buildProduction:all": "EAS_BUILD_PROFILE=production npx eas-cli build --platform all --profile production",
+    "buildDevelopment:ios": "EAS_BUILD_PROFILE=development npx eas-cli build --platform ios --profile development",
+    "buildDevelopment:android": "EAS_BUILD_PROFILE=development npx eas-cli build --platform android --profile development",
+    "buildDevelopment:all": "EAS_BUILD_PROFILE=development npx eas-cli build --platform all --profile development",
+    "submitProduction": "EAS_BUILD_PROFILE=production npx eas submit --profile production"
   },
   "dependencies": {
     "@expo/config-plugins": "~8.0.0",

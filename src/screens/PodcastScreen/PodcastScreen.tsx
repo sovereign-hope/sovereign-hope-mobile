@@ -23,8 +23,7 @@ import {
 } from "src/redux/podcastSlice";
 import { styles } from "./PodcastScreen.styles";
 import { FeedItem } from "react-native-rss-parser";
-import TrackPlayer, { Capability, Track } from "react-native-track-player";
-import playerService from "../../../service";
+import TrackPlayer, { Track } from "react-native-track-player";
 import thumbnail from "../../../assets/podcast-icon.png";
 import icon from "../../../assets/icon.png";
 import { MiniPlayer } from "../../components/MiniPlayer/MiniPlayer";
@@ -75,31 +74,6 @@ export const PodcastScreen: React.FunctionComponent<Props> = ({}: Props) => {
       }).start();
     }
   }, [isLoading]);
-
-  useEffect(() => {
-    TrackPlayer.registerPlaybackService(() => playerService);
-
-    async function setupPlayer() {
-      try {
-        await TrackPlayer.setupPlayer();
-      } catch (error) {
-        console.log(error);
-      }
-      await TrackPlayer.updateOptions({
-        capabilities: [
-          Capability.Play,
-          Capability.Pause,
-          Capability.JumpForward,
-          Capability.JumpBackward,
-          Capability.Stop,
-          Capability.SeekTo,
-        ],
-        compactCapabilities: [Capability.Play, Capability.Pause],
-      });
-    }
-
-    void setupPlayer();
-  }, []);
 
   useEffect(() => {
     dispatch(getEpisodes());
