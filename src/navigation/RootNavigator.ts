@@ -11,7 +11,10 @@ export type RootStackParamList = {
   };
   Settings: undefined;
   SettingsView: undefined;
-  Sermons: undefined;
+  Resources: undefined;
   PodcastView: undefined;
   "Font Size": undefined;
+  // Schedule: undefined;
+  // Signups: undefined;
+  // Sundays: undefined;
 };

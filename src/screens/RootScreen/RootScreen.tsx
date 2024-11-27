@@ -15,6 +15,7 @@ import { SettingsScreen } from "../SettingsScreen/SettingsScreen";
 import { PodcastScreen } from "../PodcastScreen/PodcastScreen";
 import { SelectPlanScreen } from "../SelectPlanScreen/SelectPlanScreen";
 import { FontSizePickerScreen } from "../FontSizePickerScreen/FontSizePickerScreen";
+import { ScheduleScreen } from "../ScheduleScreen";
 
 // React Navigation configuration
 enableScreens();
@@ -60,7 +61,7 @@ const PodcastStack = (): JSX.Element => {
         },
       }}
     >
-      <Stack.Screen name="Sermons" component={PodcastScreen} />
+      <Stack.Screen name="Resources" component={PodcastScreen} />
     </Stack.Navigator>
   );
 };
@@ -160,7 +161,7 @@ const HomeScreen = (): JSX.Element => (
       }}
     />
     <Tab.Screen
-      name="Sermons"
+      name="Resources"
       component={PodcastStack}
       options={{
         lazy: false,
@@ -176,7 +177,7 @@ const HomeScreen = (): JSX.Element => (
           size: number;
         }) => (
           <Ionicons
-            name="logo-rss"
+            name="bookmarks"
             size={size}
             color={focused ? colors.accent : color}
           />
@@ -213,6 +214,7 @@ export const RootScreen = (): JSX.Element => {
         <Stack.Screen name="Read" component={ReadScreen} />
         <Stack.Screen name="Available Plans" component={SelectPlanScreen} />
         <Stack.Screen name="Font Size" component={FontSizePickerScreen} />
+        {/* <Stack.Screen name="Schedule" component={ScheduleScreen} /> */}
       </Stack.Navigator>
     </NavigationContainer>
   );

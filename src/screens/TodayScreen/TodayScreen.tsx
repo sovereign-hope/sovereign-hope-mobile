@@ -8,7 +8,6 @@ import {
   Linking,
   ListRenderItem,
   Pressable,
-  ScrollView,
   Text,
   View,
 } from "react-native";
@@ -53,12 +52,19 @@ import {
   selectSubscribedPlans,
   storeSubscribedPlans,
 } from "src/redux/settingsSlice";
-import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
+import Animated, {
+  FadeIn,
+  FadeOut,
+  LinearTransition,
+} from "react-native-reanimated";
 import { selectCurrentEpisode } from "src/redux/podcastSlice";
 import thumbnail from "../../../assets/podcast-icon.png";
 import icon from "../../../assets/icon.png";
 import { FeedItem } from "react-native-rss-parser";
 import TrackPlayer, { Track } from "react-native-track-player";
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore - No types for this package
+import Bar from "react-native-progress/Bar";
 
 const playEpisode = async (episode: FeedItem) => {
   await TrackPlayer.reset();
@@ -140,7 +146,9 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
 
   useEffect(() => {
     const hasActivePlan = subscribedPlans.length > 0;
+    const currentYear = new Date().getFullYear();
     if (
+      currentYear > 2024 &&
       !hasActivePlan &&
       hasLoadedSubscribedPlans &&
       availablePlans.length > 0
@@ -161,7 +169,7 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
 
   useEffect(() => {
     const passage = readingPlanWeek?.days[0]?.memory.passage;
-    if (passage) {
+    if (passage && !memoryPassageAcronym) {
       dispatch(
         getMemoryPassageText({
           passage: parsePassageString(passage),
@@ -252,12 +260,30 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
     }
   };
 
+  const getReadingPlanProgressPercentage = () => {
+    let completedDays = 0;
+    let totalDays = 0;
+    readingPlanProgress?.weeks.forEach((week) => {
+      week.days.forEach((day) => {
+        totalDays++;
+        if (day.isCompleted) {
+          completedDays++;
+        }
+      });
+    });
+    return completedDays / totalDays;
+  };
+
   // Constants
   const themedStyles = styles({ theme });
   const currentDayIndex = getDayInWeek() - 1;
   const shouldShowLoadingIndicator = isLoading && readingPlanDay === undefined;
+  const subscribedPlan = availablePlans.find(
+    (plan) => plan.id === subscribedPlans[0]
+  );
   const shouldShowMemoryLoadingIndicator =
     isMemoryPassageLoading || memoryPassageAcronym === undefined;
+  const readingPlanCompletionPercentage = getReadingPlanProgressPercentage();
   // We can do this because we really only need en US
   const weekdayMap = [
     "Monday",
@@ -325,13 +351,15 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
               : weekdayMap[index]}
           </Text>
           {item?.reading.map((reading) => (
-            <Text key={reading}>{reading}</Text>
+            <Text style={themedStyles.text} key={reading}>
+              {reading}
+            </Text>
           ))}
         </View>
         <Ionicons
           name="chevron-forward"
           size={24}
-          color={colors.grey}
+          color={theme.colors.border}
           style={themedStyles.disclosureIcon}
         />
       </Pressable>
@@ -341,11 +369,16 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
   return (
     <SafeAreaView style={themedStyles.screen} edges={["left", "right"]}>
       <MiniPlayer id="sermons-mini-player" />
-      <ScrollView
+      <Animated.ScrollView
+        entering={FadeIn.duration(500)}
+        layout={LinearTransition}
         style={themedStyles.scrollView}
         contentInsetAdjustmentBehavior="automatic"
       >
-        <View style={themedStyles.notifications}>
+        <Animated.View
+          entering={FadeIn.duration(500)}
+          style={themedStyles.notifications}
+        >
           {notifications?.map((notification) => (
             <Pressable
               onPress={() => void Linking.openURL(notification.link ?? "")}
@@ -369,19 +402,22 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
               <Ionicons
                 name="chevron-forward"
                 size={24}
-                color={colors.grey}
+                color={theme.colors.border}
                 style={themedStyles.disclosureIcon}
               />
             </Pressable>
           ))}
-        </View>
+        </Animated.View>
         <View style={themedStyles.content}>
           {shouldShowLoadingIndicator ? (
-            <View style={themedStyles.loadingContainer}>
-              <ActivityIndicator size="large" color={theme.colors.text} />
-            </View>
+            <Animated.View
+              exiting={FadeOut.duration(500)}
+              style={themedStyles.loadingContainer}
+            >
+              <ActivityIndicator size="small" color={theme.colors.text} />
+            </Animated.View>
           ) : (
-            <>
+            <Animated.View entering={FadeIn.duration(500)}>
               <View style={themedStyles.headerRow}>
                 <Text
                   style={{
@@ -398,8 +434,12 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
                   accessibilityRole="button"
                   onPress={() => {
                     if (readingScrollViewRef.current) {
+                      const numberOfDays = readingPlanWeek?.days.length ?? 0;
                       readingScrollViewRef.current.scrollToIndex({
-                        index: currentDayIndex,
+                        index:
+                          currentDayIndex < numberOfDays
+                            ? currentDayIndex
+                            : numberOfDays - 1,
                       });
                     }
                   }}
@@ -424,7 +464,27 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
                   paddingRight: spacing.large,
                 }}
               />
-            </>
+              <Text style={themedStyles.subHeader}>
+                {subscribedPlan?.title ?? new Date().getFullYear()}
+              </Text>
+              {!!readingPlanCompletionPercentage && (
+                <Bar
+                  progress={readingPlanCompletionPercentage}
+                  // eslint-disable-next-line unicorn/no-null
+                  width={null}
+                  color={colors.green}
+                  animationType="timing"
+                  animationConfig={{
+                    duration: 1250,
+                  }}
+                  indeterminate={false}
+                  style={{
+                    marginHorizontal: spacing.large,
+                    marginBottom: spacing.large,
+                  }}
+                />
+              )}
+            </Animated.View>
           )}
           <View style={themedStyles.headerRow}>
             <Text style={themedStyles.header}>Memory</Text>
@@ -443,21 +503,33 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
               <Text style={themedStyles.contentCardHeader}>
                 {readingPlanWeek?.days[0]?.memory.heading}
               </Text>
-              <Text>{readingPlanWeek?.days[0]?.memory.passage}</Text>
+              <Text style={themedStyles.text}>
+                {readingPlanWeek?.days[0]?.memory.passage}
+              </Text>
+
               {shouldShowMemoryLoadingIndicator ? (
-                <View style={themedStyles.memoryLoadingContainer}>
-                  <ActivityIndicator size="small" color={theme.colors.text} />
-                </View>
+                <ActivityIndicator size="small" color={theme.colors.text} />
               ) : (
-                <Text style={themedStyles.memoryHelperText}>
-                  {memoryPassageAcronym}
-                </Text>
+                <Animated.View
+                  entering={FadeIn.duration(500)}
+                  exiting={FadeOut}
+                  layout={LinearTransition}
+                >
+                  <Text
+                    style={{
+                      ...themedStyles.contentCardHeader,
+                      marginTop: spacing.medium,
+                    }}
+                  >
+                    {memoryPassageAcronym}
+                  </Text>
+                </Animated.View>
               )}
             </View>
             <Ionicons
               name="chevron-forward"
               size={24}
-              color={colors.grey}
+              color={theme.colors.border}
               style={themedStyles.disclosureIcon}
             />
           </Pressable>
@@ -491,17 +563,19 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
                 <Text style={themedStyles.contentCardHeader}>
                   {podcastEpisode.title}
                 </Text>
-                <Text>{podcastEpisode.description.trim()}</Text>
+                <Text style={themedStyles.text}>
+                  {podcastEpisode.description.trim()}
+                </Text>
               </View>
               <Ionicons
                 name="chevron-forward"
                 size={24}
-                color={colors.grey}
+                color={theme.colors.border}
                 style={themedStyles.disclosureIcon}
               />
             </Pressable>
           )}
-          <View style={themedStyles.contentCard}>
+          {/* <View style={themedStyles.contentCard}>
             <View style={themedStyles.contentCardColumn}>
               <Text style={themedStyles.memoryQuestionHeader}>
                 Study Questions
@@ -536,10 +610,10 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
                 today.
               </Text>
             </View>
-          </View>
+          </View> */}
           <View style={themedStyles.spacer} />
         </View>
-      </ScrollView>
+      </Animated.ScrollView>
     </SafeAreaView>
   );
 };

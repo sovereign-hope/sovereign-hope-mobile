@@ -17,6 +17,7 @@ interface Style {
   dayTitle: TextStyle;
   dayTitleIcon: ImageStyle;
   headerRow: ViewStyle;
+  subHeader: TextStyle;
   textButton: TextStyle;
   contentCard: ViewStyle;
   contentCardColumn: ViewStyle;
@@ -42,6 +43,7 @@ interface Style {
   footerButton: ViewStyle;
   spacer: ViewStyle;
   image: ImageStyle;
+  text: TextStyle;
 }
 
 export const styles = ({ theme }: Props): Style =>
@@ -55,7 +57,7 @@ export const styles = ({ theme }: Props): Style =>
     },
     loadingContainer: {
       flexGrow: 1,
-      marginVertical: spacing.extraExtraLarge,
+      marginVertical: spacing.extraLarge,
     },
     title: {
       ...header1,
@@ -77,12 +79,19 @@ export const styles = ({ theme }: Props): Style =>
     headerRow: {
       flexDirection: "row",
       justifyContent: "space-between",
+      alignItems: "center",
       marginHorizontal: spacing.medium,
+    },
+    subHeader: {
+      ...header3,
+      color: theme.dark ? colors.darkGrey : colors.grey2,
+      marginLeft: spacing.large,
+      marginBottom: spacing.medium,
     },
     textButton: {
       ...body,
       color: colors.accent,
-      margin: spacing.medium,
+      marginRight: spacing.large,
     },
     contentCard: {
       flexShrink: 1,
@@ -196,8 +205,12 @@ export const styles = ({ theme }: Props): Style =>
     image: {
       width: 50,
       height: 50,
-      borderColor: theme.dark ? colors.white : colors.darkGrey,
+      borderColor: theme.colors.border,
       borderWidth: 1,
       borderRadius: radius.medium,
+    },
+    text: {
+      ...body,
+      color: theme.colors.text,
     },
   });

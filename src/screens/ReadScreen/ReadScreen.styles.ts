@@ -2,7 +2,7 @@ import { StyleSheet, TextStyle, ViewStyle } from "react-native";
 import { radius, spacing } from "src/style/layout";
 import { Theme } from "@react-navigation/native";
 import { colors } from "src/style/colors";
-import { header2 } from "src/style/typography";
+import { header2, header3 } from "src/style/typography";
 
 type Props = {
   theme: Theme;
@@ -18,6 +18,13 @@ interface Style {
   memoryButton: ViewStyle;
   memoryButtonText: TextStyle;
   memoryButtonIcon: TextStyle;
+  contentCard: ViewStyle;
+  contentCardColumn: ViewStyle;
+  contentCardRow: ViewStyle;
+  contentCardHeader: TextStyle;
+  studyQuestionHeader: TextStyle;
+  studyQuestionSubHeader: TextStyle;
+  studyQuestion: TextStyle;
 }
 
 export const styles = ({ theme }: Props): Style =>
@@ -61,5 +68,49 @@ export const styles = ({ theme }: Props): Style =>
     memoryButtonIcon: {
       fontSize: 32,
       marginRight: spacing.medium,
+    },
+    contentCard: {
+      flexShrink: 1,
+      flexDirection: "row",
+      justifyContent: "center",
+      alignItems: "center",
+      marginBottom: spacing.large,
+      padding: spacing.lmedium,
+      borderRadius: radius.large,
+      backgroundColor: theme.colors.card,
+      shadowColor: colors.black,
+      shadowOffset: {
+        width: 0,
+        height: 2,
+      },
+      shadowOpacity: 0.1,
+    },
+    contentCardColumn: {
+      flex: 1,
+      flexDirection: "column",
+      color: theme.dark ? colors.white : colors.darkGrey,
+    },
+    contentCardRow: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+    },
+    contentCardHeader: {
+      ...header3,
+      color: theme.dark ? colors.white : colors.darkGrey,
+      marginBottom: spacing.medium,
+    },
+    studyQuestionHeader: {
+      ...header2,
+      color: colors.accent,
+    },
+    studyQuestionSubHeader: {
+      fontWeight: "bold",
+      marginVertical: spacing.small,
+      color: theme.colors.text,
+    },
+    studyQuestion: {
+      marginVertical: spacing.small,
+      color: theme.colors.text,
     },
   });

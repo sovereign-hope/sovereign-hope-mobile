@@ -1,6 +1,6 @@
 import { StyleSheet, ViewStyle, TextStyle, ImageStyle } from "react-native";
-import { spacing } from "src/style/layout";
-import { header3 } from "src/style/typography";
+import { radius, spacing } from "src/style/layout";
+import { body, header2, header3 } from "src/style/typography";
 import { colors } from "src/style/colors";
 import { Theme } from "@react-navigation/native";
 
@@ -11,13 +11,16 @@ type Props = {
 interface Style {
   screen: ViewStyle;
   list: ViewStyle;
-  listItem: ViewStyle;
-  listItemContent: ViewStyle;
-  listItemImage: ImageStyle;
-  listItemTitle: TextStyle;
-  listItemText: TextStyle;
   disclosureIcon: ViewStyle;
   subscribeButton: ViewStyle;
+  headerRow: ViewStyle;
+  textButton: TextStyle;
+  contentCard: ViewStyle;
+  contentCardColumn: ViewStyle;
+  contentCardHeader: TextStyle;
+  header: TextStyle;
+  image: ImageStyle;
+  text: TextStyle;
 }
 
 export const styles = ({ theme }: Props): Style =>
@@ -29,34 +32,64 @@ export const styles = ({ theme }: Props): Style =>
       justifyContent: "center",
     },
     list: {},
-    listItem: {
-      alignItems: "center",
-      justifyContent: "center",
-      padding: spacing.large,
-      backgroundColor: theme.colors.card,
-      borderBottomColor: theme.colors.border,
-      borderBottomWidth: 1,
-      flexDirection: "row",
-    },
-    listItemContent: {
-      flex: 1,
-    },
-    listItemImage: {
-      width: 50,
-      height: 50,
-      marginRight: spacing.large,
-    },
-    listItemTitle: {
-      ...header3,
-      color: theme.colors.text,
-    },
-    listItemText: {
-      color: theme.colors.text,
-    },
     disclosureIcon: {
-      marginLeft: spacing.large,
+      marginLeft: spacing.medium,
     },
     subscribeButton: {
       margin: spacing.large,
+    },
+
+    headerRow: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      marginHorizontal: spacing.medium,
+      alignItems: "center",
+    },
+    textButton: {
+      ...body,
+      color: colors.accent,
+      margin: spacing.medium,
+    },
+    contentCard: {
+      flexDirection: "row",
+      alignItems: "center",
+      marginBottom: spacing.large,
+      marginHorizontal: spacing.large,
+      padding: spacing.lmedium,
+      borderRadius: radius.large,
+      backgroundColor: theme.colors.card,
+      shadowColor: colors.black,
+      shadowOffset: {
+        width: 0,
+        height: 2,
+      },
+      shadowOpacity: 0.1,
+    },
+    contentCardColumn: {
+      flex: 1,
+      flexDirection: "column",
+      color: theme.dark ? colors.white : colors.darkGrey,
+    },
+    contentCardHeader: {
+      ...header3,
+      color: theme.dark ? colors.white : colors.darkGrey,
+      marginBottom: spacing.medium,
+    },
+    header: {
+      ...header2,
+      margin: spacing.medium,
+      color: theme.colors.text,
+    },
+    image: {
+      width: 50,
+      height: 50,
+      borderColor: theme.colors.border,
+      borderWidth: 1,
+      borderRadius: radius.medium,
+      marginRight: spacing.medium,
+    },
+    text: {
+      ...body,
+      color: theme.colors.text,
     },
   });

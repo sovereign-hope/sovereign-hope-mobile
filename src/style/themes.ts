@@ -16,5 +16,7 @@ export const darkTheme = {
     ...DarkTheme.colors,
     primary: colors.white,
     text: colors.white,
+    border: colors.grey2,
+    card: colors.darkerGrey,
   },
 };

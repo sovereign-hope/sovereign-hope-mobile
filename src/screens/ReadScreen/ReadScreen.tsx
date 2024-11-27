@@ -37,6 +37,12 @@ import { FlatButton, MiniPlayer } from "src/components";
 import { styles } from "./ReadScreen.styles";
 import { spacing } from "src/style/layout";
 import { selectReadingFontSize } from "src/redux/settingsSlice";
+import {
+  getPassageCommentary,
+  selectCurrentPassageCommentaryHTML,
+} from "src/redux/commentarySlice";
+import cheerio from "cheerio";
+import Collapsible from "react-native-collapsible";
 
 interface ReadScrollViewProps {
   showMemoryButton: boolean;
@@ -53,10 +59,13 @@ const ReadScrollView: React.FunctionComponent<ReadScrollViewProps> = ({
 }: ReadScrollViewProps) => {
   // State
   const [isPressingHideButton, setIsPressingHideButton] = useState(false);
+  const [commentaryHTMLTags, setCommentaryHTMLTags] = useState("");
+  const [isShowingCommentary, setIsShowingCommentary] = useState(false);
 
   // Custom hooks
   const theme = useTheme();
   const passageText = useAppSelector(selectCurrentPassage);
+  const commentaryHTML = useAppSelector(selectCurrentPassageCommentaryHTML);
   const fontSize = useAppSelector(selectReadingFontSize);
   const { width } = useWindowDimensions();
 
@@ -79,6 +88,13 @@ const ReadScrollView: React.FunctionComponent<ReadScrollViewProps> = ({
       scrollViewRef.current?.scrollTo({ y: 0 });
     }
   }, [heading, isFinalPassage]);
+
+  useEffect(() => {
+    if (commentaryHTML) {
+      const $ = cheerio.load(commentaryHTML);
+      setCommentaryHTMLTags($(".chap").html() ?? "");
+    }
+  }, [commentaryHTML]);
 
   // Constants
   const themedStyles = styles({ theme });
@@ -122,7 +138,86 @@ const ReadScrollView: React.FunctionComponent<ReadScrollViewProps> = ({
             }),
           }}
         />
+        {!showMemoryButton && commentaryHTML != "" && (
+          <Pressable
+            onPress={() => setIsShowingCommentary(!isShowingCommentary)}
+            accessibilityRole="button"
+            style={({ pressed }) => [
+              themedStyles.contentCard,
+              {
+                opacity: pressed ? 0.7 : 1,
+              },
+            ]}
+          >
+            <View style={themedStyles.contentCardColumn}>
+              <View style={themedStyles.contentCardRow}>
+                <Text
+                  style={{
+                    ...themedStyles.contentCardHeader,
+                    marginTop: spacing.medium,
+                  }}
+                >
+                  Expositor&apos;s Bible Commentary
+                </Text>
+                <Ionicons
+                  name={isShowingCommentary ? "chevron-up" : "chevron-down"}
+                  size={24}
+                  color={theme.colors.border}
+                />
+              </View>
+              <Collapsible collapsed={!isShowingCommentary}>
+                <RenderHtml
+                  contentWidth={width}
+                  source={{ html: commentaryHTMLTags }}
+                  tagsStyles={tagsStyles}
+                  customHTMLElementModels={{
+                    note: HTMLElementModel.fromCustomModel({
+                      tagName: "note",
+                      contentModel: HTMLContentModel.block,
+                    }),
+                  }}
+                />
+              </Collapsible>
+            </View>
+          </Pressable>
+        )}
       </Animated.View>
+      {!showMemoryButton && (
+        <View style={themedStyles.contentCard}>
+          <View style={themedStyles.contentCardColumn}>
+            <Text style={themedStyles.studyQuestionHeader}>
+              Study Questions
+            </Text>
+            <Text style={themedStyles.studyQuestionSubHeader}>Look Up</Text>
+            <Text style={themedStyles.studyQuestion}>
+              What does this passage teach us about the Triune God, his
+              character, and his plan to save us in the gospel?
+            </Text>
+            <Text style={themedStyles.studyQuestionSubHeader}>Look In</Text>
+            <Text style={themedStyles.studyQuestion}>
+              What does this passage teach us about our own hearts and lives,
+              and the world we live in?
+            </Text>
+            <Text style={themedStyles.studyQuestionSubHeader}>Look Out</Text>
+            <Text style={themedStyles.studyQuestion}>
+              How does this passage influence the way we should act and think as
+              Christians at home, at work, in relationships or as the church?
+            </Text>
+            <Text
+              style={{
+                ...themedStyles.studyQuestionHeader,
+                marginTop: spacing.large,
+              }}
+            >
+              Thoughts for Reflection
+            </Text>
+            <Text style={themedStyles.studyQuestion}>
+              Write down one way this passage can influence our emotions and
+              prayer life and be sure to set aside time to pray for that today.
+            </Text>
+          </View>
+        </View>
+      )}
       <View style={themedStyles.spacer} />
       {showMemoryButton && (
         <Pressable
@@ -187,7 +282,6 @@ export const ReadScreen: React.FunctionComponent<ReadScreenProps> = ({
   const [passageIndex, setPassageIndex] = useState(0);
   const [shouldShowMemoryButton, setShouldShowMemoryButton] = useState(false);
   const [heading, setHeading] = useState("");
-  const [currentTrack, setCurrentTrack] = useState<Track>();
 
   // Custom hooks
   const dispatch = useDispatch();
@@ -223,6 +317,7 @@ export const ReadScreen: React.FunctionComponent<ReadScreenProps> = ({
     setShouldShowMemoryButton(passage.isMemory);
     setHeading(passage.heading ?? "");
     dispatch(getPassageText({ passage, includeFootnotes: true }));
+    dispatch(getPassageCommentary({ passage }));
   }, [dispatch]);
 
   const showSelectFontSize = () => {
@@ -277,6 +372,7 @@ export const ReadScreen: React.FunctionComponent<ReadScreenProps> = ({
           includeFootnotes: !passage.isMemory,
         })
       );
+      dispatch(getPassageCommentary({ passage }));
       setPassageIndex(passageIndex + 1);
 
       void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
