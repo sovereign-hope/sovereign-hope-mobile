@@ -275,7 +275,8 @@ export const PodcastScreen: React.FunctionComponent<Props> = ({
             </View>
             <Pressable
               onPress={() => {
-                void Linking.openURL("https://sovereignhope.church/watch-live");
+                // void Linking.openURL("https://sovereignhope.church/watch-live");
+                navigation.navigate("Sundays");
               }}
               accessibilityRole="button"
               style={({ pressed }) => [
@@ -329,7 +330,8 @@ export const PodcastScreen: React.FunctionComponent<Props> = ({
             </Pressable> */}
             <Pressable
               onPress={() => {
-                void Linking.openURL("https://sovereignhope.church/schedule");
+                // void Linking.openURL("https://sovereignhope.church/events");
+                navigation.navigate("Schedule");
               }}
               accessibilityRole="button"
               style={({ pressed }) => [

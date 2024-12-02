@@ -18,6 +18,7 @@ import {
   storeReadingPlanProgressState,
   getReadingPlanProgressState,
   ReadingPlanProgressState,
+  getReadingPlan,
 } from "src/redux/readingPlanSlice";
 import { colors } from "src/style/colors";
 import {
@@ -164,9 +165,6 @@ export const ReadingPlanScreen: React.FunctionComponent<ReadingPlanProps> = ({
   // Callback hooks
 
   // Effect hooks
-  React.useEffect(() => {
-    dispatch(getReadingPlanProgressState());
-  }, [dispatch]);
 
   useEffect(() => {
     if (readingPlan) {
@@ -178,12 +176,15 @@ export const ReadingPlanScreen: React.FunctionComponent<ReadingPlanProps> = ({
             weekIndex + 1,
             1
           )}`,
-          data: week.days.map((day: ReadingPlanDay, dayIndex) => ({
-            ...day,
-            weekIndex,
-            isComplete:
-              readingPlanProgress?.weeks[weekIndex].days[dayIndex].isCompleted,
-          })),
+          data: week.days.map((day: ReadingPlanDay, dayIndex) => {
+            const dayIsComplete =
+              readingPlanProgress?.weeks[weekIndex].days[dayIndex].isCompleted;
+            return {
+              ...day,
+              weekIndex,
+              isComplete: dayIsComplete,
+            };
+          }),
         })
       );
       setListData(data);

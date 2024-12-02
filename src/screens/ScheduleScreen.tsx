@@ -1,5 +1,4 @@
 import React from "react";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { RootStackParamList } from "src/navigation/RootNavigator";
 import { WebView } from "react-native-webview";
@@ -26,8 +25,9 @@ export const ScheduleScreen: React.FunctionComponent<Props> = ({
   // const themedStyles = styles({ theme });
 
   return (
-    <SafeAreaView edges={["left", "right"]}>
-      <WebView source={{ uri: "https://sovereignhope.church/events" }} />
-    </SafeAreaView>
+    <WebView
+      source={{ uri: "https://sovereignhope.church/events" }}
+      style={{ flex: 1 }}
+    />
   );
 };

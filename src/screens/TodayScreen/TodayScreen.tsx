@@ -105,6 +105,8 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
   const availablePlans = useAppSelector(selectAvailablePlans);
   const [hasInitializedPosition, setHasInitializedPosition] = useState(false);
   const podcastEpisode = useAppSelector(selectCurrentEpisode);
+  const [shouldShowLoadingIndicator, setShouldShowLoadingIndicator] =
+    useState(true);
 
   // Ref Hooks
   const appState = useRef(AppState.currentState);
@@ -179,7 +181,7 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
   }, [readingPlanDay]);
 
   useEffect(() => {
-    if (!hasInitializedPosition) {
+    if (!hasInitializedPosition && !shouldShowLoadingIndicator) {
       const currentDayIndex = getDayInWeek() - 1;
       const readingPlanDayCount = readingPlanWeek?.days.length ?? 0;
       if (
@@ -198,13 +200,21 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
         }, 100);
       }
     }
-  }, [readingScrollViewRef, readingPlanWeek]);
+  }, [readingScrollViewRef, readingPlanWeek, shouldShowLoadingIndicator]);
 
   React.useLayoutEffect(() => {
     navigation.setOptions({
       headerRight: undefined,
     });
   }, [navigation]);
+
+  useEffect(() => {
+    if (!isLoading && !!readingPlanDay && !!readingPlanProgress) {
+      setTimeout(() => {
+        setShouldShowLoadingIndicator(false);
+      }, 250);
+    }
+  }, [isLoading, readingPlanDay, readingPlanProgress]);
 
   // Event handlers
   const handleCompleteDay = (isComplete: boolean, dayIndex: number) => {
@@ -277,7 +287,6 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
   // Constants
   const themedStyles = styles({ theme });
   const currentDayIndex = getDayInWeek() - 1;
-  const shouldShowLoadingIndicator = isLoading && readingPlanDay === undefined;
   const subscribedPlan = availablePlans.find(
     (plan) => plan.id === subscribedPlans[0]
   );
@@ -369,54 +378,53 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
   return (
     <SafeAreaView style={themedStyles.screen} edges={["left", "right"]}>
       <MiniPlayer id="sermons-mini-player" />
-      <Animated.ScrollView
-        entering={FadeIn.duration(500)}
-        layout={LinearTransition}
-        style={themedStyles.scrollView}
-        contentInsetAdjustmentBehavior="automatic"
-      >
-        <Animated.View
+      {shouldShowLoadingIndicator ? (
+        <ActivityIndicator
+          size="large"
+          color={theme.colors.text}
+          style={themedStyles.loadingContainer}
+        />
+      ) : (
+        <Animated.ScrollView
           entering={FadeIn.duration(500)}
-          style={themedStyles.notifications}
+          layout={LinearTransition}
+          style={themedStyles.scrollView}
+          contentInsetAdjustmentBehavior="automatic"
         >
-          {notifications?.map((notification) => (
-            <Pressable
-              onPress={() => void Linking.openURL(notification.link ?? "")}
-              accessibilityRole="button"
-              key={notification.id}
-              style={({ pressed }) => [
-                themedStyles.notificationBox,
-                {
-                  opacity: pressed ? 0.5 : 1,
-                },
-              ]}
-            >
-              <View style={themedStyles.notificationInfo}>
-                <Text style={themedStyles.notificationTitle}>
-                  {notification.title}
-                </Text>
-                <Text style={themedStyles.notificationDetails}>
-                  {notification.details}
-                </Text>
-              </View>
-              <Ionicons
-                name="chevron-forward"
-                size={24}
-                color={theme.colors.border}
-                style={themedStyles.disclosureIcon}
-              />
-            </Pressable>
-          ))}
-        </Animated.View>
-        <View style={themedStyles.content}>
-          {shouldShowLoadingIndicator ? (
-            <Animated.View
-              exiting={FadeOut.duration(500)}
-              style={themedStyles.loadingContainer}
-            >
-              <ActivityIndicator size="small" color={theme.colors.text} />
-            </Animated.View>
-          ) : (
+          <Animated.View
+            entering={FadeIn.duration(500)}
+            style={themedStyles.notifications}
+          >
+            {notifications?.map((notification) => (
+              <Pressable
+                onPress={() => void Linking.openURL(notification.link ?? "")}
+                accessibilityRole="button"
+                key={notification.id}
+                style={({ pressed }) => [
+                  themedStyles.notificationBox,
+                  {
+                    opacity: pressed ? 0.5 : 1,
+                  },
+                ]}
+              >
+                <View style={themedStyles.notificationInfo}>
+                  <Text style={themedStyles.notificationTitle}>
+                    {notification.title}
+                  </Text>
+                  <Text style={themedStyles.notificationDetails}>
+                    {notification.details}
+                  </Text>
+                </View>
+                <Ionicons
+                  name="chevron-forward"
+                  size={24}
+                  color={theme.colors.border}
+                  style={themedStyles.disclosureIcon}
+                />
+              </Pressable>
+            ))}
+          </Animated.View>
+          <View style={themedStyles.content}>
             <Animated.View entering={FadeIn.duration(500)}>
               <View style={themedStyles.headerRow}>
                 <Text
@@ -475,9 +483,9 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
                   color={colors.green}
                   animationType="timing"
                   animationConfig={{
-                    duration: 1250,
+                    duration: 500,
                   }}
-                  indeterminate={false}
+                  indeterminate={readingPlanCompletionPercentage <= 0}
                   style={{
                     marginHorizontal: spacing.large,
                     marginBottom: spacing.large,
@@ -485,62 +493,12 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
                 />
               )}
             </Animated.View>
-          )}
-          <View style={themedStyles.headerRow}>
-            <Text style={themedStyles.header}>Memory</Text>
-          </View>
-          <Pressable
-            onPress={handlePracticePress}
-            accessibilityRole="button"
-            style={({ pressed }) => [
-              themedStyles.contentCard,
-              {
-                opacity: pressed ? 0.7 : 1,
-              },
-            ]}
-          >
-            <View style={themedStyles.contentCardColumn}>
-              <Text style={themedStyles.contentCardHeader}>
-                {readingPlanWeek?.days[0]?.memory.heading}
-              </Text>
-              <Text style={themedStyles.text}>
-                {readingPlanWeek?.days[0]?.memory.passage}
-              </Text>
-
-              {shouldShowMemoryLoadingIndicator ? (
-                <ActivityIndicator size="small" color={theme.colors.text} />
-              ) : (
-                <Animated.View
-                  entering={FadeIn.duration(500)}
-                  exiting={FadeOut}
-                  layout={LinearTransition}
-                >
-                  <Text
-                    style={{
-                      ...themedStyles.contentCardHeader,
-                      marginTop: spacing.medium,
-                    }}
-                  >
-                    {memoryPassageAcronym}
-                  </Text>
-                </Animated.View>
-              )}
+            <View style={themedStyles.headerRow}>
+              <Text style={themedStyles.header}>Memory</Text>
             </View>
-            <Ionicons
-              name="chevron-forward"
-              size={24}
-              color={theme.colors.border}
-              style={themedStyles.disclosureIcon}
-            />
-          </Pressable>
-          <View style={themedStyles.headerRow}>
-            <Text style={themedStyles.header}>Resources</Text>
-          </View>
-          {podcastEpisode && (
             <Pressable
-              onPress={() => void playEpisode(podcastEpisode)}
+              onPress={handlePracticePress}
               accessibilityRole="button"
-              key={podcastEpisode.title}
               style={({ pressed }) => [
                 themedStyles.contentCard,
                 {
@@ -548,24 +506,32 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
                 },
               ]}
             >
-              <Image
-                // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-                source={thumbnail}
-                style={themedStyles.image}
-                accessibilityIgnoresInvertColors
-              />
-              <View
-                style={{
-                  ...themedStyles.contentCardColumn,
-                  marginLeft: spacing.medium,
-                }}
-              >
+              <View style={themedStyles.contentCardColumn}>
                 <Text style={themedStyles.contentCardHeader}>
-                  {podcastEpisode.title}
+                  {readingPlanWeek?.days[0]?.memory.heading}
                 </Text>
                 <Text style={themedStyles.text}>
-                  {podcastEpisode.description.trim()}
+                  {readingPlanWeek?.days[0]?.memory.passage}
                 </Text>
+
+                {shouldShowMemoryLoadingIndicator ? (
+                  <ActivityIndicator size="small" color={theme.colors.text} />
+                ) : (
+                  <Animated.View
+                    entering={FadeIn.duration(500)}
+                    exiting={FadeOut}
+                    layout={LinearTransition}
+                  >
+                    <Text
+                      style={{
+                        ...themedStyles.contentCardHeader,
+                        marginTop: spacing.medium,
+                      }}
+                    >
+                      {memoryPassageAcronym}
+                    </Text>
+                  </Animated.View>
+                )}
               </View>
               <Ionicons
                 name="chevron-forward"
@@ -574,8 +540,49 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
                 style={themedStyles.disclosureIcon}
               />
             </Pressable>
-          )}
-          {/* <View style={themedStyles.contentCard}>
+            <View style={themedStyles.headerRow}>
+              <Text style={themedStyles.header}>Resources</Text>
+            </View>
+            {podcastEpisode && (
+              <Pressable
+                onPress={() => void playEpisode(podcastEpisode)}
+                accessibilityRole="button"
+                key={podcastEpisode.title}
+                style={({ pressed }) => [
+                  themedStyles.contentCard,
+                  {
+                    opacity: pressed ? 0.7 : 1,
+                  },
+                ]}
+              >
+                <Image
+                  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+                  source={thumbnail}
+                  style={themedStyles.image}
+                  accessibilityIgnoresInvertColors
+                />
+                <View
+                  style={{
+                    ...themedStyles.contentCardColumn,
+                    marginLeft: spacing.medium,
+                  }}
+                >
+                  <Text style={themedStyles.contentCardHeader}>
+                    {podcastEpisode.title}
+                  </Text>
+                  <Text style={themedStyles.text}>
+                    {podcastEpisode.description.trim()}
+                  </Text>
+                </View>
+                <Ionicons
+                  name="chevron-forward"
+                  size={24}
+                  color={theme.colors.border}
+                  style={themedStyles.disclosureIcon}
+                />
+              </Pressable>
+            )}
+            {/* <View style={themedStyles.contentCard}>
             <View style={themedStyles.contentCardColumn}>
               <Text style={themedStyles.memoryQuestionHeader}>
                 Study Questions
@@ -611,9 +618,10 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
               </Text>
             </View>
           </View> */}
-          <View style={themedStyles.spacer} />
-        </View>
-      </Animated.ScrollView>
+            <View style={themedStyles.spacer} />
+          </View>
+        </Animated.ScrollView>
+      )}
     </SafeAreaView>
   );
 };

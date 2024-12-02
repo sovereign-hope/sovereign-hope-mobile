@@ -118,8 +118,10 @@ export const storeReadingPlanProgressState = createAsyncThunk(
   "readingPlan/storeReadingPlanProgressState",
   async (readingPlanState: ReadingPlanProgressState, { getState }) => {
     const state = getState() as RootState;
-    const subscribedPlans = state.settings.subscribedPlans;
-    if (subscribedPlans.length === 0) {
+    const currentYear = new Date().getFullYear();
+    const subscribedPlans =
+      currentYear > 2024 ? state.settings.subscribedPlans : ["2024"];
+    if (subscribedPlans.length === 0 && currentYear > 2024) {
       return readingPlanState;
     }
     // For now, we only allow one plan
@@ -152,11 +154,12 @@ export const getReadingPlanProgressState = createAsyncThunk(
 
     const state = getState() as RootState;
     const subscribedPlans = state.settings.subscribedPlans;
-    if (subscribedPlans.length === 0) {
+    const currentYear = new Date().getFullYear();
+    if (subscribedPlans.length === 0 && currentYear > 2024) {
       return blankState;
     }
     // For now, we only allow one plan
-    const subscribedPlan = subscribedPlans[0];
+    const subscribedPlan = subscribedPlans[0] ?? currentYear.toString();
 
     try {
       const jsonValue = await AsyncStorage.getItem(

@@ -38,13 +38,13 @@ export const getCommentaryURLFromBibleHub = async ({
     const response = await axios.get(routes.passageText(query));
     const passageHtml = response.data as string;
 
-    // <a href="/commentaries/expositors/genesis/2.htm" title="Expositor's Bible">Expositor's</a>
-    const expositorsRegex = /commentaries\/expositors\/.*?\.htm/g;
-    const expositorsTagMatches = passageHtml.match(expositorsRegex);
-    const expositorsTag = expositorsTagMatches
-      ? expositorsTagMatches[0]
+    // <a href="/commentaries/mhc/genesis/2.htm" title="Expositor's Bible">Expositor's</a>
+    const commentaryRegex = /commentaries\/mhc\/.*?\.htm/g;
+    const commentaryTagMatches = passageHtml.match(commentaryRegex);
+    const commentaryTag = commentaryTagMatches
+      ? commentaryTagMatches[0]
       : undefined;
-    const commentaryURL = `https://biblehub.com/${expositorsTag}`;
+    const commentaryURL = `https://biblehub.com/${commentaryTag}`;
     return commentaryURL;
   } catch (error) {
     console.error(error);

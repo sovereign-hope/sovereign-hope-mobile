@@ -157,7 +157,7 @@ const ReadScrollView: React.FunctionComponent<ReadScrollViewProps> = ({
                     marginTop: spacing.medium,
                   }}
                 >
-                  Expositor&apos;s Bible Commentary
+                  Matthew Henry&apos;s Concise Commentary
                 </Text>
                 <Ionicons
                   name={isShowingCommentary ? "chevron-up" : "chevron-down"}
@@ -170,6 +170,19 @@ const ReadScrollView: React.FunctionComponent<ReadScrollViewProps> = ({
                   contentWidth={width}
                   source={{ html: commentaryHTMLTags }}
                   tagsStyles={tagsStyles}
+                  classesStyles={{
+                    comm: {
+                      marginBottom: spacing.medium,
+                    },
+                    versenum: {
+                      fontWeight: "bold",
+                    },
+                    verse: {
+                      fontStyle: "italic",
+                      color: colors.red,
+                      marginVertical: spacing.small,
+                    },
+                  }}
                   customHTMLElementModels={{
                     note: HTMLElementModel.fromCustomModel({
                       tagName: "note",

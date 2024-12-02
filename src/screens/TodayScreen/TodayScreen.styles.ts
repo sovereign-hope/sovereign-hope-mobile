@@ -84,7 +84,7 @@ export const styles = ({ theme }: Props): Style =>
     },
     subHeader: {
       ...header3,
-      color: theme.dark ? colors.darkGrey : colors.grey2,
+      color: theme.dark ? colors.grey0 : colors.grey2,
       marginLeft: spacing.large,
       marginBottom: spacing.medium,
     },

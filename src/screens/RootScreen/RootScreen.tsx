@@ -16,6 +16,7 @@ import { PodcastScreen } from "../PodcastScreen/PodcastScreen";
 import { SelectPlanScreen } from "../SelectPlanScreen/SelectPlanScreen";
 import { FontSizePickerScreen } from "../FontSizePickerScreen/FontSizePickerScreen";
 import { ScheduleScreen } from "../ScheduleScreen";
+import { SundaysScreen } from "../SundaysScreen";
 
 // React Navigation configuration
 enableScreens();
@@ -214,7 +215,8 @@ export const RootScreen = (): JSX.Element => {
         <Stack.Screen name="Read" component={ReadScreen} />
         <Stack.Screen name="Available Plans" component={SelectPlanScreen} />
         <Stack.Screen name="Font Size" component={FontSizePickerScreen} />
-        {/* <Stack.Screen name="Schedule" component={ScheduleScreen} /> */}
+        <Stack.Screen name="Schedule" component={ScheduleScreen} />
+        <Stack.Screen name="Sundays" component={SundaysScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );
