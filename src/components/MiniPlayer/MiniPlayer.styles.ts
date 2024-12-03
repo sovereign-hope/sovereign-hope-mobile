@@ -1,5 +1,5 @@
 import { StyleSheet, ViewStyle, TextStyle } from "react-native";
-import { spacing } from "src/style/layout";
+import { radius, spacing } from "src/style/layout";
 import { header3 } from "src/style/typography";
 import { colors } from "src/style/colors";
 import { Theme } from "@react-navigation/native";
@@ -25,15 +25,13 @@ export const styles = ({ theme }: Props): Style =>
     player: {
       position: "absolute",
       bottom: 0,
-      left: 0,
-      width: "100%",
+      left: "2%",
+      width: "96%",
       padding: spacing.medium,
-      paddingBottom: spacing.extraLarge,
-      backgroundColor: theme.colors.card,
-      borderTopColor: colors.accent,
-      borderTopWidth: 2,
-      borderBottomColor: colors.accent,
-      borderBottomWidth: 2,
+      backgroundColor: colors.blue,
+      borderWidth: 1,
+      borderRadius: radius.large,
+      borderColor: colors.blue,
       shadowColor: colors.black,
       shadowOffset: {
         width: 0,
@@ -42,6 +40,7 @@ export const styles = ({ theme }: Props): Style =>
       shadowOpacity: 0.15,
       shadowRadius: 10,
       zIndex: 100,
+      opacity: 0.95,
     },
     header: {
       flexDirection: "row",
@@ -57,11 +56,11 @@ export const styles = ({ theme }: Props): Style =>
       margin: spacing.medium,
     },
     progressText: {
-      color: theme.colors.text,
+      color: colors.white,
     },
     title: {
       ...header3,
-      color: theme.colors.text,
+      color: colors.white,
       marginBottom: spacing.small,
       flex: 1,
     },

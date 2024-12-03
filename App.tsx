@@ -15,6 +15,7 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import TrackPlayer, { Capability, Track } from "react-native-track-player";
 import playerService from "./service";
 import * as Sentry from "@sentry/react-native";
+import { MiniPlayer } from "src/components";
 
 // Keep the splash screen visible while we fetch resources
 // eslint-disable-next-line @typescript-eslint/no-floating-promises
@@ -131,6 +132,7 @@ const App = (): JSX.Element => {
       <StatusBar style={colorScheme === "dark" ? "light" : "dark"} />
       <StoreProvider store={store}>
         <RootScreen />
+        <MiniPlayer id="sov-hope-mini-player" />
       </StoreProvider>
     </GestureHandlerRootView>
   );

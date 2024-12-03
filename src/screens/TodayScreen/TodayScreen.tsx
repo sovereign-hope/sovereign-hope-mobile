@@ -34,7 +34,6 @@ import {
 } from "src/redux/readingPlanSlice";
 import { selectIsLoading as selectIsMemoryLoading } from "src/redux/memorySlice";
 import { colors } from "src/style/colors";
-import { MiniPlayer } from "src/components";
 import { getDayInWeek, getWeekNumber, parsePassageString } from "src/app/utils";
 import { spacing } from "src/style/layout";
 import { styles } from "./TodayScreen.styles";
@@ -387,7 +386,6 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
 
   return (
     <SafeAreaView style={themedStyles.screen} edges={["left", "right"]}>
-      <MiniPlayer id="sermons-mini-player" />
       {shouldShowLoadingIndicator ? (
         <ActivityIndicator
           size="large"

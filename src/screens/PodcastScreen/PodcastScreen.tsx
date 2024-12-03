@@ -27,7 +27,6 @@ import { FeedItem } from "react-native-rss-parser";
 import TrackPlayer, { Track } from "react-native-track-player";
 import thumbnail from "../../../assets/podcast-icon.png";
 import icon from "../../../assets/icon.png";
-import { MiniPlayer } from "../../components/MiniPlayer/MiniPlayer";
 import * as Haptics from "expo-haptics";
 import { MenuView, NativeActionEvent } from "@react-native-menu/menu";
 import { FlatButton } from "src/components";
@@ -209,8 +208,6 @@ export const PodcastScreen: React.FunctionComponent<Props> = ({
 
   return (
     <SafeAreaView edges={["left", "right"]} style={themedStyles.screen}>
-      <MiniPlayer id="sermons-mini-player" />
-
       <ScrollView contentInsetAdjustmentBehavior="automatic">
         {isLoading ? (
           <ActivityIndicator size="large" color={theme.colors.text} />

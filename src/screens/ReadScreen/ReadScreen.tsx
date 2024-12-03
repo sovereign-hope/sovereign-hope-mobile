@@ -33,7 +33,7 @@ import RenderHtml, {
   HTMLContentModel,
   MixedStyleDeclaration,
 } from "react-native-render-html";
-import { FlatButton, MiniPlayer } from "src/components";
+import { FlatButton } from "src/components";
 import { styles } from "./ReadScreen.styles";
 import { spacing } from "src/style/layout";
 import { selectReadingFontSize } from "src/redux/settingsSlice";
@@ -411,7 +411,6 @@ export const ReadScreen: React.FunctionComponent<ReadScreenProps> = ({
             onNextPassage={handleNextPassage}
             isFinalPassage={passageIndex < passages.length - 1}
           />
-          <MiniPlayer id="read-mini-player" />
         </>
       )}
     </SafeAreaView>
