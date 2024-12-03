@@ -107,6 +107,7 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
   const podcastEpisode = useAppSelector(selectCurrentEpisode);
   const [shouldShowLoadingIndicator, setShouldShowLoadingIndicator] =
     useState(true);
+  const [currentDate, setCurrentDate] = useState(new Date());
 
   // Ref Hooks
   const appState = useRef(AppState.currentState);
@@ -115,10 +116,16 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
   // Effect hooks
   useEffect(() => {
     const handler = (nextAppState: AppStateStatus) => {
+      const today = new Date();
       if (
         /inactive|background/.test(appState.current) &&
-        nextAppState === "active"
+        nextAppState === "active" &&
+        currentDate.getDate() !== today.getDate()
       ) {
+        setHasInitializedPosition(false);
+        setShouldShowLoadingIndicator(true);
+        setCurrentDate(today);
+
         dispatch(getAvailablePlans());
         dispatch(getSubscribedPlans());
         dispatch(getReadingPlan());
@@ -135,6 +142,9 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
   }, []);
 
   useEffect(() => {
+    setHasInitializedPosition(false);
+    setShouldShowLoadingIndicator(true);
+
     dispatch(getAvailablePlans());
     dispatch(getSubscribedPlans());
     dispatch(getReadingPlan());
@@ -148,7 +158,7 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
 
   useEffect(() => {
     const hasActivePlan = subscribedPlans.length > 0;
-    const currentYear = new Date().getFullYear();
+    const currentYear = currentDate.getFullYear();
     if (
       currentYear > 2024 &&
       !hasActivePlan &&
@@ -197,7 +207,7 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
             });
             setHasInitializedPosition(true);
           }
-        }, 100);
+        }, 2000);
       }
     }
   }, [readingScrollViewRef, readingPlanWeek, shouldShowLoadingIndicator]);
@@ -224,7 +234,7 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
       void Haptics.selectionAsync();
     }
     if (readingPlanProgress) {
-      const currentWeekIndex = getWeekNumber(new Date()).week - 1;
+      const currentWeekIndex = getWeekNumber(currentDate).week - 1;
       const tempPlan: ReadingPlanProgressState =
         // This is disabled because structuredClone isn't available on hermes
         // eslint-disable-next-line unicorn/prefer-structured-clone
@@ -387,6 +397,7 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
       ) : (
         <Animated.ScrollView
           entering={FadeIn.duration(500)}
+          exiting={FadeOut.duration(500)}
           layout={LinearTransition}
           style={themedStyles.scrollView}
           contentInsetAdjustmentBehavior="automatic"
@@ -473,7 +484,7 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
                 }}
               />
               <Text style={themedStyles.subHeader}>
-                {subscribedPlan?.title ?? new Date().getFullYear()}
+                {subscribedPlan?.title ?? currentDate.getFullYear()}
               </Text>
               {!!readingPlanCompletionPercentage && (
                 <Bar
