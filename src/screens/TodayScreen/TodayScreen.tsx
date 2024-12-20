@@ -64,6 +64,7 @@ import TrackPlayer, { Track } from "react-native-track-player";
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore - No types for this package
 import Bar from "react-native-progress/Bar";
+import { selectShowChildrensPlan } from "src/redux/settingsSlice";
 
 const playEpisode = async (episode: FeedItem) => {
   await TrackPlayer.reset();
@@ -107,6 +108,7 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
   const [shouldShowLoadingIndicator, setShouldShowLoadingIndicator] =
     useState(true);
   const [currentDate, setCurrentDate] = useState(new Date());
+  const showChildrensPlan = useAppSelector(selectShowChildrensPlan);
 
   // Ref Hooks
   const appState = useRef(AppState.currentState);
@@ -247,9 +249,9 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
 
   const handleReadPress = (dayIndex: number) => {
     if (readingPlanDay) {
-      const readingPassages = readingPlanDay.reading.map((reading) =>
-        parsePassageString(reading)
-      );
+      const readingPassages = readingPlanDay.reading
+        .filter((reading) => reading !== "TBD")
+        .map((reading) => parsePassageString(reading));
 
       // Build Memory Passage
       const memoryPassage = parsePassageString(
@@ -310,12 +312,17 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
     "Thursday",
     "Friday",
     "Saturday",
+    "Sunday",
   ];
 
   const renderReadingItem: ListRenderItem<ReadingPlanDay> = ({
     item,
     index,
   }) => {
+    if (item.reading.length === 0 || item.reading[0] === "") {
+      // eslint-disable-next-line unicorn/no-null
+      return null;
+    }
     const key = item.reading.join("");
     return (
       <Pressable
@@ -552,6 +559,34 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
             <View style={themedStyles.headerRow}>
               <Text style={themedStyles.header}>Resources</Text>
             </View>
+            {/* {showChildrensPlan && (
+              <Pressable
+                // onPress={() => navigation.push("Read")}
+                accessibilityRole="button"
+                style={({ pressed }) => [
+                  themedStyles.contentCard,
+                  {
+                    opacity: pressed ? 0.7 : 1,
+                    marginBottom: spacing.medium,
+                  },
+                ]}
+              >
+                <View style={themedStyles.contentCardColumn}>
+                  <Text style={themedStyles.contentCardHeader}>
+                    Children&apos;s Reading
+                  </Text>
+                  <Text style={themedStyles.text}>
+                    Today&apos;s Bible reading for children
+                  </Text>
+                </View>
+                <Ionicons
+                  name="chevron-forward"
+                  size={24}
+                  color={theme.colors.border}
+                  style={themedStyles.disclosureIcon}
+                />
+              </Pressable>
+            )} */}
             {podcastEpisode && (
               <Pressable
                 onPress={() => void playEpisode(podcastEpisode)}

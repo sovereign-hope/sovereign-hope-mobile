@@ -14,6 +14,9 @@ import {
   selectNotificationTime,
   storeEnableNotificationsState,
   storeNotificationTime,
+  selectShowChildrensPlan,
+  storeShowChildrensPlan,
+  getShowChildrensPlan,
 } from "src/redux/settingsSlice";
 import { styles } from "./SettingsScreen.styles";
 import { ScrollView } from "react-native-gesture-handler";
@@ -35,6 +38,7 @@ export const SettingsScreen: React.FunctionComponent<Props> = ({
   const notificationTime = useAppSelector(selectNotificationTime);
   const readingPlan = useAppSelector(selectReadingPlan);
   const availablePlans = useAppSelector(selectAvailablePlans);
+  const showChildrensPlan = useAppSelector(selectShowChildrensPlan);
 
   // Ref Hooks
 
@@ -47,11 +51,16 @@ export const SettingsScreen: React.FunctionComponent<Props> = ({
   useEffect(() => {
     dispatch(getEnableNotificationsState());
     dispatch(getNotificationTime());
+    dispatch(getShowChildrensPlan());
   }, [dispatch]);
 
   // Event handlers
   const handleToggleNotifications = (value: boolean) => {
     dispatch(storeEnableNotificationsState(value));
+  };
+
+  const handleToggleShowChildrensPlan = (value: boolean) => {
+    dispatch(storeShowChildrensPlan(value));
   };
 
   const handleSetNotificationTime = (value: Date) => {
@@ -166,6 +175,16 @@ export const SettingsScreen: React.FunctionComponent<Props> = ({
             />
           </View>
         </Pressable>
+
+        {/* <View style={themedStyles.settingsRow}>
+          <Text style={themedStyles.settingsRowText}>
+            Show Children&apos;s Plan
+          </Text>
+          <Switch
+            onValueChange={handleToggleShowChildrensPlan}
+            value={showChildrensPlan}
+          />
+        </View> */}
       </ScrollView>
     </SafeAreaView>
   );

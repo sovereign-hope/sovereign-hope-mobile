@@ -10,6 +10,7 @@ export interface SettingsState {
   subscribedPlans: Array<string>;
   readingFontSize: number;
   readingBackgroundColor: string | undefined;
+  showChildrensPlan: boolean;
   isLoading: boolean;
   hasError: boolean;
   hasLoadedSubscribedPlans: boolean;
@@ -23,6 +24,7 @@ const initialState: SettingsState = {
   subscribedPlans: [],
   readingFontSize: body.fontSize ?? 13,
   readingBackgroundColor: undefined,
+  showChildrensPlan: true,
   isLoading: false,
   hasError: false,
   hasLoadedSubscribedPlans: false,
@@ -286,6 +288,48 @@ export const getReadingBackgroundColor = createAsyncThunk(
   }
 );
 
+export const storeShowChildrensPlan = createAsyncThunk(
+  "settings/storeShowChildrensPlan",
+  async (showChildrensPlan: boolean, { getState }) => {
+    try {
+      await AsyncStorage.setItem(
+        "@settings/showChildrensPlan",
+        showChildrensPlan.toString()
+      );
+      return showChildrensPlan;
+    } catch (error) {
+      console.error(error);
+    }
+  }
+);
+
+export const getShowChildrensPlan = createAsyncThunk(
+  "settings/getShowChildrensPlan",
+  async (): Promise<boolean> => {
+    try {
+      const stringValue = await AsyncStorage.getItem(
+        "@settings/showChildrensPlan"
+      );
+
+      if (!stringValue) {
+        return true; // Default value if no setting exists
+      }
+
+      try {
+        const parsedValue = JSON.parse(stringValue) as unknown;
+        // Ensure the parsed value is actually a boolean
+        return typeof parsedValue === "boolean" ? parsedValue : true;
+      } catch (parseError) {
+        console.error("Failed to parse showChildrensPlan value:", parseError);
+        return true;
+      }
+    } catch (error) {
+      console.error("Failed to read showChildrensPlan from storage:", error);
+      return true;
+    }
+  }
+);
+
 export const settingsSlice = createSlice({
   name: "settings",
   initialState,
@@ -449,6 +493,21 @@ export const settingsSlice = createSlice({
       state.isLoading = false;
       state.hasError = true;
     });
+
+    // storeShowChildrensPlan
+    builder.addCase(storeShowChildrensPlan.pending, (state) => {
+      state.isLoading = true;
+      state.hasError = false;
+    });
+    builder.addCase(storeShowChildrensPlan.fulfilled, (state, action) => {
+      state.showChildrensPlan = action.payload ?? false;
+      state.isLoading = false;
+      state.hasError = false;
+    });
+    builder.addCase(storeShowChildrensPlan.rejected, (state) => {
+      state.isLoading = false;
+      state.hasError = true;
+    });
   },
 });
 
@@ -476,5 +535,8 @@ export const selectError = (state: RootState): boolean =>
 
 export const selectIsLoading = (state: RootState): boolean =>
   state.settings.isLoading;
+
+export const selectShowChildrensPlan = (state: RootState): boolean =>
+  state.settings.showChildrensPlan;
 
 export const settingsReducer = settingsSlice.reducer;

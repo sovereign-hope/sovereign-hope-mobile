@@ -92,6 +92,8 @@ export const getReadingPlan = createAsyncThunk(
       const state = getState() as RootState;
       const today = new Date();
       const year = today.getFullYear();
+      // FOR TESTING NEXT YEAR
+      // const year = 2025;
       let subscribedPlans = state.settings.subscribedPlans;
       if (subscribedPlans.length === 0 && year > 2024) {
         return { id: "", weeks: [], title: "", description: "" };
@@ -105,7 +107,8 @@ export const getReadingPlan = createAsyncThunk(
       const docSnap = await getDoc(docRef);
 
       if (docSnap.exists()) {
-        return docSnap.data() as ReadingPlan;
+        const plan = docSnap.data() as ReadingPlan;
+        return plan;
       }
     } catch (error) {
       console.log("error", error);
@@ -154,6 +157,8 @@ export const getReadingPlanProgressState = createAsyncThunk(
 
     const state = getState() as RootState;
     const subscribedPlans = state.settings.subscribedPlans;
+    // FOR TESTING NEXT YEAR
+    // const currentYear = 2025;
     const currentYear = new Date().getFullYear();
     if (subscribedPlans.length === 0 && currentYear > 2024) {
       return blankState;
@@ -261,6 +266,8 @@ export const selectReadingPlan = (state: RootState): ReadingPlan | undefined =>
 export const selectWeekReadingPlan = (
   state: RootState
 ): ReadingPlanWeek | undefined => {
+  // FOR TESTING NEXT YEAR
+  // const currentWeekIndex = 0;
   const currentWeekIndex = getWeekNumber(new Date()).week - 1;
   const currentWeek = state.readingPlan.readingPlan?.weeks[
     currentWeekIndex
@@ -280,6 +287,9 @@ export const selectWeekReadingPlan = (
 export const selectDailyReadingPlan = (
   state: RootState
 ): ReadingPlanDay | undefined => {
+  // FOR TESTING NEXT YEAR
+  // const currentWeekIndex = 0;
+  // const currentDayIndex = 0;
   const currentWeekIndex = getWeekNumber(new Date()).week - 1;
   const currentDayIndex = getDayInWeek() - 1;
   const currentWeek = state.readingPlan.readingPlan?.weeks[
@@ -295,6 +305,8 @@ export const selectDailyReadingPlan = (
 export const selectWeeklyReadingPlanProgress = (
   state: RootState
 ): Array<boolean> => {
+  // FOR TESTING NEXT YEAR
+  // const currentWeekIndex = 0;
   const currentWeekIndex = getWeekNumber(new Date()).week - 1;
   const currentWeek = state.readingPlan.readingPlanProgressState?.weeks[
     currentWeekIndex
@@ -304,7 +316,10 @@ export const selectWeeklyReadingPlanProgress = (
 };
 
 export const selectDailyReadingPlanProgress = (state: RootState): boolean => {
+  // FOR TESTING NEXT YEAR
+  // const currentWeekIndex = 0;
   const currentWeekIndex = getWeekNumber(new Date()).week - 1;
+  // const currentDayIndex = 0;
   const currentDayIndex = getDayInWeek() - 1;
   const currentWeek = state.readingPlan.readingPlanProgressState?.weeks[
     currentWeekIndex

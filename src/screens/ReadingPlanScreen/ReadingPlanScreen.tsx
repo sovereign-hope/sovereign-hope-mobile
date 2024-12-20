@@ -16,9 +16,7 @@ import {
   ReadingPlanDay,
   selectReadingPlanProgressState,
   storeReadingPlanProgressState,
-  getReadingPlanProgressState,
   ReadingPlanProgressState,
-  getReadingPlan,
 } from "src/redux/readingPlanSlice";
 import { colors } from "src/style/colors";
 import {
@@ -80,6 +78,8 @@ export const ReadingPlanListItem: React.FunctionComponent<{
     }
   };
 
+  const weekIndex = item.weekIndex ?? 0;
+
   return (
     <Pressable
       onPress={() => handleRowPress(item, handleCompleteDay)}
@@ -111,9 +111,9 @@ export const ReadingPlanListItem: React.FunctionComponent<{
           <View style={themedStyles.planItemReading}>
             <View style={themedStyles.planItemReadingColumn}>
               <Text style={themedStyles.planItemTitle}>Reading</Text>
-              {item.reading.map((reading) => (
+              {item.reading.map((reading, readingIndex) => (
                 <Text
-                  key={reading}
+                  key={`${reading}-${weekIndex}-${index}-${readingIndex}`}
                   style={themedStyles.planItemVerses}
                   lineBreakMode="middle"
                 >
@@ -124,7 +124,7 @@ export const ReadingPlanListItem: React.FunctionComponent<{
             <View style={themedStyles.planItemReadingColumn}>
               <Text style={themedStyles.planItemTitle}>Memory</Text>
               <Text
-                key={item.memory.passage}
+                key={`${item.memory.passage}-${index}`}
                 style={themedStyles.planItemVerses}
                 lineBreakMode="middle"
               >
@@ -176,15 +176,18 @@ export const ReadingPlanScreen: React.FunctionComponent<ReadingPlanProps> = ({
             weekIndex + 1,
             1
           )}`,
-          data: week.days.map((day: ReadingPlanDay, dayIndex) => {
-            const dayIsComplete =
-              readingPlanProgress?.weeks[weekIndex].days[dayIndex].isCompleted;
-            return {
-              ...day,
-              weekIndex,
-              isComplete: dayIsComplete,
-            };
-          }),
+          data: week.days
+            .map((day: ReadingPlanDay, dayIndex) => {
+              const dayIsComplete =
+                readingPlanProgress?.weeks[weekIndex]?.days[dayIndex]
+                  .isCompleted;
+              return {
+                ...day,
+                weekIndex,
+                isComplete: dayIsComplete,
+              };
+            })
+            .filter((day) => day.reading.length > 0 && day.reading[0] !== ""),
         })
       );
       setListData(data);
@@ -246,9 +249,9 @@ export const ReadingPlanScreen: React.FunctionComponent<ReadingPlanProps> = ({
     item: ReadingPlanDay,
     onCompleteDay: (isComplete: boolean) => void
   ) => {
-    const readingPassages = item.reading.map((reading) =>
-      parsePassageString(reading)
-    );
+    const readingPassages = item.reading
+      .filter((reading) => reading !== "TBD")
+      .map((reading) => parsePassageString(reading));
 
     // Build Memory Passage
     const memoryPassage = parsePassageString(
@@ -277,7 +280,7 @@ export const ReadingPlanScreen: React.FunctionComponent<ReadingPlanProps> = ({
         initialNumToRender={400}
         keyExtractor={(item: ReadingPlanDay, index) =>
           // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
-          `${item.reading ?? 0}${index}`
+          `${item.reading ?? item.memory.passage}${index}`
         }
         renderItem={({ item, index }) => (
           <ReadingPlanListItem
