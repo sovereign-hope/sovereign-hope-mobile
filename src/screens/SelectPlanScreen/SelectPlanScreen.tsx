@@ -1,32 +1,23 @@
 /* eslint-disable react/prop-types */
 // Disabling this because of weird behavior with the react/prop-types rule in this file. It isn't recognizing navigation
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
-  Alert,
   Image,
   ImageSourcePropType,
   Pressable,
-  SectionList,
   Text,
-  TouchableOpacity,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useDispatch } from "react-redux";
-import { Ionicons } from "@expo/vector-icons";
 import { useAppSelector } from "src/hooks/store";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { RootStackParamList } from "src/navigation/RootNavigator";
-import { usePreventRemoveContext, useTheme } from "@react-navigation/native";
-import * as Haptics from "expo-haptics";
+import { useTheme } from "@react-navigation/native";
 import {
   selectAvailablePlans,
-  selectReadingPlan,
-  getReadingPlanProgressState,
   getAvailablePlans,
 } from "src/redux/readingPlanSlice";
-import { colors } from "src/style/colors";
-import { spacing } from "src/style/layout";
 import { styles } from "./SelectPlanScreen.styles";
 import { ScrollView } from "react-native-gesture-handler";
 import {
@@ -35,7 +26,7 @@ import {
 } from "src/redux/settingsSlice";
 
 import twoYearBibleBanner from "../../../assets/two-year-bible-banner.png";
-import bibleEssentialsBanner from "../../../assets/bible-essentials-banner.png";
+import oneYearOneStoryBanner from "../../../assets/one-year-one-story-banner.png";
 
 export type SelectPlanScreenProps = NativeStackScreenProps<
   RootStackParamList,
@@ -71,7 +62,7 @@ export const SelectPlanScreen: React.FunctionComponent<SelectPlanScreenProps> =
     const themedStyles = styles({ theme });
     const bannerMap = {
       "Two Year Bible": twoYearBibleBanner as ImageSourcePropType,
-      "Bible Essentials": bibleEssentialsBanner as ImageSourcePropType,
+      "One Year, One Story": oneYearOneStoryBanner as ImageSourcePropType,
     };
 
     const handlePlanTap = (planKey: string) => {
