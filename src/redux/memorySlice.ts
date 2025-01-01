@@ -109,7 +109,8 @@ export const selectMemoryAcronym = (state: RootState): string | undefined => {
   // Extract first letter and punctuation from every word in the memory passage and capitalize
   const acronym = state.memory.currentPassage
     ?.replace(/([^\p{L}\s]*\p{L})\p{L}*/gu, "$1")
-    .toUpperCase();
+    .toUpperCase()
+    .replaceAll(/\s+/g, "");
   return acronym;
 };
 export const selectError = (state: RootState): boolean => state.memory.hasError;

@@ -248,15 +248,15 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
   };
 
   const handleReadPress = (dayIndex: number) => {
-    if (readingPlanDay) {
-      const readingPassages = readingPlanDay.reading
+    if (readingPlanWeek) {
+      const readingPassages = readingPlanWeek.days[dayIndex].reading
         .filter((reading) => reading !== "TBD")
         .map((reading) => parsePassageString(reading));
 
       // Build Memory Passage
       const memoryPassage = parsePassageString(
-        readingPlanDay.memory.passage,
-        readingPlanDay.memory.heading
+        readingPlanWeek.days[dayIndex].memory.passage,
+        readingPlanWeek.days[dayIndex].memory.heading
       );
 
       navigation.navigate("Read", {
@@ -523,10 +523,12 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
               ]}
             >
               <View style={themedStyles.contentCardColumn}>
+                {readingPlanWeek?.days[0]?.memory.heading && (
+                  <Text style={themedStyles.contentCardHeader}>
+                    {readingPlanWeek?.days[0]?.memory.heading}
+                  </Text>
+                )}
                 <Text style={themedStyles.contentCardHeader}>
-                  {readingPlanWeek?.days[0]?.memory.heading}
-                </Text>
-                <Text style={themedStyles.text}>
                   {readingPlanWeek?.days[0]?.memory.passage}
                 </Text>
 
@@ -540,8 +542,8 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
                   >
                     <Text
                       style={{
-                        ...themedStyles.contentCardHeader,
-                        marginTop: spacing.medium,
+                        ...themedStyles.text,
+                        letterSpacing: 2,
                       }}
                     >
                       {memoryPassageAcronym}

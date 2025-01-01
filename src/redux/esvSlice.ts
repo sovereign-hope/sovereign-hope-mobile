@@ -58,12 +58,14 @@ export const getPassageFromEsvApi = async ({
 
     const query = `${book}${
       Object.is(startChapter, Number.NaN) ? "" : startChapter
-    }${startVerseString}${Object.is(startChapter, Number.NaN) ? "" : "-"}${
+    }${startChapter == endChapter ? startVerseString : ""}${
+      Object.is(startChapter, Number.NaN) ? "" : "-"
+    }${
       Object.is(endChapter, Number.NaN) ||
       (endChapter === startChapter && endVerseString === "")
         ? ""
         : endChapter
-    }${endVerseString}`;
+    }${endVerseString === "" ? "" : `:${endVerseString}`}`;
     const response = await axios.get(
       routes.passageText(query, includeFootnotes, includeVerseNumbers)
     );
