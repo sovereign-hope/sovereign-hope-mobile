@@ -259,6 +259,8 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
         readingPlanWeek.days[dayIndex].memory.heading
       );
 
+      memoryPassage.isMemory = true;
+
       navigation.navigate("Read", {
         passages: readingPassages?.concat(memoryPassage) ?? [],
         onComplete: () => handleCompleteDay(true, dayIndex),
@@ -273,6 +275,8 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
         readingPlanDay.memory.passage,
         readingPlanDay.memory.heading
       );
+
+      memoryPassage.isMemory = true;
 
       navigation.navigate("Read", {
         passages: [memoryPassage],

@@ -74,11 +74,18 @@ export const ReadingPlanListItem: React.FunctionComponent<{
           JSON.stringify(readingPlanProgress)
         ) as ReadingPlanProgressState;
       tempPlan.weeks[item.weekIndex ?? 0].days[index].isCompleted = isComplete;
+      console.log(index);
+      console.log(tempPlan.weeks[item.weekIndex ?? 0]);
       dispatch(storeReadingPlanProgressState(tempPlan));
     }
   };
 
   const weekIndex = item.weekIndex ?? 0;
+
+  if (item.reading.length === 0 || item.reading[0] === "") {
+    // eslint-disable-next-line unicorn/no-null
+    return null;
+  }
 
   return (
     <Pressable
@@ -176,18 +183,15 @@ export const ReadingPlanScreen: React.FunctionComponent<ReadingPlanProps> = ({
             weekIndex + 1,
             1
           )}`,
-          data: week.days
-            .map((day: ReadingPlanDay, dayIndex) => {
-              const dayIsComplete =
-                readingPlanProgress?.weeks[weekIndex]?.days[dayIndex]
-                  .isCompleted;
-              return {
-                ...day,
-                weekIndex,
-                isComplete: dayIsComplete,
-              };
-            })
-            .filter((day) => day.reading.length > 0 && day.reading[0] !== ""),
+          data: week.days.map((day: ReadingPlanDay, dayIndex) => {
+            const dayIsComplete =
+              readingPlanProgress?.weeks[weekIndex]?.days[dayIndex].isCompleted;
+            return {
+              ...day,
+              weekIndex,
+              isComplete: dayIsComplete,
+            };
+          }),
         })
       );
       setListData(data);
@@ -258,6 +262,8 @@ export const ReadingPlanScreen: React.FunctionComponent<ReadingPlanProps> = ({
       item.memory.passage,
       item.memory.heading
     );
+
+    memoryPassage.isMemory = true;
 
     navigation.navigate("Read", {
       passages: readingPassages?.concat(memoryPassage) ?? [],
