@@ -251,7 +251,7 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
   const handleReadPress = (dayIndex: number) => {
     if (readingPlanWeek) {
       const readingPassages = readingPlanWeek.days[dayIndex].reading
-        .filter((reading) => reading !== "TBD")
+        .filter((reading) => reading !== "TBD" && reading !== "")
         .map((reading) => parsePassageString(reading));
 
       // Build Memory Passage
