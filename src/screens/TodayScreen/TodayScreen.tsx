@@ -155,6 +155,7 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
 
   useEffect(() => {
     dispatch(getReadingPlan());
+    dispatch(getReadingPlanProgressState());
   }, [availablePlans, subscribedPlans]);
 
   useEffect(() => {
