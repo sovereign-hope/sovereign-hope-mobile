@@ -95,7 +95,7 @@ const ReadScrollView: React.FunctionComponent<ReadScrollViewProps> = ({
   useEffect(() => {
     if (commentaryHTML) {
       const $ = cheerio.load(commentaryHTML);
-      setCommentaryHTMLTags($(".chap").html() ?? "");
+      setCommentaryHTMLTags($(".commentary-container").html() ?? "");
     }
   }, [commentaryHTML]);
 
