@@ -254,8 +254,8 @@ export const getReadingFontSize = createAsyncThunk(
       return Number.parseInt(stringValue);
     } catch (error) {
       console.error(error);
+      return body.fontSize;
     }
-    return body.fontSize;
   }
 );
 

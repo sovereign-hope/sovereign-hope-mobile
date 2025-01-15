@@ -8,16 +8,13 @@ import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { RootStackParamList } from "src/navigation/RootNavigator";
 import { useTheme } from "@react-navigation/native";
 import {
-  getEnableNotificationsState,
-  getNotificationTime,
-  selectEnableNotifications,
-  selectNotificationTime,
-  storeEnableNotificationsState,
-  storeNotificationTime,
+  getReadingFontSize,
+  selectReadingFontSize,
   storeReadingFontSize,
 } from "src/redux/settingsSlice";
 import { styles } from "./FontSizePickerScreen.styles";
 import { ScrollView } from "react-native-gesture-handler";
+import { colors } from "src/style/colors";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Font Size">;
 
@@ -27,6 +24,7 @@ export const FontSizePickerScreen: React.FunctionComponent<Props> = ({
   // Custom hooks
   const dispatch = useDispatch();
   const theme = useTheme();
+  const readingFontSize = useAppSelector(selectReadingFontSize);
 
   // Ref Hooks
 
@@ -35,7 +33,9 @@ export const FontSizePickerScreen: React.FunctionComponent<Props> = ({
   // Callback hooks
 
   // Effect hooks
-  useEffect(() => {}, [dispatch]);
+  useEffect(() => {
+    dispatch(getReadingFontSize());
+  }, [dispatch]);
 
   // Event handlers
   const handleSetFontSize = (value: number) => {
@@ -72,12 +72,14 @@ export const FontSizePickerScreen: React.FunctionComponent<Props> = ({
               In the beginning, God
             </Text>
             <View style={themedStyles.settingsRowValueContainer}>
-              <Ionicons
-                name="chevron-forward"
-                size={24}
-                color={theme.colors.border}
-                style={themedStyles.disclosureIcon}
-              />
+              {pointValue === readingFontSize && (
+                <Ionicons
+                  name="checkmark"
+                  size={24}
+                  color={colors.green}
+                  style={themedStyles.disclosureIcon}
+                />
+              )}
             </View>
           </Pressable>
         ))}

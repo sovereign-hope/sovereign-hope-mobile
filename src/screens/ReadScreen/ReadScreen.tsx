@@ -36,7 +36,10 @@ import RenderHtml, {
 import { FlatButton } from "src/components";
 import { styles } from "./ReadScreen.styles";
 import { spacing } from "src/style/layout";
-import { selectReadingFontSize } from "src/redux/settingsSlice";
+import {
+  getReadingFontSize,
+  selectReadingFontSize,
+} from "src/redux/settingsSlice";
 import {
   getPassageCommentary,
   selectCurrentPassageCommentaryHTML,
@@ -331,6 +334,7 @@ export const ReadScreen: React.FunctionComponent<ReadScreenProps> = ({
     setHeading(passage.heading ?? "");
     dispatch(getPassageText({ passage, includeFootnotes: true }));
     dispatch(getPassageCommentary({ passage }));
+    dispatch(getReadingFontSize());
   }, [dispatch]);
 
   const showSelectFontSize = () => {
