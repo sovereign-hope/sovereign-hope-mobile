@@ -47,25 +47,31 @@ export const getPassageFromEsvApi = async ({
 }) => {
   try {
     const { book, startChapter, startVerse, endChapter, endVerse } = passage;
+    const isPassageSingleChapter = startChapter === endChapter;
+    const isPassageSingleVerse =
+      isPassageSingleChapter && startVerse === endVerse;
     const startVerseString =
       !startVerse || Object.is(startVerse, Number.NaN)
-        ? ".1"
+        ? ""
         : `.${startVerse.toString()}`;
     const endVerseString =
       !endVerse || Object.is(endVerse, Number.NaN)
         ? ""
         : `.${endVerse.toString()}`;
-
-    const query = `${book}${
-      Object.is(startChapter, Number.NaN) ? "" : startChapter
-    }${startChapter == endChapter ? startVerseString : ""}${
-      Object.is(startChapter, Number.NaN) ? "" : "-"
-    }${
+    const startChapterString = Object.is(startChapter, Number.NaN)
+      ? ""
+      : startChapter;
+    const endChapterString =
       Object.is(endChapter, Number.NaN) ||
-      (endChapter === startChapter && endVerseString === "")
+      (isPassageSingleChapter && endVerseString === "")
         ? ""
-        : endChapter
-    }${endVerseString === "" ? "" : `:${endVerseString}`}`;
+        : endChapter;
+
+    let query = `${book}${startChapterString}${startVerseString}`;
+    if (!isPassageSingleChapter || !isPassageSingleVerse) {
+      query = `${query}-${endChapterString}${endVerseString}`;
+    }
+
     const response = await axios.get(
       routes.passageText(query, includeFootnotes, includeVerseNumbers)
     );

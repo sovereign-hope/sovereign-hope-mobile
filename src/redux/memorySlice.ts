@@ -27,14 +27,15 @@ export const getMemoryPassageText = createAsyncThunk(
         `@memoryState-${passage.book}-${passage.startChapter}-${passage.startVerse}-${passage.endChapter}-${passage.endVerse}`
       );
 
-      if (
-        storedMemoryState &&
-        storedMemoryState.length > 0 &&
-        storedMemoryState !== '""'
-      ) {
-        const parsedMemoryState = JSON.parse(storedMemoryState) as string;
-        return parsedMemoryState;
-      }
+      // Turn this back on later, after the esv fetch bug is fixed
+      // if (
+      //   storedMemoryState &&
+      //   storedMemoryState.length > 0 &&
+      //   storedMemoryState !== '""'
+      // ) {
+      //   const parsedMemoryState = JSON.parse(storedMemoryState) as string;
+      //   return parsedMemoryState;
+      // }
 
       const passageHtml = await getPassageFromEsvApi({
         passage,
