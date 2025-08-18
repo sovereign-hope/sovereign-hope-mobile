@@ -2,7 +2,26 @@
 
 exports[`FlatButton should render 1`] = `
 <View
+  accessibilityRole="button"
+  accessibilityState={
+    {
+      "busy": undefined,
+      "checked": undefined,
+      "disabled": undefined,
+      "expanded": undefined,
+      "selected": undefined,
+    }
+  }
+  accessibilityValue={
+    {
+      "max": undefined,
+      "min": undefined,
+      "now": undefined,
+      "text": undefined,
+    }
+  }
   accessible={true}
+  collapsable={false}
   focusable={true}
   onBlur={[Function]}
   onClick={[Function]}
@@ -14,9 +33,9 @@ exports[`FlatButton should render 1`] = `
   onResponderTerminationRequest={[Function]}
   onStartShouldSetResponder={[Function]}
   style={
-    Object {
+    {
       "alignItems": "center",
-      "backgroundColor": "#333333",
+      "backgroundColor": "#BA8748",
       "borderRadius": 10,
       "elevation": 2,
       "flexDirection": "row",
@@ -30,7 +49,7 @@ exports[`FlatButton should render 1`] = `
 >
   <Text
     style={
-      Object {
+      {
         "color": "#FFFFFF",
         "flex": 1,
         "textAlign": "center",
@@ -44,7 +63,26 @@ exports[`FlatButton should render 1`] = `
 
 exports[`FlatButton should render an icon 1`] = `
 <View
+  accessibilityRole="button"
+  accessibilityState={
+    {
+      "busy": undefined,
+      "checked": undefined,
+      "disabled": undefined,
+      "expanded": undefined,
+      "selected": undefined,
+    }
+  }
+  accessibilityValue={
+    {
+      "max": undefined,
+      "min": undefined,
+      "now": undefined,
+      "text": undefined,
+    }
+  }
   accessible={true}
+  collapsable={false}
   focusable={true}
   onBlur={[Function]}
   onClick={[Function]}
@@ -56,9 +94,9 @@ exports[`FlatButton should render an icon 1`] = `
   onResponderTerminationRequest={[Function]}
   onStartShouldSetResponder={[Function]}
   style={
-    Object {
+    {
       "alignItems": "center",
-      "backgroundColor": "#333333",
+      "backgroundColor": "#BA8748",
       "borderRadius": 10,
       "elevation": 2,
       "flexDirection": "row",
@@ -72,29 +110,30 @@ exports[`FlatButton should render an icon 1`] = `
 >
   <Text
     allowFontScaling={false}
+    selectable={false}
     style={
-      Array [
-        Object {
+      [
+        {
           "color": "#FFFFFF",
           "fontSize": 22,
         },
-        Object {
+        {
           "marginRight": 4,
         },
-        Object {
+        {
           "fontFamily": "ionicons",
           "fontStyle": "normal",
           "fontWeight": "normal",
         },
-        Object {},
+        {},
       ]
     }
   >
-    
+    
   </Text>
   <Text
     style={
-      Object {
+      {
         "color": "#FFFFFF",
         "flex": 1,
         "textAlign": "center",

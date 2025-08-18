@@ -67,11 +67,7 @@
             "useFrameworks": "static",
             "newArchEnabled": false
           },
-          "android": {
-            "newArchEnabled": false
-            //   "compileSdkVersion": 33,
-            //   "targetSdkVersion": 31
-          }
+          "android": {}
         }
       ],
       "expo-notifications",
