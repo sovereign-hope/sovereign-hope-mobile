@@ -5,6 +5,7 @@ import {
   FlatList,
   Image,
   Linking,
+  Platform,
   Pressable,
   Text,
   View,
@@ -344,6 +345,38 @@ export const PodcastScreen: React.FunctionComponent<Props> = ({
                 </Text>
                 <Text style={themedStyles.text}>
                   View a schedule of all the upcoming events at Sovereign Hope.
+                </Text>
+              </View>
+              <Ionicons
+                name="chevron-forward"
+                size={24}
+                color={theme.colors.border}
+                style={themedStyles.disclosureIcon}
+              />
+            </Pressable>
+            <Pressable
+              onPress={() => {
+                const churchCenterUrl =
+                  Platform.OS === "ios"
+                    ? "https://apps.apple.com/us/app/church-center-app/id1357742931"
+                    : "https://play.google.com/store/apps/details?id=com.ministrycentered.churchcenter&hl=en_US";
+                void Linking.openURL(churchCenterUrl);
+              }}
+              accessibilityRole="button"
+              style={({ pressed }) => [
+                themedStyles.contentCard,
+                {
+                  opacity: pressed ? 0.7 : 1,
+                },
+              ]}
+            >
+              <View style={themedStyles.contentCardColumn}>
+                <Text style={themedStyles.contentCardHeader}>
+                  Church Center App
+                </Text>
+                <Text style={themedStyles.text}>
+                  Download the Church Center app for easy access to church
+                  information, events, and more.
                 </Text>
               </View>
               <Ionicons

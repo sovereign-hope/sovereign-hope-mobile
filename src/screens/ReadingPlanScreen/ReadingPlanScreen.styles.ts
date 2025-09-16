@@ -18,6 +18,7 @@ interface Style {
   planItemCheckbox: ViewStyle;
   planItemTitle: TextStyle;
   planItemVerses: TextStyle;
+  sectionHeaderContainer: ViewStyle;
   sectionHeaderText: TextStyle;
   dayLabel: TextStyle;
 }
@@ -59,6 +60,13 @@ export const styles = ({ theme }: Props): Style =>
     },
     planItemVerses: {
       color: theme.colors.text,
+    },
+    sectionHeaderContainer: {
+      backgroundColor: theme.colors.background,
+      zIndex: 1,
+      elevation: 1,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderBottomColor: theme.colors.border,
     },
     sectionHeaderText: {
       ...header2,

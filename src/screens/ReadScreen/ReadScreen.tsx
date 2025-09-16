@@ -108,17 +108,62 @@ const ReadScrollView: React.FunctionComponent<ReadScrollViewProps> = ({
       color: theme.colors.text,
       fontSize: fontSize,
     },
+    p: {
+      marginBottom: spacing.medium,
+      lineHeight: fontSize * 1.4,
+    },
+    h1: {
+      fontSize: header1.fontSize,
+      fontWeight: "bold",
+      marginTop: spacing.large,
+      marginBottom: spacing.medium,
+      color: theme.colors.text,
+    },
     h2: {
       fontSize: header1.fontSize,
-      height: 50,
+      fontWeight: "bold",
+      marginTop: spacing.large,
+      marginBottom: spacing.medium,
+      color: theme.colors.text,
     },
     h3: {
       fontSize: header3.fontSize,
-      // marginTop: spacing.small,
+      fontWeight: "bold",
+      marginTop: spacing.medium,
+      marginBottom: spacing.large,
+      color: theme.colors.text,
     },
     a: {
       color: colors.accent,
       textDecorationLine: "none",
+      fontWeight: "bold",
+    },
+    b: {
+      fontWeight: "bold",
+    },
+    strong: {
+      fontWeight: "bold",
+    },
+    em: {
+      fontStyle: "italic",
+    },
+    i: {
+      fontStyle: "italic",
+    },
+    sup: {
+      fontSize: fontSize * 0.7,
+      color: colors.accent,
+      fontWeight: "bold",
+    },
+    small: {
+      fontSize: fontSize * 0.8,
+      color: theme.colors.text,
+    },
+    span: {
+      color: theme.colors.text,
+    },
+    div: {
+      marginBottom: spacing.small,
     },
   };
 

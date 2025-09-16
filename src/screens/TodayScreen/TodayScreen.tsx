@@ -12,8 +12,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useDispatch } from "react-redux";
-import { useAppSelector } from "src/hooks/store";
+import { useAppSelector, useAppDispatch } from "src/hooks/store";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { RootStackParamList } from "src/navigation/RootNavigator";
 import { useTheme } from "@react-navigation/native";
@@ -89,7 +88,7 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
   navigation,
 }: Props) => {
   // Custom hooks
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
   const readingPlanDay = useAppSelector(selectDailyReadingPlan);
   const readingPlanProgress = useAppSelector(selectReadingPlanProgressState);
   const readingPlanWeek = useAppSelector(selectWeekReadingPlan);
@@ -215,9 +214,7 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
   }, [readingScrollViewRef, readingPlanWeek, shouldShowLoadingIndicator]);
 
   React.useLayoutEffect(() => {
-    navigation.setOptions({
-      headerRight: undefined,
-    });
+    navigation.setOptions({});
   }, [navigation]);
 
   useEffect(() => {

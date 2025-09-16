@@ -18,6 +18,11 @@ export const background = {
   light: colors.white,
 };
 
+export const navigation = {
+  dark: "#2A2A2A", // Between darkGrey (#333333) and darkerGrey (#222222)
+  light: "#F8F8F8", // Between white (#FFFFFF) and a slightly darker tone
+} as const;
+
 export const text = {
   dark: colors.darkGrey,
   light: colors.white,

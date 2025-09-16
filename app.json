@@ -29,7 +29,9 @@
       },
       "infoPlist": {
         "CFBundleAllowMixedLocalizations": true,
-        "UIBackgroundModes": ["audio"]
+        "UIBackgroundModes": ["audio"],
+        "ITSAppUsesNonExemptEncryption": false,
+        "UIViewControllerBasedStatusBarAppearance": true
       },
       "usesAppleSignIn": true,
       "userInterfaceStyle": "automatic",
@@ -48,7 +50,11 @@
         "backgroundColor": "#FFFFFF"
       },
       "permissions": [],
+      "blockedPermissions": ["android.permission.ACTIVITY_RECOGNITION"],
       "userInterfaceStyle": "automatic"
+    },
+    "androidStatusBar": {
+      "translucent": false
     },
     "locales": {},
     "plugins": [
@@ -65,7 +71,7 @@
         {
           "ios": {
             "useFrameworks": "static",
-            "newArchEnabled": false
+            "newArchEnabled": true
           },
           "android": {}
         }

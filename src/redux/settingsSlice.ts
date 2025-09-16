@@ -11,6 +11,7 @@ export interface SettingsState {
   readingFontSize: number;
   readingBackgroundColor: string | undefined;
   showChildrensPlan: boolean;
+  enableChurchCenterDeepLink: boolean;
   isLoading: boolean;
   hasError: boolean;
   hasLoadedSubscribedPlans: boolean;
@@ -25,6 +26,7 @@ const initialState: SettingsState = {
   readingFontSize: body.fontSize ?? 13,
   readingBackgroundColor: undefined,
   showChildrensPlan: true,
+  enableChurchCenterDeepLink: false,
   isLoading: false,
   hasError: false,
   hasLoadedSubscribedPlans: false,
@@ -330,6 +332,55 @@ export const getShowChildrensPlan = createAsyncThunk(
   }
 );
 
+export const storeEnableChurchCenterDeepLink = createAsyncThunk(
+  "settings/storeEnableChurchCenterDeepLink",
+  async (enableChurchCenterDeepLink: boolean) => {
+    try {
+      await AsyncStorage.setItem(
+        "@settings/enableChurchCenterDeepLink",
+        enableChurchCenterDeepLink.toString()
+      );
+      return enableChurchCenterDeepLink;
+    } catch (error) {
+      console.error(error);
+      return false;
+    }
+  }
+);
+
+export const getEnableChurchCenterDeepLink = createAsyncThunk(
+  "settings/getEnableChurchCenterDeepLink",
+  async (): Promise<boolean> => {
+    try {
+      const stringValue = await AsyncStorage.getItem(
+        "@settings/enableChurchCenterDeepLink"
+      );
+
+      if (!stringValue) {
+        return false; // Default value if no setting exists
+      }
+
+      try {
+        const parsedValue = JSON.parse(stringValue) as unknown;
+        // Ensure the parsed value is actually a boolean
+        return typeof parsedValue === "boolean" ? parsedValue : false;
+      } catch (parseError) {
+        console.error(
+          "Failed to parse enableChurchCenterDeepLink value:",
+          parseError
+        );
+        return false;
+      }
+    } catch (error) {
+      console.error(
+        "Failed to read enableChurchCenterDeepLink from storage:",
+        error
+      );
+      return false;
+    }
+  }
+);
+
 export const settingsSlice = createSlice({
   name: "settings",
   initialState,
@@ -508,6 +559,43 @@ export const settingsSlice = createSlice({
       state.isLoading = false;
       state.hasError = true;
     });
+
+    // storeEnableChurchCenterDeepLink
+    builder.addCase(storeEnableChurchCenterDeepLink.pending, (state) => {
+      state.isLoading = true;
+      state.hasError = false;
+    });
+    builder.addCase(
+      storeEnableChurchCenterDeepLink.fulfilled,
+      (state, action) => {
+        state.enableChurchCenterDeepLink = action.payload ?? false;
+        state.isLoading = false;
+        state.hasError = false;
+      }
+    );
+    builder.addCase(storeEnableChurchCenterDeepLink.rejected, (state) => {
+      state.isLoading = false;
+      state.hasError = true;
+    });
+
+    // getEnableChurchCenterDeepLink
+    builder.addCase(getEnableChurchCenterDeepLink.pending, (state) => {
+      state.isLoading = true;
+      state.hasError = false;
+    });
+    builder.addCase(
+      getEnableChurchCenterDeepLink.fulfilled,
+      (state, action) => {
+        state.enableChurchCenterDeepLink = action.payload ?? false;
+        state.isLoading = false;
+        state.hasError = false;
+      }
+    );
+    builder.addCase(getEnableChurchCenterDeepLink.rejected, (state) => {
+      state.enableChurchCenterDeepLink = false;
+      state.isLoading = false;
+      state.hasError = true;
+    });
   },
 });
 
@@ -538,5 +626,8 @@ export const selectIsLoading = (state: RootState): boolean =>
 
 export const selectShowChildrensPlan = (state: RootState): boolean =>
   state.settings.showChildrensPlan;
+
+export const selectEnableChurchCenterDeepLink = (state: RootState): boolean =>
+  state.settings.enableChurchCenterDeepLink;
 
 export const settingsReducer = settingsSlice.reducer;

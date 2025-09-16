@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Pressable, Switch, Text, View } from "react-native";
+import { Pressable, Switch, Text, View, Platform } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useDispatch } from "react-redux";
 import { Ionicons } from "@expo/vector-icons";
@@ -17,6 +17,9 @@ import {
   selectShowChildrensPlan,
   storeShowChildrensPlan,
   getShowChildrensPlan,
+  selectEnableChurchCenterDeepLink,
+  storeEnableChurchCenterDeepLink,
+  getEnableChurchCenterDeepLink,
 } from "src/redux/settingsSlice";
 import { styles } from "./SettingsScreen.styles";
 import { ScrollView } from "react-native-gesture-handler";
@@ -39,6 +42,9 @@ export const SettingsScreen: React.FunctionComponent<Props> = ({
   const readingPlan = useAppSelector(selectReadingPlan);
   const availablePlans = useAppSelector(selectAvailablePlans);
   const showChildrensPlan = useAppSelector(selectShowChildrensPlan);
+  const enableChurchCenterDeepLink = useAppSelector(
+    selectEnableChurchCenterDeepLink
+  );
 
   // Ref Hooks
 
@@ -86,6 +92,7 @@ export const SettingsScreen: React.FunctionComponent<Props> = ({
     dispatch(getEnableNotificationsState());
     dispatch(getNotificationTime());
     dispatch(getShowChildrensPlan());
+    dispatch(getEnableChurchCenterDeepLink());
   }, [dispatch]);
 
   // Event handlers
@@ -95,6 +102,10 @@ export const SettingsScreen: React.FunctionComponent<Props> = ({
 
   const handleToggleShowChildrensPlan = (value: boolean) => {
     dispatch(storeShowChildrensPlan(value));
+  };
+
+  const handleToggleChurchCenterDeepLink = (value: boolean) => {
+    dispatch(storeEnableChurchCenterDeepLink(value));
   };
 
   const handleSetNotificationTime = (value: Date) => {
@@ -210,6 +221,27 @@ export const SettingsScreen: React.FunctionComponent<Props> = ({
             />
           </View>
         </Pressable>
+
+        {Platform.OS === "ios" && (
+          <>
+            <Text style={themedStyles.settingsSectionHeader}>Church</Text>
+            <View style={themedStyles.settingsRow}>
+              <View style={themedStyles.settingsRowTextContainer}>
+                <Text style={themedStyles.settingsRowText}>
+                  Open Church Center App
+                </Text>
+                <Text style={themedStyles.settingsRowSubtext}>
+                  Automatically open the Church Center app when tapping the
+                  Church tab (if installed)
+                </Text>
+              </View>
+              <Switch
+                onValueChange={handleToggleChurchCenterDeepLink}
+                value={enableChurchCenterDeepLink}
+              />
+            </View>
+          </>
+        )}
 
         {/* <View style={themedStyles.settingsRow}>
           <Text style={themedStyles.settingsRowText}>

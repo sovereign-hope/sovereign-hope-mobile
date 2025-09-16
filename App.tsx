@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useState } from "react";
 import axios from "axios";
 import * as Font from "expo-font";
 import * as SplashScreen from "expo-splash-screen";
-import { Alert } from "react-native";
+import { Alert, Platform, StatusBar as RNStatusBar } from "react-native";
 import { useColorScheme } from "src/hooks/useColorScheme";
 import { Ionicons } from "@expo/vector-icons";
 import { Provider as StoreProvider } from "react-redux";
@@ -10,8 +10,12 @@ import { store } from "src/app/store";
 import { initializeApp, FirebaseApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 import { RootScreen } from "src/screens/RootScreen/RootScreen";
-import { StatusBar } from "expo-status-bar";
+// import { StatusBar } from "expo-status-bar";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+import {
+  SafeAreaProvider,
+  initialWindowMetrics,
+} from "react-native-safe-area-context";
 import TrackPlayer, { Capability, Track } from "react-native-track-player";
 import playerService from "./service";
 import * as Sentry from "@sentry/react-native";
@@ -123,18 +127,29 @@ const App = (): JSX.Element => {
 
   // Effect hooks
   return (
-    <GestureHandlerRootView
-      style={{ flex: 1 }}
-      onLayout={() => {
-        void onLayoutRootView();
-      }}
-    >
-      <StatusBar style={colorScheme === "dark" ? "light" : "dark"} />
-      <StoreProvider store={store}>
-        <RootScreen />
-        <MiniPlayer id="sov-hope-mini-player" />
-      </StoreProvider>
-    </GestureHandlerRootView>
+    <SafeAreaProvider initialMetrics={initialWindowMetrics}>
+      <GestureHandlerRootView
+        style={{
+          flex: 1,
+          backgroundColor: colorScheme === "dark" ? "#2A2A2A" : "#F8F8F8",
+        }}
+        onLayout={() => {
+          void onLayoutRootView();
+        }}
+      >
+        {Platform.OS === "android" && (
+          <RNStatusBar
+            translucent={false}
+            backgroundColor={colorScheme === "dark" ? "#2A2A2A" : "#F8F8F8"}
+            barStyle={colorScheme === "dark" ? "light-content" : "dark-content"}
+          />
+        )}
+        <StoreProvider store={store}>
+          <RootScreen />
+          <MiniPlayer id="sov-hope-mini-player" />
+        </StoreProvider>
+      </GestureHandlerRootView>
+    </SafeAreaProvider>
   );
 };
 
