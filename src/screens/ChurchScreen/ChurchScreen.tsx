@@ -1,8 +1,8 @@
 import React from "react";
 import { StyleSheet, View } from "react-native";
-import { useStatusBarHeight } from "src/hooks/useStatusBarHeight";
 import { colors } from "src/style/colors";
 import { WebView } from "react-native-webview";
+import { useMiniPlayerHeight } from "src/hooks/useMiniPlayerHeight";
 
 const styles = StyleSheet.create({
   fullScreen: {
@@ -16,7 +16,7 @@ const styles = StyleSheet.create({
 });
 
 export const ChurchScreen: React.FunctionComponent = () => {
-  const statusBarHeight = useStatusBarHeight();
+  const miniPlayerHeight = useMiniPlayerHeight();
 
   return (
     <View style={styles.fullScreen}>
@@ -31,7 +31,12 @@ export const ChurchScreen: React.FunctionComponent = () => {
         showsVerticalScrollIndicator={false}
         showsHorizontalScrollIndicator={false}
         bounces
-        style={[styles.webview, { paddingTop: statusBarHeight }]}
+        style={[
+          styles.webview,
+          {
+            paddingBottom: miniPlayerHeight,
+          },
+        ]}
       />
     </View>
   );

@@ -18,6 +18,7 @@ import { RootStackParamList } from "src/navigation/RootNavigator";
 import { useTheme } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
+import { useMiniPlayerHeight } from "src/hooks/useMiniPlayerHeight";
 import {
   getReadingPlan,
   storeReadingPlanProgressState,
@@ -63,7 +64,6 @@ import TrackPlayer, { Track } from "react-native-track-player";
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore - No types for this package
 import Bar from "react-native-progress/Bar";
-import { selectShowChildrensPlan } from "src/redux/settingsSlice";
 
 const playEpisode = async (episode: FeedItem) => {
   await TrackPlayer.reset();
@@ -89,6 +89,7 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
 }: Props) => {
   // Custom hooks
   const dispatch = useAppDispatch();
+  const miniPlayerHeight = useMiniPlayerHeight();
   const readingPlanDay = useAppSelector(selectDailyReadingPlan);
   const readingPlanProgress = useAppSelector(selectReadingPlanProgressState);
   const readingPlanWeek = useAppSelector(selectWeekReadingPlan);
@@ -107,7 +108,6 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
   const [shouldShowLoadingIndicator, setShouldShowLoadingIndicator] =
     useState(true);
   const [currentDate, setCurrentDate] = useState(new Date());
-  const showChildrensPlan = useAppSelector(selectShowChildrensPlan);
 
   // Ref Hooks
   const appState = useRef(AppState.currentState);
@@ -203,7 +203,6 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
         setTimeout(() => {
           if (readingScrollViewRef.current) {
             readingScrollViewRef.current.scrollToIndex({
-              // Note to self: this doesn't work if index is 0!!!
               index: currentDayIndex,
             });
             setHasInitializedPosition(true);
@@ -408,6 +407,7 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
           layout={LinearTransition}
           style={themedStyles.scrollView}
           contentInsetAdjustmentBehavior="automatic"
+          contentContainerStyle={{ paddingBottom: miniPlayerHeight }}
         >
           <Animated.View
             entering={FadeIn.duration(500)}
@@ -482,8 +482,8 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
                 renderItem={renderReadingItem}
                 style={themedStyles.scrollRow}
                 ref={readingScrollViewRef}
-                onScrollToIndexFailed={(info) => {
-                  console.log(info);
+                onScrollToIndexFailed={() => {
+                  // Handle scroll to index failure gracefully
                 }}
                 contentContainerStyle={{
                   marginTop: spacing.small,
@@ -563,34 +563,6 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
             <View style={themedStyles.headerRow}>
               <Text style={themedStyles.header}>Resources</Text>
             </View>
-            {/* {showChildrensPlan && (
-              <Pressable
-                // onPress={() => navigation.push("Read")}
-                accessibilityRole="button"
-                style={({ pressed }) => [
-                  themedStyles.contentCard,
-                  {
-                    opacity: pressed ? 0.7 : 1,
-                    marginBottom: spacing.medium,
-                  },
-                ]}
-              >
-                <View style={themedStyles.contentCardColumn}>
-                  <Text style={themedStyles.contentCardHeader}>
-                    Children&apos;s Reading
-                  </Text>
-                  <Text style={themedStyles.text}>
-                    Today&apos;s Bible reading for children
-                  </Text>
-                </View>
-                <Ionicons
-                  name="chevron-forward"
-                  size={24}
-                  color={theme.colors.border}
-                  style={themedStyles.disclosureIcon}
-                />
-              </Pressable>
-            )} */}
             {podcastEpisode && (
               <Pressable
                 onPress={() => void playEpisode(podcastEpisode)}
@@ -630,42 +602,6 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
                 />
               </Pressable>
             )}
-            {/* <View style={themedStyles.contentCard}>
-            <View style={themedStyles.contentCardColumn}>
-              <Text style={themedStyles.memoryQuestionHeader}>
-                Study Questions
-              </Text>
-              <Text style={themedStyles.memoryQuestionSubHeader}>Look Up</Text>
-              <Text style={themedStyles.memoryQuestion}>
-                What does this passage teach us about the Triune God, his
-                character, and his plan to save us in the gospel?
-              </Text>
-              <Text style={themedStyles.memoryQuestionSubHeader}>Look In</Text>
-              <Text style={themedStyles.memoryQuestion}>
-                What does this passage teach us about our own hearts and lives,
-                and the world we live in?
-              </Text>
-              <Text style={themedStyles.memoryQuestionSubHeader}>Look Out</Text>
-              <Text style={themedStyles.memoryQuestion}>
-                How does this passage influence the way we should act and think
-                as Christians at home, at work, in relationships or as the
-                church?
-              </Text>
-              <Text
-                style={{
-                  ...themedStyles.memoryQuestionHeader,
-                  marginTop: spacing.large,
-                }}
-              >
-                Thoughts for Reflection
-              </Text>
-              <Text style={themedStyles.memoryQuestion}>
-                Write down one way this passage can influence our emotions and
-                prayer life and be sure to set aside time to pray for that
-                today.
-              </Text>
-            </View>
-          </View> */}
             <View style={themedStyles.spacer} />
           </View>
         </Animated.ScrollView>

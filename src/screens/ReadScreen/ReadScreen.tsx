@@ -1,5 +1,4 @@
 /* eslint-disable react/prop-types */
-// Disabling this because of weird behavior with the react/prop-types rule in this file. It isn't recognizing navigation
 import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -18,6 +17,7 @@ import { RootStackParamList } from "src/navigation/RootNavigator";
 import { useTheme } from "@react-navigation/native";
 import * as Haptics from "expo-haptics";
 import { colors } from "src/style/colors";
+import { useMiniPlayerHeight } from "src/hooks/useMiniPlayerHeight";
 import { header1, header3 } from "src/style/typography";
 import { Ionicons } from "@expo/vector-icons";
 import TrackPlayer, { Track } from "react-native-track-player";
@@ -52,6 +52,7 @@ interface ReadScrollViewProps {
   heading: string;
   onNextPassage: () => void;
   isFinalPassage: boolean;
+  miniPlayerHeight: number;
 }
 
 const ReadScrollView: React.FunctionComponent<ReadScrollViewProps> = ({
@@ -59,6 +60,7 @@ const ReadScrollView: React.FunctionComponent<ReadScrollViewProps> = ({
   heading,
   onNextPassage,
   isFinalPassage,
+  miniPlayerHeight,
 }: ReadScrollViewProps) => {
   // State
   const [isPressingHideButton, setIsPressingHideButton] = useState(false);
@@ -171,7 +173,7 @@ const ReadScrollView: React.FunctionComponent<ReadScrollViewProps> = ({
     <Animated.ScrollView
       ref={scrollViewRef}
       style={[themedStyles.container, { opacity: mountAnimation }]}
-      contentContainerStyle={{ flexGrow: 1 }}
+      contentContainerStyle={{ flexGrow: 1, paddingBottom: miniPlayerHeight }}
     >
       {heading.length > 0 && <Text style={themedStyles.title}>{heading}</Text>}
       <Animated.View style={{ opacity: animation }}>
@@ -346,6 +348,7 @@ export const ReadScreen: React.FunctionComponent<ReadScreenProps> = ({
 
   // Custom hooks
   const dispatch = useDispatch();
+  const miniPlayerHeight = useMiniPlayerHeight();
 
   // Custom hooks
   const audioUrl = useAppSelector(selectAudioUrl);
@@ -459,6 +462,7 @@ export const ReadScreen: React.FunctionComponent<ReadScreenProps> = ({
             heading={heading}
             onNextPassage={handleNextPassage}
             isFinalPassage={passageIndex < passages.length - 1}
+            miniPlayerHeight={miniPlayerHeight}
           />
         </>
       )}

@@ -3,3 +3,4 @@ export { FlatButton } from "./FlatButton/FlatButton";
 export { SecureInput } from "./SecureInput/SecureInput";
 export { NoNetworkComponent } from "./NoNetworkComponent/NoNetworkComponent";
 export { MiniPlayer } from "./MiniPlayer/MiniPlayer";
+export { MediaPlayer } from "./MediaPlayer/MediaPlayer";

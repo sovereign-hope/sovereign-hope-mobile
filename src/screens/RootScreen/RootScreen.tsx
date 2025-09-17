@@ -1,10 +1,13 @@
 import React, { useEffect } from "react";
 import { useColorScheme } from "src/hooks/useColorScheme";
 import { ReadingPlanScreen } from "src/screens/ReadingPlanScreen/ReadingPlanScreen";
-import { NavigationContainer } from "@react-navigation/native";
+import { NavigationContainer, useFocusEffect } from "@react-navigation/native";
 import { lightTheme, darkTheme } from "src/style/themes";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
+import {
+  createBottomTabNavigator,
+  BottomTabBar,
+} from "@react-navigation/bottom-tabs";
 import { enableScreens } from "react-native-screens";
 import { Ionicons } from "@expo/vector-icons";
 import { RootStackParamList } from "src/navigation/RootNavigator";
@@ -18,7 +21,8 @@ import { FontSizePickerScreen } from "../FontSizePickerScreen/FontSizePickerScre
 import { ScheduleScreen } from "../ScheduleScreen";
 import { SundaysScreen } from "../SundaysScreen";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Pressable, Platform, Linking } from "react-native";
+import { Pressable, Platform, Linking, View } from "react-native";
+import { TabBarHeightContext } from "src/navigation/TabBarContext";
 import { ChurchScreen } from "../ChurchScreen/ChurchScreen";
 import { useAppSelector, useAppDispatch } from "src/hooks/store";
 import {
@@ -31,9 +35,7 @@ enableScreens();
 const Stack = createNativeStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator<RootStackParamList>();
 
-// Removed SettingsStack; Settings now lives inside WeekStack
-
-const PodcastStack = (): JSX.Element => {
+const PodcastStack = (): React.JSX.Element => {
   const colorScheme = useColorScheme();
 
   return (
@@ -58,7 +60,7 @@ const PodcastStack = (): JSX.Element => {
   );
 };
 
-const WeekStack = (): JSX.Element => {
+const WeekStack = (): React.JSX.Element => {
   const colorScheme = useColorScheme();
 
   return (
@@ -99,7 +101,7 @@ const WeekStack = (): JSX.Element => {
   );
 };
 
-const ChurchStack = (): JSX.Element => {
+const ChurchStack = (): React.JSX.Element => {
   const colorScheme = useColorScheme();
 
   return (
@@ -113,7 +115,7 @@ const ChurchStack = (): JSX.Element => {
   );
 };
 
-const ReadingPlanStack = (): JSX.Element => {
+const ReadingPlanStack = (): React.JSX.Element => {
   const colorScheme = useColorScheme();
 
   return (
@@ -152,7 +154,6 @@ const ChurchTabButton = (props: any) => {
     // Only try to open Church Center app on iOS if setting is enabled
     if (Platform.OS === "ios" && enableChurchCenterDeepLink) {
       const churchCenterUrl = "https://churchcenter.com/home";
-      console.log(`Attempting to open Church Center URL: ${churchCenterUrl}`);
 
       // First, check if the URL can be opened
       Linking.canOpenURL(churchCenterUrl)
@@ -162,15 +163,10 @@ const ChurchTabButton = (props: any) => {
             setTimeout(() => {
               Linking.openURL(churchCenterUrl)
                 .then(() => {
-                  console.log("Successfully opened Church Center app");
                   // If successful, don't switch tabs - stay on current tab
                   return;
                 })
-                .catch((openError) => {
-                  console.log(
-                    "Error opening Church Center app after canOpen check:",
-                    openError
-                  );
+                .catch(() => {
                   // Fall through to normal tab behavior
                   if (typeof props.onPress === "function") {
                     props.onPress();
@@ -178,17 +174,13 @@ const ChurchTabButton = (props: any) => {
                 });
             }, 100);
           } else {
-            console.log(
-              "Cannot open Church Center URL, falling back to WebView"
-            );
             // Fall through to normal tab behavior
             if (typeof props.onPress === "function") {
               props.onPress();
             }
           }
         })
-        .catch((error) => {
-          console.log("Error checking Church Center app availability:", error);
+        .catch(() => {
           // If error, fall through to normal tab behavior
           if (typeof props.onPress === "function") {
             props.onPress();
@@ -210,14 +202,43 @@ const ChurchTabButton = (props: any) => {
   );
 };
 
-const HomeScreen = (): JSX.Element => {
+const HomeScreen = (): React.JSX.Element => {
   const colorScheme = useColorScheme();
   const dispatch = useAppDispatch();
+  const {
+    setHeight,
+    setMeasuredHeight,
+    measuredHeight,
+    setCachedHeight,
+    setIsCached,
+  } = React.useContext(TabBarHeightContext);
+  const lastMeasuredHeightRef = React.useRef<number>(0);
 
   // Load settings on app startup
   useEffect(() => {
     dispatch(getEnableChurchCenterDeepLink());
   }, [dispatch]);
+
+  // When Home gains focus again, restore the last measured tab bar height
+  useFocusEffect(
+    React.useCallback(() => {
+      const h = measuredHeight || lastMeasuredHeightRef.current;
+      if (h > 0) {
+        setHeight(h);
+        // Cache the height for immediate positioning
+        setCachedHeight(h);
+        setIsCached(true);
+      }
+      return;
+    }, [setHeight, measuredHeight, setCachedHeight, setIsCached])
+  );
+
+  // Reset tab bar height when leaving the tab navigator
+  useEffect(() => {
+    return () => {
+      setHeight(0);
+    };
+  }, [setHeight]);
 
   return (
     <Tab.Navigator
@@ -227,6 +248,21 @@ const HomeScreen = (): JSX.Element => {
           backgroundColor: colorScheme === "dark" ? "#2A2A2A" : "#F8F8F8",
         },
       }}
+      tabBar={(props) => (
+        <View
+          onLayout={(e) => {
+            const h = e?.nativeEvent?.layout?.height ?? 0;
+            lastMeasuredHeightRef.current = h;
+            setMeasuredHeight(h);
+            setHeight(h);
+            // Cache the height for immediate positioning
+            setCachedHeight(h);
+            setIsCached(true);
+          }}
+        >
+          <BottomTabBar {...props} />
+        </View>
+      )}
     >
       <Tab.Screen
         name="This Week"
@@ -326,8 +362,11 @@ const HomeScreen = (): JSX.Element => {
   );
 };
 
-export const RootScreen = (): JSX.Element => {
+export const RootScreen = (): React.JSX.Element => {
   const colorScheme = useColorScheme();
+  const navRef = React.useRef<any>(null);
+  const { setHeight, setIsTabBarVisible } =
+    React.useContext(TabBarHeightContext);
 
   return (
     <SafeAreaView
@@ -338,7 +377,20 @@ export const RootScreen = (): JSX.Element => {
       }}
     >
       <NavigationContainer
+        ref={navRef}
         theme={colorScheme === "dark" ? darkTheme : lightTheme}
+        onStateChange={(state) => {
+          if (state) {
+            const currentRoute = state.routes[state.index];
+            if (currentRoute?.name === "Home") {
+              // Don't set height here, let HomeScreen handle it
+              setIsTabBarVisible(true);
+            } else {
+              setHeight(0);
+              setIsTabBarVisible(false);
+            }
+          }
+        }}
       >
         <Stack.Navigator
           screenOptions={{
@@ -355,8 +407,6 @@ export const RootScreen = (): JSX.Element => {
             },
             statusBarTranslucent: true,
             statusBarStyle: colorScheme === "dark" ? "light" : "dark",
-            statusBarBackgroundColor:
-              colorScheme === "dark" ? "#2A2A2A" : "#F8F8F8",
           }}
         >
           <Stack.Screen

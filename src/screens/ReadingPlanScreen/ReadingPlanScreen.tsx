@@ -1,5 +1,4 @@
 /* eslint-disable react/prop-types */
-// Disabling this because of weird behavior with the react/prop-types rule in this file. It isn't recognizing navigation
 import React, { useEffect, useRef, useState } from "react";
 import { Pressable, SectionList, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -10,6 +9,7 @@ import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { RootStackParamList } from "src/navigation/RootNavigator";
 import { useTheme } from "@react-navigation/native";
 import * as Haptics from "expo-haptics";
+import { useMiniPlayerHeight } from "src/hooks/useMiniPlayerHeight";
 import {
   selectReadingPlan,
   ReadingPlanWeek,
@@ -74,8 +74,6 @@ export const ReadingPlanListItem: React.FunctionComponent<{
           JSON.stringify(readingPlanProgress)
         ) as ReadingPlanProgressState;
       tempPlan.weeks[item.weekIndex ?? 0].days[index].isCompleted = isComplete;
-      console.log(index);
-      console.log(tempPlan.weeks[item.weekIndex ?? 0]);
       void dispatch(storeReadingPlanProgressState(tempPlan));
     }
   };
@@ -159,6 +157,7 @@ export const ReadingPlanScreen: React.FunctionComponent<ReadingPlanProps> = ({
   const readingPlanProgress = useAppSelector(selectReadingPlanProgressState);
   const theme = useTheme();
   const headerHeight = useHeaderHeight();
+  const miniPlayerHeight = useMiniPlayerHeight();
 
   // Ref Hooks
   const scrollViewRef = useRef<SectionList<ReadingPlanDay>>(null);
@@ -213,7 +212,6 @@ export const ReadingPlanScreen: React.FunctionComponent<ReadingPlanProps> = ({
                 currentWeek < listData.length
                   ? currentWeek - 1
                   : listData.length - 1,
-              // Note to self: this doesn't work if index is 0!!!
               itemIndex: 1,
             });
             setHasInitializedPosition(true);
@@ -240,7 +238,6 @@ export const ReadingPlanScreen: React.FunctionComponent<ReadingPlanProps> = ({
                   : listData.length - 1;
               scrollViewRef.current.scrollToLocation({
                 sectionIndex,
-                // Note to self: this doesn't work if index is 0!!!
                 itemIndex: 1,
               });
             }
@@ -284,10 +281,13 @@ export const ReadingPlanScreen: React.FunctionComponent<ReadingPlanProps> = ({
         ref={scrollViewRef}
         stickySectionHeadersEnabled
         contentInsetAdjustmentBehavior="never"
-        contentContainerStyle={{ paddingTop: headerHeight }}
+        contentContainerStyle={{
+          paddingTop: headerHeight,
+          paddingBottom: miniPlayerHeight,
+        }}
         scrollIndicatorInsets={{ top: headerHeight }}
-        onScrollToIndexFailed={(info) => {
-          console.log(info);
+        onScrollToIndexFailed={() => {
+          // Handle scroll to index failure gracefully
         }}
         sections={listData}
         style={themedStyles.planList}
