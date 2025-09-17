@@ -21,6 +21,7 @@ import { useMiniPlayerHeight } from "src/hooks/useMiniPlayerHeight";
 import { header1, header3 } from "src/style/typography";
 import { Ionicons } from "@expo/vector-icons";
 import TrackPlayer, { Track } from "react-native-track-player";
+import esvLogo from "../../../assets/esv-logo.png";
 import {
   getPassageText,
   selectAudioUrl,
@@ -363,6 +364,7 @@ export const ReadScreen: React.FunctionComponent<ReadScreenProps> = ({
       url: audioUrl ?? "",
       title: audioTitle ?? "",
       artist: "ESV Bible",
+      artwork: esvLogo,
     };
     await TrackPlayer.add(track);
     await TrackPlayer.play();
