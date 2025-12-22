@@ -34,4 +34,75 @@ jest.mock("@react-navigation/native/lib/commonjs/useLinking.native", () => ({
 
 jest.mock("expo-notifications");
 
+// AsyncStorage mock (official)
+jest.mock("@react-native-async-storage/async-storage", () =>
+  require("@react-native-async-storage/async-storage/jest/async-storage-mock")
+);
+
+// Axios mock
+jest.mock("axios");
+
+// Track player - minimal mock (add more methods as needed when tests fail)
+jest.mock("react-native-track-player", () => ({
+  setupPlayer: jest.fn().mockResolvedValue(undefined),
+  play: jest.fn().mockResolvedValue(undefined),
+  pause: jest.fn().mockResolvedValue(undefined),
+  stop: jest.fn().mockResolvedValue(undefined),
+  reset: jest.fn().mockResolvedValue(undefined),
+  add: jest.fn().mockResolvedValue(undefined),
+  getPlaybackState: jest.fn().mockResolvedValue({ state: "none" }),
+  usePlaybackState: jest.fn().mockReturnValue({ state: "none" }),
+  useProgress: jest
+    .fn()
+    .mockReturnValue({ position: 0, duration: 0, buffered: 0 }),
+  addEventListener: jest.fn(() => ({ remove: jest.fn() })),
+  State: { None: "none", Playing: "playing", Paused: "paused" },
+}));
+
+// Sentry mock
+jest.mock("@sentry/react-native", () => ({
+  init: jest.fn(),
+  wrap: (component) => component,
+  captureException: jest.fn(),
+}));
+
+// SecureStore mock
+jest.mock("expo-secure-store", () => ({
+  getItemAsync: jest.fn(),
+  setItemAsync: jest.fn(),
+  deleteItemAsync: jest.fn(),
+}));
+
+// Firebase/Firestore mock
+jest.mock("firebase/firestore", () => ({
+  getFirestore: jest.fn(),
+  collection: jest.fn(),
+  doc: jest.fn(),
+  getDoc: jest.fn(),
+  getDocs: jest.fn(),
+  setDoc: jest.fn(),
+  updateDoc: jest.fn(),
+  deleteDoc: jest.fn(),
+  query: jest.fn(),
+  where: jest.fn(),
+  orderBy: jest.fn(),
+  limit: jest.fn(),
+  onSnapshot: jest.fn(),
+}));
+
+jest.mock("firebase/app", () => ({
+  initializeApp: jest.fn(),
+  getApp: jest.fn(),
+  getApps: jest.fn().mockReturnValue([]),
+}));
+
+// WebView mock
+jest.mock("react-native-webview", () => {
+  const { View } = require("react-native");
+  return {
+    WebView: View,
+    default: View,
+  };
+});
+
 global.beforeAll(async () => Promise.all([Font.loadAsync(Ionicons.font)]));
