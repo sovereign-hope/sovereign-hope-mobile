@@ -27,6 +27,7 @@ import {
 
 import twoYearBibleBanner from "../../../assets/two-year-bible-banner.png";
 import oneYearOneStoryBanner from "../../../assets/one-year-one-story-banner.png";
+import newTestamentOneYearBanner from "../../../assets/new-testament-one-year.png";
 
 export type SelectPlanScreenProps = NativeStackScreenProps<
   RootStackParamList,
@@ -63,6 +64,8 @@ export const SelectPlanScreen: React.FunctionComponent<SelectPlanScreenProps> =
     const bannerMap = {
       "Two Year Bible": twoYearBibleBanner as ImageSourcePropType,
       "One Year, One Story": oneYearOneStoryBanner as ImageSourcePropType,
+      "New Testament in a Year":
+        newTestamentOneYearBanner as ImageSourcePropType,
     };
 
     const handlePlanTap = (planKey: string) => {
