@@ -10,12 +10,19 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
       - name: Install dependencies
-        run: yarn install
+        run: npm ci
       - name: Typecheck
-        run: npx --no-install tsc --noEmit
+        run: npx tsc --noEmit
       - name: Lint
-        run: yarn lint
+        run: npm run lint
+      - name: Test
+        run: npm test
       - name: Setup EAS
         if: ${{ github.event_name == 'pull_request' }}
         uses: expo/expo-github-action@v8
