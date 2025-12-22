@@ -2,6 +2,7 @@ import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import { RootState } from "src/app/store";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Notifications from "expo-notifications";
+import { SchedulableTriggerInputTypes } from "expo-notifications";
 import { body } from "src/style/typography";
 
 export interface SettingsState {
@@ -38,6 +39,8 @@ Notifications.setNotificationHandler({
     shouldShowAlert: true,
     shouldPlaySound: false,
     shouldSetBadge: false,
+    shouldShowBanner: true,
+    shouldShowList: true,
   }),
 });
 
@@ -94,6 +97,7 @@ export const storeEnableNotificationsState = createAsyncThunk(
             title: "Read now to stay on track with your Bible reading plan!",
           },
           trigger: {
+            type: SchedulableTriggerInputTypes.CALENDAR,
             repeats: true,
             hour,
             minute,
@@ -157,6 +161,7 @@ export const storeNotificationTime = createAsyncThunk(
             subtitle: "Read now to stay on track with your Bible reading plan!",
           },
           trigger: {
+            type: SchedulableTriggerInputTypes.CALENDAR,
             repeats: true,
             hour,
             minute,

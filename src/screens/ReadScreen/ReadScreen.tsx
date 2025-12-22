@@ -2,6 +2,7 @@
 import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Image,
   Pressable,
   ScrollView,
   Text,
@@ -10,8 +11,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useDispatch } from "react-redux";
-import { useAppSelector } from "src/hooks/store";
+import { useAppSelector, useAppDispatch } from "src/hooks/store";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { RootStackParamList } from "src/navigation/RootNavigator";
 import { useTheme } from "@react-navigation/native";
@@ -348,7 +348,7 @@ export const ReadScreen: React.FunctionComponent<ReadScreenProps> = ({
   const [heading, setHeading] = useState("");
 
   // Custom hooks
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
   const miniPlayerHeight = useMiniPlayerHeight();
 
   // Custom hooks
@@ -364,7 +364,7 @@ export const ReadScreen: React.FunctionComponent<ReadScreenProps> = ({
       url: audioUrl ?? "",
       title: audioTitle ?? "",
       artist: "ESV Bible",
-      artwork: esvLogo,
+      artwork: Image.resolveAssetSource(esvLogo).uri,
     };
     await TrackPlayer.add(track);
     await TrackPlayer.play();
@@ -382,9 +382,9 @@ export const ReadScreen: React.FunctionComponent<ReadScreenProps> = ({
     const passage = passages[passageIndex];
     setShouldShowMemoryButton(passage.isMemory);
     setHeading(passage.heading ?? "");
-    dispatch(getPassageText({ passage, includeFootnotes: true }));
-    dispatch(getPassageCommentary({ passage }));
-    dispatch(getReadingFontSize());
+    void dispatch(getPassageText({ passage, includeFootnotes: true }));
+    void dispatch(getPassageCommentary({ passage }));
+    void dispatch(getReadingFontSize());
   }, [dispatch]);
 
   const showSelectFontSize = () => {
@@ -433,13 +433,13 @@ export const ReadScreen: React.FunctionComponent<ReadScreenProps> = ({
       const passage = passages[passageIndex + 1];
       setShouldShowMemoryButton(passage.isMemory);
       setHeading(passage.heading ?? "");
-      dispatch(
+      void dispatch(
         getPassageText({
           passage,
           includeFootnotes: !passage.isMemory,
         })
       );
-      dispatch(getPassageCommentary({ passage }));
+      void dispatch(getPassageCommentary({ passage }));
       setPassageIndex(passageIndex + 1);
 
       void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);

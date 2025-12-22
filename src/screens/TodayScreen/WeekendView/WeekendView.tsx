@@ -7,8 +7,7 @@ import {
   Text,
   View,
 } from "react-native";
-import { useDispatch } from "react-redux";
-import { useAppSelector } from "src/hooks/store";
+import { useAppSelector, useAppDispatch } from "src/hooks/store";
 import { useTheme } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 import {
@@ -70,7 +69,7 @@ export const WeekendView: React.FunctionComponent<Props> = ({
   onRowPress,
 }: Props) => {
   // Custom hooks
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
   const readingPlanWeek = useAppSelector(selectWeekReadingPlan);
   const readingPlanWeekProgress = useAppSelector(
     selectWeeklyReadingPlanProgress
@@ -92,8 +91,8 @@ export const WeekendView: React.FunctionComponent<Props> = ({
         /inactive|background/.test(appState.current) &&
         nextAppState === "active"
       ) {
-        dispatch(getReadingPlan());
-        dispatch(getReadingPlanProgressState());
+        void dispatch(getReadingPlan());
+        void dispatch(getReadingPlanProgressState());
       }
       appState.current = nextAppState;
     };
@@ -119,8 +118,8 @@ export const WeekendView: React.FunctionComponent<Props> = ({
   }, [readingPlanWeek, readingPlanWeekProgress]);
 
   React.useEffect(() => {
-    dispatch(getReadingPlan());
-    dispatch(getReadingPlanProgressState());
+    void dispatch(getReadingPlan());
+    void dispatch(getReadingPlanProgressState());
   }, [dispatch]);
 
   // Event handlers

@@ -47,9 +47,3 @@ export const FlatButton: React.FunctionComponent<ButtonProps> = ({
     </Pressable>
   );
 };
-
-FlatButton.defaultProps = {
-  style: {},
-  disabled: false,
-  icon: undefined,
-};

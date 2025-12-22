@@ -126,11 +126,11 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
         setShouldShowLoadingIndicator(true);
         setCurrentDate(today);
 
-        dispatch(getAvailablePlans());
-        dispatch(getSubscribedPlans());
-        dispatch(getReadingPlan());
-        dispatch(getReadingPlanProgressState());
-        dispatch(getNotifications());
+        void dispatch(getAvailablePlans());
+        void dispatch(getSubscribedPlans());
+        void dispatch(getReadingPlan());
+        void dispatch(getReadingPlanProgressState());
+        void dispatch(getNotifications());
       }
       appState.current = nextAppState;
     };
@@ -145,16 +145,16 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
     setHasInitializedPosition(false);
     setShouldShowLoadingIndicator(true);
 
-    dispatch(getAvailablePlans());
-    dispatch(getSubscribedPlans());
-    dispatch(getReadingPlan());
-    dispatch(getReadingPlanProgressState());
-    dispatch(getNotifications());
+    void dispatch(getAvailablePlans());
+    void dispatch(getSubscribedPlans());
+    void dispatch(getReadingPlan());
+    void dispatch(getReadingPlanProgressState());
+    void dispatch(getNotifications());
   }, [dispatch]);
 
   useEffect(() => {
-    dispatch(getReadingPlan());
-    dispatch(getReadingPlanProgressState());
+    void dispatch(getReadingPlan());
+    void dispatch(getReadingPlanProgressState());
   }, [availablePlans, subscribedPlans]);
 
   useEffect(() => {
@@ -172,7 +172,7 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
       });
       // If any plans were culled because they aren't available, remove them
       if (newSubscriptions.length !== subscribedPlans.length) {
-        dispatch(storeSubscribedPlans(newSubscriptions));
+        void dispatch(storeSubscribedPlans(newSubscriptions));
       }
       if (newSubscriptions.length === 0) {
         navigation.navigate("Available Plans");
@@ -183,7 +183,7 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
   useEffect(() => {
     const passage = readingPlanWeek?.days[0]?.memory.passage;
     if (passage && !memoryPassageAcronym) {
-      dispatch(
+      void dispatch(
         getMemoryPassageText({
           passage: parsePassageString(passage),
         })
@@ -240,7 +240,7 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
           JSON.stringify(readingPlanProgress)
         ) as ReadingPlanProgressState;
       tempPlan.weeks[currentWeekIndex].days[dayIndex].isCompleted = isComplete;
-      dispatch(storeReadingPlanProgressState(tempPlan));
+      void dispatch(storeReadingPlanProgressState(tempPlan));
     }
   };
 

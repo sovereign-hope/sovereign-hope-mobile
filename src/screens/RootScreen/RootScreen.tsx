@@ -1,12 +1,17 @@
 import React, { useEffect } from "react";
 import { useColorScheme } from "src/hooks/useColorScheme";
 import { ReadingPlanScreen } from "src/screens/ReadingPlanScreen/ReadingPlanScreen";
-import { NavigationContainer, useFocusEffect } from "@react-navigation/native";
+import {
+  NavigationContainer,
+  NavigationContainerRef,
+  useFocusEffect,
+} from "@react-navigation/native";
 import { lightTheme, darkTheme } from "src/style/themes";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import {
   createBottomTabNavigator,
   BottomTabBar,
+  BottomTabBarButtonProps,
 } from "@react-navigation/bottom-tabs";
 import { enableScreens } from "react-native-screens";
 import { Ionicons } from "@expo/vector-icons";
@@ -21,7 +26,13 @@ import { FontSizePickerScreen } from "../FontSizePickerScreen/FontSizePickerScre
 import { ScheduleScreen } from "../ScheduleScreen";
 import { SundaysScreen } from "../SundaysScreen";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Pressable, Platform, Linking, View } from "react-native";
+import {
+  Pressable,
+  Platform,
+  Linking,
+  View,
+  GestureResponderEvent,
+} from "react-native";
 import { TabBarHeightContext } from "src/navigation/TabBarContext";
 import { ChurchScreen } from "../ChurchScreen/ChurchScreen";
 import { useAppSelector, useAppDispatch } from "src/hooks/store";
@@ -86,7 +97,11 @@ const WeekStack = (): React.JSX.Element => {
         options={({ navigation }) => ({
           headerRight: () => (
             <Pressable
-              onPress={() => navigation.navigate("Settings")}
+              onPress={() =>
+                (navigation as { navigate: (screen: string) => void }).navigate(
+                  "Settings"
+                )
+              }
               accessibilityRole="button"
               hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}
               style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
@@ -102,8 +117,6 @@ const WeekStack = (): React.JSX.Element => {
 };
 
 const ChurchStack = (): React.JSX.Element => {
-  const colorScheme = useColorScheme();
-
   return (
     <Stack.Navigator
       screenOptions={{
@@ -145,58 +158,46 @@ const ReadingPlanStack = (): React.JSX.Element => {
 };
 
 // Custom Church tab button component
-const ChurchTabButton = (props: any) => {
+const ChurchTabButton = (props: BottomTabBarButtonProps): React.JSX.Element => {
   const enableChurchCenterDeepLink = useAppSelector(
     selectEnableChurchCenterDeepLink
   );
 
-  const handlePress = () => {
+  const handlePress = async (): Promise<void> => {
     // Only try to open Church Center app on iOS if setting is enabled
     if (Platform.OS === "ios" && enableChurchCenterDeepLink) {
       const churchCenterUrl = "https://churchcenter.com/home";
 
-      // First, check if the URL can be opened
-      Linking.canOpenURL(churchCenterUrl)
-        .then((canOpen) => {
-          if (canOpen) {
-            // Use a small delay to ensure the UI is ready
-            setTimeout(() => {
-              Linking.openURL(churchCenterUrl)
-                .then(() => {
-                  // If successful, don't switch tabs - stay on current tab
-                  return;
-                })
-                .catch(() => {
-                  // Fall through to normal tab behavior
-                  if (typeof props.onPress === "function") {
-                    props.onPress();
-                  }
-                });
-            }, 100);
-          } else {
+      try {
+        const canOpen = await Linking.canOpenURL(churchCenterUrl);
+        if (canOpen) {
+          // Use a small delay to ensure the UI is ready
+          await new Promise((resolve) => setTimeout(resolve, 100));
+          try {
+            await Linking.openURL(churchCenterUrl);
+            // If successful, don't switch tabs - stay on current tab
+            return;
+          } catch {
             // Fall through to normal tab behavior
-            if (typeof props.onPress === "function") {
-              props.onPress();
-            }
+            props.onPress?.({} as GestureResponderEvent);
           }
-        })
-        .catch(() => {
-          // If error, fall through to normal tab behavior
-          if (typeof props.onPress === "function") {
-            props.onPress();
-          }
-        });
+        } else {
+          // Fall through to normal tab behavior
+          props.onPress?.({} as GestureResponderEvent);
+        }
+      } catch {
+        // If error, fall through to normal tab behavior
+        props.onPress?.({} as GestureResponderEvent);
+      }
       return;
     }
 
     // If not iOS, not enabled, or error occurred, switch to Church tab normally
-    if (typeof props.onPress === "function") {
-      props.onPress();
-    }
+    props.onPress?.({} as GestureResponderEvent);
   };
 
   return (
-    <Pressable {...props} onPress={handlePress}>
+    <Pressable {...props} onPress={() => void handlePress()}>
       {props.children}
     </Pressable>
   );
@@ -216,7 +217,7 @@ const HomeScreen = (): React.JSX.Element => {
 
   // Load settings on app startup
   useEffect(() => {
-    dispatch(getEnableChurchCenterDeepLink());
+    void dispatch(getEnableChurchCenterDeepLink());
   }, [dispatch]);
 
   // When Home gains focus again, restore the last measured tab bar height
@@ -364,7 +365,7 @@ const HomeScreen = (): React.JSX.Element => {
 
 export const RootScreen = (): React.JSX.Element => {
   const colorScheme = useColorScheme();
-  const navRef = React.useRef<any>(null);
+  const navRef = React.useRef<NavigationContainerRef<RootStackParamList>>(null);
   const { setHeight, setIsTabBarVisible } =
     React.useContext(TabBarHeightContext);
 

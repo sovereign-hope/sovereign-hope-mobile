@@ -9,8 +9,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useDispatch } from "react-redux";
-import { useAppSelector } from "src/hooks/store";
+import { useAppSelector, useAppDispatch } from "src/hooks/store";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { RootStackParamList } from "src/navigation/RootNavigator";
 import { useTheme } from "@react-navigation/native";
@@ -37,7 +36,7 @@ export type SelectPlanScreenProps = NativeStackScreenProps<
 export const SelectPlanScreen: React.FunctionComponent<SelectPlanScreenProps> =
   ({ route, navigation }: SelectPlanScreenProps) => {
     // Custom hooks
-    const dispatch = useDispatch();
+    const dispatch = useAppDispatch();
     const availablePlans = useAppSelector(selectAvailablePlans);
     const subscribedPlans = useAppSelector(selectSubscribedPlans);
     const theme = useTheme();
@@ -47,7 +46,7 @@ export const SelectPlanScreen: React.FunctionComponent<SelectPlanScreenProps> =
 
     // Effect hooks
     React.useEffect(() => {
-      dispatch(getAvailablePlans());
+      void dispatch(getAvailablePlans());
       if (subscribedPlans.length === 0) {
         navigation.setOptions({ headerBackVisible: false });
       }
@@ -70,7 +69,7 @@ export const SelectPlanScreen: React.FunctionComponent<SelectPlanScreenProps> =
 
     const handlePlanTap = (planKey: string) => {
       setPlanHasChanged(true);
-      dispatch(storeSubscribedPlans([planKey]));
+      void dispatch(storeSubscribedPlans([planKey]));
     };
 
     return (

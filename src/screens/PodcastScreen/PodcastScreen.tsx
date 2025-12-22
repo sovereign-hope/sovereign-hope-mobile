@@ -12,9 +12,8 @@ import {
   ListRenderItem,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useDispatch } from "react-redux";
 import { Ionicons } from "@expo/vector-icons";
-import { useAppSelector } from "src/hooks/store";
+import { useAppSelector, useAppDispatch } from "src/hooks/store";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { RootStackParamList } from "src/navigation/RootNavigator";
 import { useTheme } from "@react-navigation/native";
@@ -111,7 +110,7 @@ export const PodcastScreen: React.FunctionComponent<Props> = ({
   navigation,
 }: Props) => {
   // Custom hooks
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
   const theme = useTheme();
   const episodes = useAppSelector(selectEpisodes);
   const isLoading = useAppSelector(selectIsLoading);
@@ -135,7 +134,7 @@ export const PodcastScreen: React.FunctionComponent<Props> = ({
   }, [isLoading]);
 
   useEffect(() => {
-    dispatch(getEpisodes());
+    void dispatch(getEpisodes());
   }, [dispatch]);
 
   // Event handlers

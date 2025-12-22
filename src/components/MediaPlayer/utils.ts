@@ -4,7 +4,7 @@
  * @returns Formatted time string (MM:SS)
  */
 export const formatTime = (seconds: number): string => {
-  if (!isFinite(seconds) || seconds < 0) {
+  if (!Number.isFinite(seconds) || seconds < 0) {
     return "0:00";
   }
 
