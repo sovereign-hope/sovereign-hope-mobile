@@ -1,15 +1,15 @@
 /* eslint-disable react/prop-types */
-// Disabling this because of weird behavior with the react/prop-types rule in this file. It isn't recognizing navigation
 import React, { useEffect, useRef, useState } from "react";
 import { Pressable, SectionList, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useDispatch } from "react-redux";
+import { useHeaderHeight } from "@react-navigation/elements";
 import { Ionicons } from "@expo/vector-icons";
-import { useAppSelector } from "src/hooks/store";
+import { useAppSelector, useAppDispatch } from "src/hooks/store";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { RootStackParamList } from "src/navigation/RootNavigator";
 import { useTheme } from "@react-navigation/native";
 import * as Haptics from "expo-haptics";
+import { useMiniPlayerHeight } from "src/hooks/useMiniPlayerHeight";
 import {
   selectReadingPlan,
   ReadingPlanWeek,
@@ -53,7 +53,7 @@ export const ReadingPlanListItem: React.FunctionComponent<{
 }) => {
   // Custom hooks
   const theme = useTheme();
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
   const readingPlanProgress = useAppSelector(selectReadingPlanProgressState);
 
   // Constants
@@ -74,9 +74,7 @@ export const ReadingPlanListItem: React.FunctionComponent<{
           JSON.stringify(readingPlanProgress)
         ) as ReadingPlanProgressState;
       tempPlan.weeks[item.weekIndex ?? 0].days[index].isCompleted = isComplete;
-      console.log(index);
-      console.log(tempPlan.weeks[item.weekIndex ?? 0]);
-      dispatch(storeReadingPlanProgressState(tempPlan));
+      void dispatch(storeReadingPlanProgressState(tempPlan));
     }
   };
 
@@ -155,18 +153,22 @@ export const ReadingPlanScreen: React.FunctionComponent<ReadingPlanProps> = ({
   navigation,
 }: ReadingPlanProps) => {
   // Custom hooks
-  const dispatch = useDispatch();
   const readingPlan = useAppSelector(selectReadingPlan);
   const readingPlanProgress = useAppSelector(selectReadingPlanProgressState);
   const theme = useTheme();
+  const headerHeight = useHeaderHeight();
+  const miniPlayerHeight = useMiniPlayerHeight();
 
   // Ref Hooks
   const scrollViewRef = useRef<SectionList<ReadingPlanDay>>(null);
 
   // State hooks
-  const [listData, setListData] = useState<Array<{ title: string; data: any }>>(
-    []
-  );
+  const [listData, setListData] = useState<
+    Array<{
+      title: string;
+      data: (ReadingPlanDay & { weekIndex: number; isComplete?: boolean })[];
+    }>
+  >([]);
   const [hasInitializedPosition, setHasInitializedPosition] = useState(false);
 
   // Callback hooks
@@ -185,7 +187,8 @@ export const ReadingPlanScreen: React.FunctionComponent<ReadingPlanProps> = ({
           )}`,
           data: week.days.map((day: ReadingPlanDay, dayIndex) => {
             const dayIsComplete =
-              readingPlanProgress?.weeks[weekIndex]?.days[dayIndex].isCompleted;
+              readingPlanProgress?.weeks[weekIndex]?.days[dayIndex]
+                .isCompleted ?? false;
             return {
               ...day,
               weekIndex,
@@ -209,7 +212,6 @@ export const ReadingPlanScreen: React.FunctionComponent<ReadingPlanProps> = ({
                 currentWeek < listData.length
                   ? currentWeek - 1
                   : listData.length - 1,
-              // Note to self: this doesn't work if index is 0!!!
               itemIndex: 1,
             });
             setHasInitializedPosition(true);
@@ -217,12 +219,12 @@ export const ReadingPlanScreen: React.FunctionComponent<ReadingPlanProps> = ({
         }, 1000);
       }
     }
-  }, [scrollViewRef, listData]);
+  }, [scrollViewRef, listData, hasInitializedPosition]);
 
   React.useLayoutEffect(() => {
     const currentWeek = getWeekNumber(new Date()).week;
     navigation.setOptions({
-      headerRight: ({ tintColor }: { tintColor?: string | undefined }) => (
+      headerRight: () => (
         <Pressable
           style={{
             marginRight: spacing.large,
@@ -236,7 +238,6 @@ export const ReadingPlanScreen: React.FunctionComponent<ReadingPlanProps> = ({
                   : listData.length - 1;
               scrollViewRef.current.scrollToLocation({
                 sectionIndex,
-                // Note to self: this doesn't work if index is 0!!!
                 itemIndex: 1,
               });
             }
@@ -278,8 +279,15 @@ export const ReadingPlanScreen: React.FunctionComponent<ReadingPlanProps> = ({
     <SafeAreaView edges={["left", "right"]} style={themedStyles.screen}>
       <SectionList
         ref={scrollViewRef}
-        onScrollToIndexFailed={(info) => {
-          console.log(info);
+        stickySectionHeadersEnabled
+        contentInsetAdjustmentBehavior="never"
+        contentContainerStyle={{
+          paddingTop: headerHeight,
+          paddingBottom: miniPlayerHeight,
+        }}
+        scrollIndicatorInsets={{ top: headerHeight }}
+        onScrollToIndexFailed={() => {
+          // Handle scroll to index failure gracefully
         }}
         sections={listData}
         style={themedStyles.planList}
@@ -296,7 +304,9 @@ export const ReadingPlanScreen: React.FunctionComponent<ReadingPlanProps> = ({
           />
         )}
         renderSectionHeader={({ section: { title } }) => (
-          <Text style={themedStyles.sectionHeaderText}>{title}</Text>
+          <View style={themedStyles.sectionHeaderContainer}>
+            <Text style={themedStyles.sectionHeaderText}>{title}</Text>
+          </View>
         )}
       />
     </SafeAreaView>

@@ -93,7 +93,7 @@ export const getReadingPlan = createAsyncThunk(
       const today = new Date();
       const year = today.getFullYear();
       // FOR TESTING NEXT YEAR
-      // const year = 2025;
+      // const year = 2026;
       let subscribedPlans = state.settings.subscribedPlans;
       if (subscribedPlans.length === 0 && year > 2024) {
         return { id: "", weeks: [], title: "", description: "" };
@@ -121,6 +121,8 @@ export const storeReadingPlanProgressState = createAsyncThunk(
   "readingPlan/storeReadingPlanProgressState",
   async (readingPlanState: ReadingPlanProgressState, { getState }) => {
     const state = getState() as RootState;
+    // FOR TESTING NEXT YEAR
+    // const currentYear = 2026;
     const currentYear = new Date().getFullYear();
     const subscribedPlans =
       currentYear > 2024 ? state.settings.subscribedPlans : ["2024"];
@@ -158,7 +160,7 @@ export const getReadingPlanProgressState = createAsyncThunk(
     const state = getState() as RootState;
     const subscribedPlans = state.settings.subscribedPlans;
     // FOR TESTING NEXT YEAR
-    // const currentYear = 2025;
+    // const currentYear = 2026;
     const currentYear = new Date().getFullYear();
     if (subscribedPlans.length === 0 && currentYear > 2024) {
       return blankState;

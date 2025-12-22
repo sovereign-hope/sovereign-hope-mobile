@@ -1,4 +1,11 @@
 #!/bin/sh
 . "$(dirname "$0")/_/husky.sh"
 
+# Typecheck
+npx tsc --noEmit
+
+# Lint
+npm run lint
+
+# Format staged files
 npx lint-staged

@@ -1,5 +1,6 @@
 import * as React from "react";
-import { SafeAreaView, Text } from "react-native";
+import { Text } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { elementSize } from "src/style/layout";
 import { text } from "src/style/colors";
@@ -11,7 +12,7 @@ export const NoNetworkComponent: React.FunctionComponent = () => {
   const themedStyles = styles({ theme });
 
   return (
-    <SafeAreaView style={themedStyles.screen}>
+    <SafeAreaView edges={["left", "right"]} style={themedStyles.screen}>
       <Ionicons
         name="cloud-offline"
         size={elementSize.small}

@@ -2,8 +2,8 @@
   "expo": {
     "name": "Sov Hope",
     "slug": "sovereign-hope-mobile",
-    "version": "7.0.11",
-    "runtimeVersion": "7.0.0",
+    "version": "8.0.0",
+    "runtimeVersion": "8.0.0",
     "owner": "sovereign-hope",
     "githubUrl": "https://github.com/sovereign-hope/sovereign-hope-mobile",
     "primaryColor": "#1F1F1F",
@@ -29,7 +29,9 @@
       },
       "infoPlist": {
         "CFBundleAllowMixedLocalizations": true,
-        "UIBackgroundModes": ["audio"]
+        "UIBackgroundModes": ["audio"],
+        "ITSAppUsesNonExemptEncryption": false,
+        "UIViewControllerBasedStatusBarAppearance": true
       },
       "usesAppleSignIn": true,
       "userInterfaceStyle": "automatic",
@@ -48,7 +50,11 @@
         "backgroundColor": "#FFFFFF"
       },
       "permissions": [],
+      "blockedPermissions": ["android.permission.ACTIVITY_RECOGNITION"],
       "userInterfaceStyle": "automatic"
+    },
+    "androidStatusBar": {
+      "translucent": false
     },
     "locales": {},
     "plugins": [
@@ -65,13 +71,9 @@
         {
           "ios": {
             "useFrameworks": "static",
-            "newArchEnabled": false
+            "newArchEnabled": true
           },
-          "android": {
-            "newArchEnabled": false
-            //   "compileSdkVersion": 33,
-            //   "targetSdkVersion": 31
-          }
+          "android": {}
         }
       ],
       "expo-notifications",

@@ -13,8 +13,8 @@ jest.mock("react-native-reanimated", () => {
 });
 
 // Silence the warning: Animated: `useNativeDriver` is not supported because the native animated module is missing
-jest.mock("react-native/Libraries/Animated/src/NativeAnimatedHelper");
-jest.mock("react-native/Libraries/Animated/NativeAnimatedHelper");
+jest.mock("@react-native/assets-registry/registry");
+jest.mock("react-native/Libraries/EventEmitter/NativeEventEmitter");
 
 jest.mock("expo-auth-session/providers/google");
 jest.mock("expo-auth-session/providers/facebook");

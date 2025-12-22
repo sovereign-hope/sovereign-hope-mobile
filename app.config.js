@@ -4,6 +4,16 @@ export default ({ config }) =>
     : {
         ...config,
         name: "Sov Hope Dev",
-        ios: { bundleIdentifier: "com.sovereign-hope.sovereign-hope-dev" },
-        android: { package: "com.sovereign_hope.sovereign_hope_dev" },
+        ios: {
+          ...(config.ios ?? {}),
+          bundleIdentifier: "com.sovereign-hope.sovereign-hope-dev",
+          infoPlist: {
+            ...(config.ios?.infoPlist ?? {}),
+            ITSAppUsesNonExemptEncryption: false,
+          },
+        },
+        android: {
+          ...(config.android ?? {}),
+          package: "com.sovereign_hope.sovereign_hope_dev",
+        },
       };

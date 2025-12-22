@@ -9,8 +9,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useDispatch } from "react-redux";
-import { useAppSelector } from "src/hooks/store";
+import { useAppSelector, useAppDispatch } from "src/hooks/store";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { RootStackParamList } from "src/navigation/RootNavigator";
 import { useTheme } from "@react-navigation/native";
@@ -27,6 +26,7 @@ import {
 
 import twoYearBibleBanner from "../../../assets/two-year-bible-banner.png";
 import oneYearOneStoryBanner from "../../../assets/one-year-one-story-banner.png";
+import newTestamentOneYearBanner from "../../../assets/new-testament-one-year.png";
 
 export type SelectPlanScreenProps = NativeStackScreenProps<
   RootStackParamList,
@@ -36,7 +36,7 @@ export type SelectPlanScreenProps = NativeStackScreenProps<
 export const SelectPlanScreen: React.FunctionComponent<SelectPlanScreenProps> =
   ({ route, navigation }: SelectPlanScreenProps) => {
     // Custom hooks
-    const dispatch = useDispatch();
+    const dispatch = useAppDispatch();
     const availablePlans = useAppSelector(selectAvailablePlans);
     const subscribedPlans = useAppSelector(selectSubscribedPlans);
     const theme = useTheme();
@@ -46,7 +46,7 @@ export const SelectPlanScreen: React.FunctionComponent<SelectPlanScreenProps> =
 
     // Effect hooks
     React.useEffect(() => {
-      dispatch(getAvailablePlans());
+      void dispatch(getAvailablePlans());
       if (subscribedPlans.length === 0) {
         navigation.setOptions({ headerBackVisible: false });
       }
@@ -63,15 +63,20 @@ export const SelectPlanScreen: React.FunctionComponent<SelectPlanScreenProps> =
     const bannerMap = {
       "Two Year Bible": twoYearBibleBanner as ImageSourcePropType,
       "One Year, One Story": oneYearOneStoryBanner as ImageSourcePropType,
+      "New Testament in a Year":
+        newTestamentOneYearBanner as ImageSourcePropType,
     };
 
     const handlePlanTap = (planKey: string) => {
       setPlanHasChanged(true);
-      dispatch(storeSubscribedPlans([planKey]));
+      void dispatch(storeSubscribedPlans([planKey]));
     };
 
     return (
-      <SafeAreaView edges={["left", "right"]} style={themedStyles.screen}>
+      <SafeAreaView
+        edges={["top", "left", "right"]}
+        style={themedStyles.screen}
+      >
         <ScrollView
           style={themedStyles.screen}
           contentContainerStyle={{ flexGrow: 1 }}

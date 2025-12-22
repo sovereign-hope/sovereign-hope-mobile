@@ -1,8 +1,8 @@
 /* eslint-disable react/prop-types */
-// Disabling this because of weird behavior with the react/prop-types rule in this file. It isn't recognizing navigation
 import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Image,
   Pressable,
   ScrollView,
   Text,
@@ -11,16 +11,17 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useDispatch } from "react-redux";
-import { useAppSelector } from "src/hooks/store";
+import { useAppSelector, useAppDispatch } from "src/hooks/store";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { RootStackParamList } from "src/navigation/RootNavigator";
 import { useTheme } from "@react-navigation/native";
 import * as Haptics from "expo-haptics";
 import { colors } from "src/style/colors";
+import { useMiniPlayerHeight } from "src/hooks/useMiniPlayerHeight";
 import { header1, header3 } from "src/style/typography";
 import { Ionicons } from "@expo/vector-icons";
 import TrackPlayer, { Track } from "react-native-track-player";
+import esvLogo from "../../../assets/esv-logo.png";
 import {
   getPassageText,
   selectAudioUrl,
@@ -52,6 +53,7 @@ interface ReadScrollViewProps {
   heading: string;
   onNextPassage: () => void;
   isFinalPassage: boolean;
+  miniPlayerHeight: number;
 }
 
 const ReadScrollView: React.FunctionComponent<ReadScrollViewProps> = ({
@@ -59,6 +61,7 @@ const ReadScrollView: React.FunctionComponent<ReadScrollViewProps> = ({
   heading,
   onNextPassage,
   isFinalPassage,
+  miniPlayerHeight,
 }: ReadScrollViewProps) => {
   // State
   const [isPressingHideButton, setIsPressingHideButton] = useState(false);
@@ -108,17 +111,62 @@ const ReadScrollView: React.FunctionComponent<ReadScrollViewProps> = ({
       color: theme.colors.text,
       fontSize: fontSize,
     },
+    p: {
+      marginBottom: spacing.medium,
+      lineHeight: fontSize * 1.4,
+    },
+    h1: {
+      fontSize: header1.fontSize,
+      fontWeight: "bold",
+      marginTop: spacing.large,
+      marginBottom: spacing.medium,
+      color: theme.colors.text,
+    },
     h2: {
       fontSize: header1.fontSize,
-      height: 50,
+      fontWeight: "bold",
+      marginTop: spacing.large,
+      marginBottom: spacing.medium,
+      color: theme.colors.text,
     },
     h3: {
       fontSize: header3.fontSize,
-      // marginTop: spacing.small,
+      fontWeight: "bold",
+      marginTop: spacing.medium,
+      marginBottom: spacing.large,
+      color: theme.colors.text,
     },
     a: {
       color: colors.accent,
       textDecorationLine: "none",
+      fontWeight: "bold",
+    },
+    b: {
+      fontWeight: "bold",
+    },
+    strong: {
+      fontWeight: "bold",
+    },
+    em: {
+      fontStyle: "italic",
+    },
+    i: {
+      fontStyle: "italic",
+    },
+    sup: {
+      fontSize: fontSize * 0.7,
+      color: colors.accent,
+      fontWeight: "bold",
+    },
+    small: {
+      fontSize: fontSize * 0.8,
+      color: theme.colors.text,
+    },
+    span: {
+      color: theme.colors.text,
+    },
+    div: {
+      marginBottom: spacing.small,
     },
   };
 
@@ -126,7 +174,7 @@ const ReadScrollView: React.FunctionComponent<ReadScrollViewProps> = ({
     <Animated.ScrollView
       ref={scrollViewRef}
       style={[themedStyles.container, { opacity: mountAnimation }]}
-      contentContainerStyle={{ flexGrow: 1 }}
+      contentContainerStyle={{ flexGrow: 1, paddingBottom: miniPlayerHeight }}
     >
       {heading.length > 0 && <Text style={themedStyles.title}>{heading}</Text>}
       <Animated.View style={{ opacity: animation }}>
@@ -300,7 +348,8 @@ export const ReadScreen: React.FunctionComponent<ReadScreenProps> = ({
   const [heading, setHeading] = useState("");
 
   // Custom hooks
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
+  const miniPlayerHeight = useMiniPlayerHeight();
 
   // Custom hooks
   const audioUrl = useAppSelector(selectAudioUrl);
@@ -315,6 +364,7 @@ export const ReadScreen: React.FunctionComponent<ReadScreenProps> = ({
       url: audioUrl ?? "",
       title: audioTitle ?? "",
       artist: "ESV Bible",
+      artwork: Image.resolveAssetSource(esvLogo).uri,
     };
     await TrackPlayer.add(track);
     await TrackPlayer.play();
@@ -332,9 +382,9 @@ export const ReadScreen: React.FunctionComponent<ReadScreenProps> = ({
     const passage = passages[passageIndex];
     setShouldShowMemoryButton(passage.isMemory);
     setHeading(passage.heading ?? "");
-    dispatch(getPassageText({ passage, includeFootnotes: true }));
-    dispatch(getPassageCommentary({ passage }));
-    dispatch(getReadingFontSize());
+    void dispatch(getPassageText({ passage, includeFootnotes: true }));
+    void dispatch(getPassageCommentary({ passage }));
+    void dispatch(getReadingFontSize());
   }, [dispatch]);
 
   const showSelectFontSize = () => {
@@ -383,13 +433,13 @@ export const ReadScreen: React.FunctionComponent<ReadScreenProps> = ({
       const passage = passages[passageIndex + 1];
       setShouldShowMemoryButton(passage.isMemory);
       setHeading(passage.heading ?? "");
-      dispatch(
+      void dispatch(
         getPassageText({
           passage,
           includeFootnotes: !passage.isMemory,
         })
       );
-      dispatch(getPassageCommentary({ passage }));
+      void dispatch(getPassageCommentary({ passage }));
       setPassageIndex(passageIndex + 1);
 
       void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
@@ -414,6 +464,7 @@ export const ReadScreen: React.FunctionComponent<ReadScreenProps> = ({
             heading={heading}
             onNextPassage={handleNextPassage}
             isFinalPassage={passageIndex < passages.length - 1}
+            miniPlayerHeight={miniPlayerHeight}
           />
         </>
       )}

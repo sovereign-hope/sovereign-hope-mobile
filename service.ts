@@ -1,13 +1,13 @@
 import TrackPlayer, { Event } from "react-native-track-player";
 
 const jumpBack = async () => {
-  const currentPosition = await TrackPlayer.getPosition();
-  await TrackPlayer.seekTo(currentPosition - 15);
+  const { position } = await TrackPlayer.getProgress();
+  await TrackPlayer.seekTo(position - 15);
 };
 
 const jumpForward = async () => {
-  const currentPosition = await TrackPlayer.getPosition();
-  await TrackPlayer.seekTo(currentPosition + 15);
+  const { position } = await TrackPlayer.getProgress();
+  await TrackPlayer.seekTo(position + 15);
 };
 
 // service.js

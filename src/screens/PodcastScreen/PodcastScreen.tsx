@@ -5,15 +5,15 @@ import {
   FlatList,
   Image,
   Linking,
+  Platform,
   Pressable,
   Text,
   View,
   ListRenderItem,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useDispatch } from "react-redux";
 import { Ionicons } from "@expo/vector-icons";
-import { useAppSelector } from "src/hooks/store";
+import { useAppSelector, useAppDispatch } from "src/hooks/store";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { RootStackParamList } from "src/navigation/RootNavigator";
 import { useTheme } from "@react-navigation/native";
@@ -110,7 +110,7 @@ export const PodcastScreen: React.FunctionComponent<Props> = ({
   navigation,
 }: Props) => {
   // Custom hooks
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
   const theme = useTheme();
   const episodes = useAppSelector(selectEpisodes);
   const isLoading = useAppSelector(selectIsLoading);
@@ -134,7 +134,7 @@ export const PodcastScreen: React.FunctionComponent<Props> = ({
   }, [isLoading]);
 
   useEffect(() => {
-    dispatch(getEpisodes());
+    void dispatch(getEpisodes());
   }, [dispatch]);
 
   // Event handlers
@@ -344,6 +344,38 @@ export const PodcastScreen: React.FunctionComponent<Props> = ({
                 </Text>
                 <Text style={themedStyles.text}>
                   View a schedule of all the upcoming events at Sovereign Hope.
+                </Text>
+              </View>
+              <Ionicons
+                name="chevron-forward"
+                size={24}
+                color={theme.colors.border}
+                style={themedStyles.disclosureIcon}
+              />
+            </Pressable>
+            <Pressable
+              onPress={() => {
+                const churchCenterUrl =
+                  Platform.OS === "ios"
+                    ? "https://apps.apple.com/us/app/church-center-app/id1357742931"
+                    : "https://play.google.com/store/apps/details?id=com.ministrycentered.churchcenter&hl=en_US";
+                void Linking.openURL(churchCenterUrl);
+              }}
+              accessibilityRole="button"
+              style={({ pressed }) => [
+                themedStyles.contentCard,
+                {
+                  opacity: pressed ? 0.7 : 1,
+                },
+              ]}
+            >
+              <View style={themedStyles.contentCardColumn}>
+                <Text style={themedStyles.contentCardHeader}>
+                  Church Center App
+                </Text>
+                <Text style={themedStyles.text}>
+                  Download the Church Center app for easy access to church
+                  information, events, and more.
                 </Text>
               </View>
               <Ionicons

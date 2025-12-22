@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useState } from "react";
 import axios from "axios";
 import * as Font from "expo-font";
 import * as SplashScreen from "expo-splash-screen";
-import { Alert } from "react-native";
+import { Alert, Platform, StatusBar as RNStatusBar } from "react-native";
 import { useColorScheme } from "src/hooks/useColorScheme";
 import { Ionicons } from "@expo/vector-icons";
 import { Provider as StoreProvider } from "react-redux";
@@ -10,12 +10,17 @@ import { store } from "src/app/store";
 import { initializeApp, FirebaseApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 import { RootScreen } from "src/screens/RootScreen/RootScreen";
-import { StatusBar } from "expo-status-bar";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import TrackPlayer, { Capability, Track } from "react-native-track-player";
+import {
+  SafeAreaProvider,
+  initialWindowMetrics,
+} from "react-native-safe-area-context";
+import TrackPlayer, { Capability } from "react-native-track-player";
 import playerService from "./service";
 import * as Sentry from "@sentry/react-native";
-import { MiniPlayer } from "src/components";
+import { MediaPlayer } from "src/components";
+import { TabBarHeightContext } from "src/navigation/TabBarContext";
+import { MediaPlayerContext } from "src/navigation/MediaPlayerContext";
 
 // Keep the splash screen visible while we fetch resources
 // eslint-disable-next-line @typescript-eslint/no-floating-promises
@@ -59,10 +64,17 @@ const showErrorAlert = () => {
 };
 
 // Redux App wrapper
-const App = (): JSX.Element => {
+const App = (): React.JSX.Element => {
   // State Hooks
   const [isReady, updateIsReady] = useState(false);
   const colorScheme = useColorScheme();
+  const [tabBarHeight, setTabBarHeight] = useState<number>(0);
+  const [measuredHeight, setMeasuredHeight] = useState<number>(0);
+  const [isMediaPlayerVisible, setIsMediaPlayerVisible] =
+    useState<boolean>(false);
+  const [cachedHeight, setCachedHeight] = useState<number>(0);
+  const [isCached, setIsCached] = useState<boolean>(false);
+  const [isTabBarVisible, setIsTabBarVisible] = useState<boolean>(true);
 
   useEffect(() => {
     async function prepare() {
@@ -99,7 +111,6 @@ const App = (): JSX.Element => {
           Capability.Stop,
           Capability.SeekTo,
         ],
-        compactCapabilities: [Capability.Play, Capability.Pause],
       });
     }
 
@@ -121,20 +132,56 @@ const App = (): JSX.Element => {
     return <></>;
   }
 
-  // Effect hooks
   return (
-    <GestureHandlerRootView
-      style={{ flex: 1 }}
-      onLayout={() => {
-        void onLayoutRootView();
-      }}
-    >
-      <StatusBar style={colorScheme === "dark" ? "light" : "dark"} />
+    <SafeAreaProvider initialMetrics={initialWindowMetrics}>
       <StoreProvider store={store}>
-        <RootScreen />
-        <MiniPlayer id="sov-hope-mini-player" />
+        <TabBarHeightContext.Provider
+          value={{
+            height: tabBarHeight,
+            setHeight: setTabBarHeight,
+            measuredHeight,
+            setMeasuredHeight,
+            cachedHeight,
+            setCachedHeight,
+            isCached,
+            setIsCached,
+            isTabBarVisible,
+            setIsTabBarVisible,
+          }}
+        >
+          <MediaPlayerContext.Provider
+            value={{
+              isVisible: isMediaPlayerVisible,
+              setIsVisible: setIsMediaPlayerVisible,
+            }}
+          >
+            <GestureHandlerRootView
+              style={{
+                flex: 1,
+                backgroundColor: colorScheme === "dark" ? "#2A2A2A" : "#F8F8F8",
+              }}
+              onLayout={() => {
+                void onLayoutRootView();
+              }}
+            >
+              {Platform.OS === "android" && (
+                <RNStatusBar
+                  translucent={false}
+                  backgroundColor={
+                    colorScheme === "dark" ? "#2A2A2A" : "#F8F8F8"
+                  }
+                  barStyle={
+                    colorScheme === "dark" ? "light-content" : "dark-content"
+                  }
+                />
+              )}
+              <RootScreen />
+              <MediaPlayer id="sov-hope-media-player" />
+            </GestureHandlerRootView>
+          </MediaPlayerContext.Provider>
+        </TabBarHeightContext.Provider>
       </StoreProvider>
-    </GestureHandlerRootView>
+    </SafeAreaProvider>
   );
 };
 

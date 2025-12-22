@@ -1,9 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { Pressable, Switch, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useDispatch } from "react-redux";
 import { Ionicons } from "@expo/vector-icons";
-import { useAppSelector } from "src/hooks/store";
+import { useAppSelector, useAppDispatch } from "src/hooks/store";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { RootStackParamList } from "src/navigation/RootNavigator";
 import { useTheme } from "@react-navigation/native";
@@ -22,7 +21,7 @@ export const FontSizePickerScreen: React.FunctionComponent<Props> = ({
   navigation,
 }: Props) => {
   // Custom hooks
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
   const theme = useTheme();
   const readingFontSize = useAppSelector(selectReadingFontSize);
 
@@ -34,12 +33,12 @@ export const FontSizePickerScreen: React.FunctionComponent<Props> = ({
 
   // Effect hooks
   useEffect(() => {
-    dispatch(getReadingFontSize());
+    void dispatch(getReadingFontSize());
   }, [dispatch]);
 
   // Event handlers
   const handleSetFontSize = (value: number) => {
-    dispatch(storeReadingFontSize(value));
+    void dispatch(storeReadingFontSize(value));
     navigation.goBack();
   };
 

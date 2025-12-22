@@ -13,6 +13,8 @@ interface Style {
   settingsSectionHeader: TextStyle;
   settingsRow: ViewStyle;
   settingsRowText: TextStyle;
+  settingsRowTextContainer: ViewStyle;
+  settingsRowSubtext: TextStyle;
   settingsRowValueContainer: ViewStyle;
   disclosureIcon: ViewStyle;
 }
@@ -40,6 +42,16 @@ export const styles = ({ theme }: Props): Style =>
     },
     settingsRowText: {
       color: theme.colors.text,
+    },
+    settingsRowTextContainer: {
+      flex: 1,
+      marginRight: spacing.medium,
+    },
+    settingsRowSubtext: {
+      color: theme.colors.text,
+      opacity: 0.6,
+      fontSize: 14,
+      marginTop: 4,
     },
     settingsRowValueContainer: {
       flexDirection: "row",

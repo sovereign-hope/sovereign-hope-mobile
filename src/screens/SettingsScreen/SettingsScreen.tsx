@@ -1,9 +1,8 @@
 import React, { useEffect, useState } from "react";
-import { Pressable, Switch, Text, View } from "react-native";
+import { Pressable, Switch, Text, View, Platform } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useDispatch } from "react-redux";
 import { Ionicons } from "@expo/vector-icons";
-import { useAppSelector } from "src/hooks/store";
+import { useAppSelector, useAppDispatch } from "src/hooks/store";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { RootStackParamList } from "src/navigation/RootNavigator";
 import { useTheme } from "@react-navigation/native";
@@ -17,6 +16,9 @@ import {
   selectShowChildrensPlan,
   storeShowChildrensPlan,
   getShowChildrensPlan,
+  selectEnableChurchCenterDeepLink,
+  storeEnableChurchCenterDeepLink,
+  getEnableChurchCenterDeepLink,
 } from "src/redux/settingsSlice";
 import { styles } from "./SettingsScreen.styles";
 import { ScrollView } from "react-native-gesture-handler";
@@ -28,17 +30,54 @@ import {
 
 type Props = NativeStackScreenProps<RootStackParamList, "Settings">;
 
+// Create a Date object from a notification time string
+const getDateFromTimeString = (timeString: string): Date => {
+  const today = new Date();
+  try {
+    if (!timeString) return today;
+
+    const timeParts = timeString.split(":");
+    if (timeParts.length !== 2) return today;
+
+    let hour = Number.parseInt(timeParts[0]);
+    const minuteParts = timeParts[1].split(" ");
+    if (minuteParts.length !== 2) return today;
+
+    const minute = Number.parseInt(minuteParts[0]);
+    const ampm = minuteParts[1];
+
+    if (Number.isNaN(hour) || Number.isNaN(minute)) return today;
+
+    if (ampm === "PM" && hour !== 12) {
+      hour += 12;
+    }
+    if (ampm === "AM" && hour === 12) {
+      hour = 0;
+    }
+
+    const date = new Date();
+    date.setHours(hour, minute, 0, 0);
+    return date;
+  } catch (error) {
+    console.error("Error parsing time string:", error);
+    return today;
+  }
+};
+
 export const SettingsScreen: React.FunctionComponent<Props> = ({
   navigation,
 }: Props) => {
   // Custom hooks
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
   const theme = useTheme();
   const enableNotifications = useAppSelector(selectEnableNotifications);
   const notificationTime = useAppSelector(selectNotificationTime);
   const readingPlan = useAppSelector(selectReadingPlan);
   const availablePlans = useAppSelector(selectAvailablePlans);
   const showChildrensPlan = useAppSelector(selectShowChildrensPlan);
+  const enableChurchCenterDeepLink = useAppSelector(
+    selectEnableChurchCenterDeepLink
+  );
 
   // Ref Hooks
 
@@ -49,22 +88,27 @@ export const SettingsScreen: React.FunctionComponent<Props> = ({
 
   // Effect hooks
   useEffect(() => {
-    dispatch(getEnableNotificationsState());
-    dispatch(getNotificationTime());
-    dispatch(getShowChildrensPlan());
+    void dispatch(getEnableNotificationsState());
+    void dispatch(getNotificationTime());
+    void dispatch(getShowChildrensPlan());
+    void dispatch(getEnableChurchCenterDeepLink());
   }, [dispatch]);
 
   // Event handlers
   const handleToggleNotifications = (value: boolean) => {
-    dispatch(storeEnableNotificationsState(value));
+    void dispatch(storeEnableNotificationsState(value));
   };
 
   const handleToggleShowChildrensPlan = (value: boolean) => {
-    dispatch(storeShowChildrensPlan(value));
+    void dispatch(storeShowChildrensPlan(value));
+  };
+
+  const handleToggleChurchCenterDeepLink = (value: boolean) => {
+    void dispatch(storeEnableChurchCenterDeepLink(value));
   };
 
   const handleSetNotificationTime = (value: Date) => {
-    dispatch(storeNotificationTime(value));
+    void dispatch(storeNotificationTime(value));
     setIsDatePickerVisible(false);
   };
 
@@ -118,6 +162,7 @@ export const SettingsScreen: React.FunctionComponent<Props> = ({
           <DateTimePickerModal
             isVisible={isDatePickerVisible}
             mode="time"
+            date={getDateFromTimeString(notificationTime)}
             onConfirm={handleSetNotificationTime}
             onCancel={() => setIsDatePickerVisible(false)}
           />
@@ -175,6 +220,27 @@ export const SettingsScreen: React.FunctionComponent<Props> = ({
             />
           </View>
         </Pressable>
+
+        {Platform.OS === "ios" && (
+          <>
+            <Text style={themedStyles.settingsSectionHeader}>Church</Text>
+            <View style={themedStyles.settingsRow}>
+              <View style={themedStyles.settingsRowTextContainer}>
+                <Text style={themedStyles.settingsRowText}>
+                  Open Church Center App
+                </Text>
+                <Text style={themedStyles.settingsRowSubtext}>
+                  Automatically open the Church Center app when tapping the
+                  Church tab (if installed)
+                </Text>
+              </View>
+              <Switch
+                onValueChange={handleToggleChurchCenterDeepLink}
+                value={enableChurchCenterDeepLink}
+              />
+            </View>
+          </>
+        )}
 
         {/* <View style={themedStyles.settingsRow}>
           <Text style={themedStyles.settingsRowText}>
