@@ -16,19 +16,6 @@ jobs:
         run: npx --no-install tsc --noEmit
       - name: Lint
         run: yarn lint
-      - uses: expo/expo-github-action@v6
-        if: ${{ github.event_name == 'pull_request' }}
-        with:
-          expo-cache: true
-          expo-version: 4.x
-          eas-cache: true
-          eas-version: latest
-          token: ${{ secrets.EXPO_TOKEN }}
-      - name: Publish PR Expo build
-        if: ${{ github.event_name == 'pull_request' }}
-        run: expo publish --release-channel=pr-${{ github.event.number }}
-      - uses: thollander/actions-comment-pull-request@1.0.2
-        if: ${{ github.event_name == 'pull_request' }}
-        with:
-          message: App ready for review, you can [see it here](https://expo.io/@sovereign-hope/sovereign-hope-mobile?release-channel=pr-${{ github.event.number }}).
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # Note: expo publish with release-channels is deprecated.
+      # PR preview builds would require EAS Update to be configured.
+      # For now, CI only runs typecheck and lint.
