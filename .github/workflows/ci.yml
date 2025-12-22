@@ -16,6 +16,24 @@ jobs:
         run: npx --no-install tsc --noEmit
       - name: Lint
         run: yarn lint
-      # Note: expo publish with release-channels is deprecated.
-      # PR preview builds would require EAS Update to be configured.
-      # For now, CI only runs typecheck and lint.
+      - name: Setup EAS
+        if: ${{ github.event_name == 'pull_request' }}
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+      - name: Create PR preview update
+        if: ${{ github.event_name == 'pull_request' }}
+        run: eas update --branch pr-${{ github.event.number }} --message "${{ github.event.pull_request.title }}"
+      - name: Comment PR with preview link
+        if: ${{ github.event_name == 'pull_request' }}
+        uses: thollander/actions-comment-pull-request@v2
+        with:
+          message: |
+            **Preview ready!**
+
+            Scan with Expo Go or a development build:
+
+            `pr-${{ github.event.number }}` branch on [EAS Update](https://expo.dev/accounts/sovereign-hope/projects/sovereign-hope-mobile/updates)
+          comment_tag: expo-preview
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
