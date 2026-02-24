@@ -25,18 +25,28 @@ import type { RootState } from "src/app/store";
 
 // Mock the utils to control week/day values
 jest.mock("src/app/utils", () => ({
-  getWeekNumber: jest.fn().mockReturnValue({ week: 1, year: 2025 }),
+  getWeekNumber: jest.fn().mockReturnValue({ week: 1, year: 2026 }),
   getDayInWeek: jest.fn().mockReturnValue(1),
+  getDayOfYearIndices: jest
+    .fn()
+    .mockReturnValue({ year: 2026, weekIndex: 0, dayIndex: 0 }),
 }));
 
 // Get the mocked functions
-import { getWeekNumber, getDayInWeek } from "src/app/utils";
+import {
+  getWeekNumber,
+  getDayInWeek,
+  getDayOfYearIndices,
+} from "src/app/utils";
 
 const mockGetWeekNumber = getWeekNumber as jest.MockedFunction<
   typeof getWeekNumber
 >;
 const mockGetDayInWeek = getDayInWeek as jest.MockedFunction<
   typeof getDayInWeek
+>;
+const mockGetDayOfYearIndices = getDayOfYearIndices as jest.MockedFunction<
+  typeof getDayOfYearIndices
 >;
 
 // Helper to create a test store
@@ -135,10 +145,15 @@ describe("readingPlanSlice", () => {
     // Reset to default values
     mockGetWeekNumber.mockReturnValue({
       week: 1,
-      year: 2025,
+      year: 2026,
       isStartOfNewYear: false,
     });
     mockGetDayInWeek.mockReturnValue(1);
+    mockGetDayOfYearIndices.mockReturnValue({
+      year: 2026,
+      weekIndex: 0,
+      dayIndex: 0,
+    });
   });
 
   describe("initial state", () => {
@@ -168,8 +183,8 @@ describe("readingPlanSlice", () => {
       (getDocs as jest.Mock).mockResolvedValueOnce({
         empty: false,
         docs: [
+          { id: "2026", data: () => ({ ...mockReadingPlan, id: "2026" }) },
           { id: "2025", data: () => mockReadingPlan },
-          { id: "2024", data: () => ({ id: "2024", title: "Old Plan" }) },
         ],
       });
 
@@ -178,7 +193,7 @@ describe("readingPlanSlice", () => {
 
       const state = store.getState().readingPlan;
       expect(state.availablePlans).toHaveLength(1);
-      expect(state.availablePlans[0].id).toBe("2025");
+      expect(state.availablePlans[0].id).toBe("2026");
       expect(state.isLoading).toBe(false);
       expect(state.hasLoaded).toBe(true);
     });
@@ -260,14 +275,15 @@ describe("readingPlanSlice", () => {
 
       const store = createTestStore({
         settings: {
-          subscribedPlans: ["2025"],
+          subscribedPlans: ["2026"],
         },
       });
 
       await store.dispatch(getReadingPlanProgressState());
 
       const state = store.getState().readingPlan;
-      expect(state.readingPlanProgressState?.weeks).toHaveLength(52);
+      // 53 weeks to handle years with 53 weeks (day 365/366 falls in week 53)
+      expect(state.readingPlanProgressState?.weeks).toHaveLength(53);
       expect(state.readingPlanProgressState?.weeks[0].days[0].isCompleted).toBe(
         false
       );
@@ -317,10 +333,10 @@ describe("readingPlanSlice", () => {
 
     describe("selectWeekReadingPlan", () => {
       it("returns current week with completion status", () => {
-        mockGetWeekNumber.mockReturnValue({
-          week: 1,
-          year: 2025,
-          isStartOfNewYear: false,
+        mockGetDayOfYearIndices.mockReturnValue({
+          year: 2026,
+          weekIndex: 0,
+          dayIndex: 0,
         });
         const state = createStateWithPlan();
         const week = selectWeekReadingPlan(state);
@@ -332,10 +348,10 @@ describe("readingPlanSlice", () => {
       });
 
       it("handles different weeks correctly", () => {
-        mockGetWeekNumber.mockReturnValue({
-          week: 2,
-          year: 2025,
-          isStartOfNewYear: false,
+        mockGetDayOfYearIndices.mockReturnValue({
+          year: 2026,
+          weekIndex: 1,
+          dayIndex: 0,
         });
         const state = createStateWithPlan();
         const week = selectWeekReadingPlan(state);
@@ -347,12 +363,11 @@ describe("readingPlanSlice", () => {
 
     describe("selectDailyReadingPlan", () => {
       it("returns reading for current day", () => {
-        mockGetWeekNumber.mockReturnValue({
-          week: 1,
-          year: 2025,
-          isStartOfNewYear: false,
+        mockGetDayOfYearIndices.mockReturnValue({
+          year: 2026,
+          weekIndex: 0,
+          dayIndex: 0,
         });
-        mockGetDayInWeek.mockReturnValue(1);
         const state = createStateWithPlan();
         const day = selectDailyReadingPlan(state);
 
@@ -361,12 +376,11 @@ describe("readingPlanSlice", () => {
       });
 
       it("returns last day when past end of week", () => {
-        mockGetWeekNumber.mockReturnValue({
-          week: 1,
-          year: 2025,
-          isStartOfNewYear: false,
+        mockGetDayOfYearIndices.mockReturnValue({
+          year: 2026,
+          weekIndex: 0,
+          dayIndex: 6, // Past 5 days in week
         });
-        mockGetDayInWeek.mockReturnValue(7); // Saturday/Sunday (past 5 days)
         const state = createStateWithPlan();
         const day = selectDailyReadingPlan(state);
 
@@ -377,10 +391,10 @@ describe("readingPlanSlice", () => {
 
     describe("selectWeeklyReadingPlanProgress", () => {
       it("returns array of completion status for current week", () => {
-        mockGetWeekNumber.mockReturnValue({
-          week: 1,
-          year: 2025,
-          isStartOfNewYear: false,
+        mockGetDayOfYearIndices.mockReturnValue({
+          year: 2026,
+          weekIndex: 0,
+          dayIndex: 0,
         });
         const state = createStateWithPlan();
         const progress = selectWeeklyReadingPlanProgress(state);
@@ -394,24 +408,22 @@ describe("readingPlanSlice", () => {
 
     describe("selectDailyReadingPlanProgress", () => {
       it("returns completion status for current day", () => {
-        mockGetWeekNumber.mockReturnValue({
-          week: 1,
-          year: 2025,
-          isStartOfNewYear: false,
+        mockGetDayOfYearIndices.mockReturnValue({
+          year: 2026,
+          weekIndex: 0,
+          dayIndex: 0,
         });
-        mockGetDayInWeek.mockReturnValue(1);
         const state = createStateWithPlan();
 
         expect(selectDailyReadingPlanProgress(state)).toBe(true);
       });
 
       it("returns false for incomplete day", () => {
-        mockGetWeekNumber.mockReturnValue({
-          week: 1,
-          year: 2025,
-          isStartOfNewYear: false,
+        mockGetDayOfYearIndices.mockReturnValue({
+          year: 2026,
+          weekIndex: 0,
+          dayIndex: 2, // Third day (index 2) is not completed
         });
-        mockGetDayInWeek.mockReturnValue(3);
         const state = createStateWithPlan();
 
         expect(selectDailyReadingPlanProgress(state)).toBe(false);
