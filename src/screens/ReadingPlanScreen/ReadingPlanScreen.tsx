@@ -2,7 +2,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Pressable, SectionList, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useHeaderHeight } from "@react-navigation/elements";
 import { Ionicons } from "@expo/vector-icons";
 import { useAppSelector, useAppDispatch } from "src/hooks/store";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
@@ -20,9 +19,9 @@ import {
 } from "src/redux/readingPlanSlice";
 import { colors } from "src/style/colors";
 import {
-  getWeekNumber,
+  dayOfYearToDate,
+  getDayOfYearIndices,
   parsePassageString,
-  weekDateToDate,
 } from "src/app/utils";
 import { spacing } from "src/style/layout";
 import { styles } from "./ReadingPlanScreen.styles";
@@ -32,20 +31,26 @@ type ReadingPlanProps = NativeStackScreenProps<
   "Reading Plan"
 >;
 
+// Extended type for list items with display metadata
+// Note: isComplete is computed in the list item from Redux state, not passed in data
+// This prevents re-rendering the entire list when a single day's progress changes
+export type ReadingPlanListItemData = ReadingPlanDay & {
+  weekIndex: number;
+  originalDayIndex: number;
+  displayDayNumber: number;
+};
+
 export const ReadingPlanListItem: React.FunctionComponent<{
-  item: ReadingPlanDay;
-  index: number;
+  item: ReadingPlanListItemData;
   handleRowPress: (
     item: ReadingPlanDay,
     onCompleteDay: (isComplete: boolean) => void
   ) => void;
 }> = ({
   item,
-  index,
   handleRowPress,
 }: {
-  item: ReadingPlanDay;
-  index: number;
+  item: ReadingPlanListItemData;
   handleRowPress: (
     item: ReadingPlanDay,
     onCompleteDay: (isComplete: boolean) => void
@@ -56,12 +61,18 @@ export const ReadingPlanListItem: React.FunctionComponent<{
   const dispatch = useAppDispatch();
   const readingPlanProgress = useAppSelector(selectReadingPlanProgressState);
 
+  // Compute isComplete from Redux state in the item itself
+  // This allows only the affected item to re-render when progress changes
+  const isComplete =
+    readingPlanProgress?.weeks[item.weekIndex]?.days[item.originalDayIndex]
+      ?.isCompleted ?? false;
+
   // Constants
   const themedStyles = styles({ theme });
 
   // Event handlers
-  const handleCompleteDay = (isComplete: boolean) => {
-    if (isComplete) {
+  const handleCompleteDay = (newIsComplete: boolean) => {
+    if (newIsComplete) {
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } else {
       void Haptics.selectionAsync();
@@ -73,17 +84,14 @@ export const ReadingPlanListItem: React.FunctionComponent<{
         JSON.parse(
           JSON.stringify(readingPlanProgress)
         ) as ReadingPlanProgressState;
-      tempPlan.weeks[item.weekIndex ?? 0].days[index].isCompleted = isComplete;
+      // Use originalDayIndex for progress tracking (matches Firestore structure)
+      tempPlan.weeks[item.weekIndex].days[item.originalDayIndex].isCompleted =
+        newIsComplete;
       void dispatch(storeReadingPlanProgressState(tempPlan));
     }
   };
 
-  const weekIndex = item.weekIndex ?? 0;
-
-  if (item.reading.length === 0 || item.reading[0] === "") {
-    // eslint-disable-next-line unicorn/no-null
-    return null;
-  }
+  const weekIndex = item.weekIndex;
 
   return (
     <Pressable
@@ -94,7 +102,7 @@ export const ReadingPlanListItem: React.FunctionComponent<{
       })}
     >
       <View style={themedStyles.planItem}>
-        {item.isComplete ? (
+        {isComplete ? (
           <Ionicons
             name="checkmark-circle"
             size={36}
@@ -112,13 +120,13 @@ export const ReadingPlanListItem: React.FunctionComponent<{
           />
         )}
         <View style={themedStyles.planItemContent}>
-          <Text style={themedStyles.dayLabel}>Day {index + 1}</Text>
+          <Text style={themedStyles.dayLabel}>Day {item.displayDayNumber}</Text>
           <View style={themedStyles.planItemReading}>
             <View style={themedStyles.planItemReadingColumn}>
               <Text style={themedStyles.planItemTitle}>Reading</Text>
               {item.reading.map((reading, readingIndex) => (
                 <Text
-                  key={`${reading}-${weekIndex}-${index}-${readingIndex}`}
+                  key={`${reading}-${weekIndex}-${item.originalDayIndex}-${readingIndex}`}
                   style={themedStyles.planItemVerses}
                   lineBreakMode="middle"
                 >
@@ -129,7 +137,7 @@ export const ReadingPlanListItem: React.FunctionComponent<{
             <View style={themedStyles.planItemReadingColumn}>
               <Text style={themedStyles.planItemTitle}>Memory</Text>
               <Text
-                key={`${item.memory.passage}-${index}`}
+                key={`${item.memory.passage}-${item.originalDayIndex}`}
                 style={themedStyles.planItemVerses}
                 lineBreakMode="middle"
               >
@@ -154,19 +162,19 @@ export const ReadingPlanScreen: React.FunctionComponent<ReadingPlanProps> = ({
 }: ReadingPlanProps) => {
   // Custom hooks
   const readingPlan = useAppSelector(selectReadingPlan);
-  const readingPlanProgress = useAppSelector(selectReadingPlanProgressState);
+  // Note: Progress state is read by each list item directly, not at screen level
+  // This prevents re-rendering entire list when a single day's progress changes
   const theme = useTheme();
-  const headerHeight = useHeaderHeight();
   const miniPlayerHeight = useMiniPlayerHeight();
 
   // Ref Hooks
-  const scrollViewRef = useRef<SectionList<ReadingPlanDay>>(null);
+  const scrollViewRef = useRef<SectionList<ReadingPlanListItemData>>(null);
 
   // State hooks
   const [listData, setListData] = useState<
     Array<{
       title: string;
-      data: (ReadingPlanDay & { weekIndex: number; isComplete?: boolean })[];
+      data: ReadingPlanListItemData[];
     }>
   >([]);
   const [hasInitializedPosition, setHasInitializedPosition] = useState(false);
@@ -175,43 +183,66 @@ export const ReadingPlanScreen: React.FunctionComponent<ReadingPlanProps> = ({
 
   // Effect hooks
 
+  // Build list data structure only when reading plan changes (not on progress updates)
+  // Progress/completion state is computed in each list item via Redux selector
   useEffect(() => {
     if (readingPlan) {
       const currentYear = new Date().getFullYear();
-      const data = readingPlan.weeks.map(
-        (week: ReadingPlanWeek, weekIndex: number) => ({
-          title: `Week ${weekIndex + 1} - ${weekDateToDate(
-            currentYear,
-            weekIndex + 1,
-            1
-          )}`,
-          data: week.days.map((day: ReadingPlanDay, dayIndex) => {
-            const dayIsComplete =
-              readingPlanProgress?.weeks[weekIndex]?.days[dayIndex]
-                .isCompleted ?? false;
-            return {
+
+      const data = readingPlan.weeks
+        .map((week: ReadingPlanWeek, weekIndex: number) => {
+          // Filter to only non-empty days
+          const nonEmptyDays = week.days
+            .map((day: ReadingPlanDay, dayIndex) => {
+              const hasContent =
+                day.reading.length > 0 && day.reading[0] !== "";
+              if (!hasContent) return;
+
+              return {
+                ...day,
+                weekIndex,
+                originalDayIndex: dayIndex, // Keep original for progress tracking
+              };
+            })
+            .filter(Boolean)
+            // Add displayDayNumber after filtering (resets each week, 1-indexed)
+            .map((day, filteredIndex) => ({
               ...day,
+              displayDayNumber: filteredIndex + 1,
+            })) as ReadingPlanListItemData[];
+
+          // Find first non-empty day's index for the header date
+          const firstNonEmptyDayIndex = week.days.findIndex(
+            (day) => day.reading.length > 0 && day.reading[0] !== ""
+          );
+          const headerDayIndex =
+            firstNonEmptyDayIndex >= 0 ? firstNonEmptyDayIndex : 0;
+
+          return {
+            title: `Week ${weekIndex + 1} - ${dayOfYearToDate(
+              currentYear,
               weekIndex,
-              isComplete: dayIsComplete,
-            };
-          }),
+              headerDayIndex
+            )}`,
+            data: nonEmptyDays,
+          };
         })
-      );
+        // Filter out weeks with no content (removes extra space at top)
+        .filter((section) => section.data.length > 0);
+
       setListData(data);
     }
-  }, [readingPlan, readingPlanProgress]);
+  }, [readingPlan]);
 
   useEffect(() => {
     if (!hasInitializedPosition) {
-      const currentWeek = getWeekNumber(new Date()).week;
+      const { weekIndex } = getDayOfYearIndices(new Date());
       if (scrollViewRef.current && listData.length > 0) {
         setTimeout(() => {
           if (scrollViewRef.current) {
             scrollViewRef.current.scrollToLocation({
               sectionIndex:
-                currentWeek < listData.length
-                  ? currentWeek - 1
-                  : listData.length - 1,
+                weekIndex < listData.length ? weekIndex : listData.length - 1,
               itemIndex: 1,
             });
             setHasInitializedPosition(true);
@@ -222,7 +253,7 @@ export const ReadingPlanScreen: React.FunctionComponent<ReadingPlanProps> = ({
   }, [scrollViewRef, listData, hasInitializedPosition]);
 
   React.useLayoutEffect(() => {
-    const currentWeek = getWeekNumber(new Date()).week;
+    const { weekIndex } = getDayOfYearIndices(new Date());
     navigation.setOptions({
       headerRight: () => (
         <Pressable
@@ -233,9 +264,7 @@ export const ReadingPlanScreen: React.FunctionComponent<ReadingPlanProps> = ({
           onPress={() => {
             if (scrollViewRef.current) {
               const sectionIndex =
-                currentWeek < listData.length
-                  ? currentWeek - 1
-                  : listData.length - 1;
+                weekIndex < listData.length ? weekIndex : listData.length - 1;
               scrollViewRef.current.scrollToLocation({
                 sectionIndex,
                 itemIndex: 1,
@@ -280,28 +309,25 @@ export const ReadingPlanScreen: React.FunctionComponent<ReadingPlanProps> = ({
       <SectionList
         ref={scrollViewRef}
         stickySectionHeadersEnabled
-        contentInsetAdjustmentBehavior="never"
+        bounces={false}
         contentContainerStyle={{
-          paddingTop: headerHeight,
           paddingBottom: miniPlayerHeight,
         }}
-        scrollIndicatorInsets={{ top: headerHeight }}
         onScrollToIndexFailed={() => {
           // Handle scroll to index failure gracefully
+          // scrollToLocation may fail if item not yet rendered; initial scroll
+          // will retry after 1s which typically allows items to render
         }}
         sections={listData}
         style={themedStyles.planList}
-        initialNumToRender={400}
-        keyExtractor={(item: ReadingPlanDay, index) =>
-          // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
-          `${item.reading ?? item.memory.passage}${index}`
+        initialNumToRender={15}
+        maxToRenderPerBatch={10}
+        windowSize={21}
+        keyExtractor={(item: ReadingPlanListItemData) =>
+          `day-${item.displayDayNumber}-week-${item.weekIndex}`
         }
-        renderItem={({ item, index }) => (
-          <ReadingPlanListItem
-            item={item}
-            index={index}
-            handleRowPress={handleRowPress}
-          />
+        renderItem={({ item }) => (
+          <ReadingPlanListItem item={item} handleRowPress={handleRowPress} />
         )}
         renderSectionHeader={({ section: { title } }) => (
           <View style={themedStyles.sectionHeaderContainer}>

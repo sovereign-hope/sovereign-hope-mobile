@@ -16,14 +16,16 @@ import {
   ReadingPlanDay,
   selectWeekReadingPlan,
   selectWeeklyReadingPlanProgress,
-  selectReadingPlanProgressState,
 } from "src/redux/readingPlanSlice";
 import { styles } from "./WeekendView.styles";
-import { ReadingPlanListItem } from "../../ReadingPlanScreen/ReadingPlanScreen";
-import { getWeekNumber } from "src/app/utils";
+import {
+  ReadingPlanListItem,
+  ReadingPlanListItemData,
+} from "../../ReadingPlanScreen/ReadingPlanScreen";
+import { getDayOfYearIndices } from "src/app/utils";
 
 interface ReviewListProps {
-  listData: Array<ReadingPlanDay>;
+  listData: Array<ReadingPlanListItemData>;
   onRowPress: (
     item: ReadingPlanDay,
     onCompleteDay: (isComplete: boolean) => void
@@ -46,11 +48,10 @@ const ReviewList: React.FunctionComponent<ReviewListProps> = ({
 
   return (
     <Animated.View style={{ opacity: animation }}>
-      {listData.map((item: ReadingPlanDay, index: number) => (
+      {listData.map((item: ReadingPlanListItemData) => (
         <ReadingPlanListItem
           item={item}
-          key={item.reading.toString() ?? 0}
-          index={index}
+          key={`${item.weekIndex}-${item.originalDayIndex}`}
           handleRowPress={onRowPress}
         />
       ))}
@@ -71,16 +72,13 @@ export const WeekendView: React.FunctionComponent<Props> = ({
   // Custom hooks
   const dispatch = useAppDispatch();
   const readingPlanWeek = useAppSelector(selectWeekReadingPlan);
-  const readingPlanWeekProgress = useAppSelector(
-    selectWeeklyReadingPlanProgress
-  );
   const theme = useTheme();
 
   // Ref Hooks
   const appState = useRef(AppState.currentState);
 
   // State hooks
-  const [listData, setListData] = useState<Array<ReadingPlanDay>>([]);
+  const [listData, setListData] = useState<Array<ReadingPlanListItemData>>([]);
 
   // Callback hooks
 
@@ -103,19 +101,31 @@ export const WeekendView: React.FunctionComponent<Props> = ({
     };
   }, []);
 
+  // Build list data only when reading plan changes (not on progress updates)
+  // Progress/completion state is computed in each list item via Redux selector
   useEffect(() => {
     if (readingPlanWeek) {
-      const currentWeekIndex = getWeekNumber(new Date()).week - 1;
-      const data = readingPlanWeek.days.map(
-        (day: ReadingPlanDay, dayIndex) => ({
-          ...day,
-          weekIndex: currentWeekIndex,
-          isComplete: readingPlanWeekProgress[dayIndex],
+      const { weekIndex } = getDayOfYearIndices(new Date());
+      // Filter to only non-empty days and add required display metadata
+      const data = readingPlanWeek.days
+        .map((day: ReadingPlanDay, dayIndex) => {
+          const hasContent = day.reading.length > 0 && day.reading[0] !== "";
+          if (!hasContent) return;
+
+          return {
+            ...day,
+            weekIndex,
+            originalDayIndex: dayIndex,
+          };
         })
-      );
+        .filter(Boolean)
+        .map((day, filteredIndex) => ({
+          ...day,
+          displayDayNumber: filteredIndex + 1,
+        })) as ReadingPlanListItemData[];
       setListData(data);
     }
-  }, [readingPlanWeek, readingPlanWeekProgress]);
+  }, [readingPlanWeek]);
 
   React.useEffect(() => {
     void dispatch(getReadingPlan());

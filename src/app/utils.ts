@@ -101,6 +101,75 @@ export const getDayInWeek = (): number => {
   return day === 0 ? 7 : day;
 };
 
+/**
+ * Convert week/day indices to display date string.
+ * Uses day-of-week alignment where week 0 starts on the Monday of the week
+ * containing January 1st, and dayIndex 0 = Monday.
+ *
+ * @param year - The calendar year
+ * @param weekIndex - 0-based week index
+ * @param dayIndex - 0-based day index within the week (0=Monday, 6=Sunday)
+ * @returns Formatted date string like "1/1" or "12/31"
+ */
+export const dayOfYearToDate = (
+  year: number,
+  weekIndex: number,
+  dayIndex: number
+): string => {
+  // Calculate the day-of-week offset for January 1st
+  // getDay(): 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+  // We want: Monday = 0, Tuesday = 1, ..., Sunday = 6
+  const jan1 = new Date(year, 0, 1);
+  const jan1DayOfWeek = jan1.getDay();
+  const startOffset = jan1DayOfWeek === 0 ? 6 : jan1DayOfWeek - 1;
+
+  // Calculate days since January 1st
+  const absoluteDayIndex = weekIndex * 7 + dayIndex;
+  const daysSinceJan1 = absoluteDayIndex - startOffset;
+
+  const date = new Date(year, 0, 1 + daysSinceJan1);
+  return `${date.getMonth() + 1}/${date.getDate()}`;
+};
+
+/**
+ * Get current week and day indices using day-of-week alignment.
+ * Week 0 starts on the Monday of the week containing January 1st.
+ * dayIndex 0 = Monday, dayIndex 6 = Sunday.
+ *
+ * @param d - The date to calculate indices for
+ * @returns Object with year, weekIndex (0-based), and dayIndex (0-based, Monday=0)
+ */
+export const getDayOfYearIndices = (
+  d: Date
+): { year: number; weekIndex: number; dayIndex: number } => {
+  const year = d.getFullYear();
+  const month = d.getMonth();
+  const day = d.getDate();
+
+  // Calculate days since January 1st (using UTC to avoid DST issues)
+  const startOfYear = Date.UTC(year, 0, 1);
+  const currentDate = Date.UTC(year, month, day);
+  const daysSinceJan1 = Math.floor(
+    (currentDate - startOfYear) / (1000 * 60 * 60 * 24)
+  );
+
+  // Calculate the day-of-week offset for January 1st
+  // getDay(): 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+  // We want: Monday = 0, Tuesday = 1, ..., Sunday = 6
+  const jan1 = new Date(year, 0, 1);
+  const jan1DayOfWeek = jan1.getDay();
+  const startOffset = jan1DayOfWeek === 0 ? 6 : jan1DayOfWeek - 1;
+
+  // Apply offset to get absolute day index
+  const absoluteDayIndex = daysSinceJan1 + startOffset;
+
+  return {
+    year,
+    weekIndex: Math.floor(absoluteDayIndex / 7),
+    dayIndex: absoluteDayIndex % 7,
+  };
+};
+
 export const parsePassageString = (
   passage: string,
   heading?: string
