@@ -24,8 +24,9 @@ const getReactNativePersistenceCompat = (
   try {
     // Some Firebase versions used in this repo do not export `firebase/auth/react-native`,
     // but still bundle the RN helper internally. Load it lazily so app startup doesn't crash.
-    // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires, unicorn/prefer-module
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const rnAuth =
+      // eslint-disable-next-line @typescript-eslint/no-var-requires, unicorn/prefer-module
       require("firebase/node_modules/@firebase/auth/dist/rn/index") as {
         getReactNativePersistence?: (value: typeof AsyncStorage) => unknown;
       };

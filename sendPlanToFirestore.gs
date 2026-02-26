@@ -1,7 +1,15 @@
 function writeToFirestore() {
   const email = "sovereign-hope-mobile@appspot.gserviceaccount.com";
-  const key =
-    "-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQCUtzAK3W41bdYo\n7UjfZVyKezvS6ZoyL5HuvZEeW4fHFNfAb4/HkGfC/gqldvGHSSyNQtdaXSTrhSZ1\n1rbfG/8jwXe+L+XfDv9Jvv1PPOP6NvcWT55mgf4mqmnIS+/m0AWmM5VVPBs2qnfP\nkF/zZJg6dGLcseogPds2A7rNWMufEz65QtF+48bNmLZ/oAMu7JH9FrJV5Rtl+fFG\nV4GN5xJrbvRXUt5MSh9hWT0Jd46Myakx8+VR5vdIJ3Kw1Bb7YOmTy1/gANVXskmz\nnfwUgWdnfZGb1xeOFepYHzS1G0XPeC3IQyNiLUBXuod7uQq1r1d1XUgNmjtB9Uux\n3eD3UIGzAgMBAAECggEAQjzNcylpGvcO+i+l04qMC0oUPT665Tt23kUky8as1Skd\nZ6LJAXP6I0mPaF9v+HfJFin9TUxLU3N8y+OUlA8eNsjHEri2xAEkB66/mHlgeWPd\n7dwMi0++6W3hq8rW0ZE50usKymn5HQIUVyjQ89GMVAzes7mytCWY65gBrdCs8O6t\nlm8MQQuJABcrr+LlvUlckwq5Mq7RSyHlayIfkzTJ6P1DD4LTDCZJsxk5TWiw0LD3\nKXjECTEU/8obnL+0sIoOgLC+Q1usHILVpiWblAbYtTE73SPgbz9p+NgwZuQJXkrd\nVPau0y2d3RJymphk8Xv/ouxbp3dt7rSJZ0v2vz9m0QKBgQDH1ucuyU6ZHV5esg5U\nPiBwxB8TGN+/K3pGlk6+F9HZh5noKuTCKQbM7CvKGF1LD5h7Psjf2cNSjMeZBang\nON7bPWOakUbt0tSeCSkNo5u+0JHVyLsw4XIpRfoQNj0ena/IGdSoUtZKD68aivbb\nH+Khpej5vwR1SEv9HcpXsDQ51QKBgQC+gkRRjLu7Rs86AqiGKGznq173k4eCWAso\n2HxvbomTEPzzgVNxntKFpUPKsK1jqcyEa2O7uv4tAxY4tjQliHpzsjM6tBwC/EWK\n5F0Yu9fHG/bT0QGlpI4QUMMrWCcQz2o+kW/5NeykNFyazJByHcxrcvtuUckQ+ece\nKzVsctHJZwKBgQC89B8tptxxfEpxwWw5DXFBDr/PH9LYAHUibxbPONiMFWJaGsyo\nJYCvnJOfCECWK43i4q+usUm1MTW9I5THVR6rMDWQvdLSJmoxb7noko099BogiScu\nBc0a53aVg6Nw4mqGCp5/9at25bOMpl7ZPCHe9HAATTQa7Rwkndln5kzLbQKBgE53\n9Y/pecHvrpdkVOm9aO4bhihPmfc0MJSIZui3DO+Ihcf+stIP6wKlScEI+MIeRGEe\nopvGr772kIaXde8nwdg5xCQf35HTOwm0eiwf4wbeG9KvOhByMRnDSkBmNOEVrdtL\nqGVrsqcH8kTIkY6Pe42edLXB9iGJ7YpdncmnmYVtAoGBAKsFpn8YCP76FDoNDgWZ\ngtFJA91+ELYYMF2XNkOuhvFwq1NCJNUlWqcnEQ9CTyJHo96hag6NLTaXgR2+9s45\nMoRCOjD+/57U5zclFQ7vif+oKTyWmMa5/qsdsDH66uw3XuXb7LkLOxUlLQoBqRXG\nSVybn0YDnmflrk3Wk+W3TD9X\n-----END PRIVATE KEY-----\n";
+  const keyFromProperties = PropertiesService.getScriptProperties().getProperty(
+    "FIREBASE_SERVICE_ACCOUNT_PRIVATE_KEY"
+  );
+  if (!keyFromProperties) {
+    throw new Error(
+      "Missing FIREBASE_SERVICE_ACCOUNT_PRIVATE_KEY in Script Properties."
+    );
+  }
+
+  const key = keyFromProperties.replace(/\\n/g, "\n");
   const projectId = "sovereign-hope-mobile";
   let firestore = FirestoreApp.getFirestore(email, key, projectId);
 
