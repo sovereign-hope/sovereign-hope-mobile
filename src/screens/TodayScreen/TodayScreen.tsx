@@ -1,10 +1,11 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   AppState,
   AppStateStatus,
   FlatList,
   Image,
+  InteractionManager,
   Linking,
   ListRenderItem,
   Pressable,
@@ -112,6 +113,7 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
   // Ref Hooks
   const appState = useRef(AppState.currentState);
   const readingScrollViewRef = useRef<FlatList<ReadingPlanDay>>(null);
+  const pendingScrollAnimatedRef = useRef(true);
 
   // Effect hooks
   useEffect(() => {
@@ -191,36 +193,13 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
     }
   }, [readingPlanDay]);
 
-  useEffect(() => {
-    if (!hasInitializedPosition && !shouldShowLoadingIndicator) {
-      const currentDayIndex = getDayInWeek() - 1;
-      const readingPlanDayCount = readingPlanWeek?.days.length ?? 0;
-      if (
-        readingScrollViewRef.current &&
-        readingPlanDayCount > 0 &&
-        readingPlanDayCount > currentDayIndex
-      ) {
-        setTimeout(() => {
-          if (readingScrollViewRef.current) {
-            readingScrollViewRef.current.scrollToIndex({
-              index: currentDayIndex,
-            });
-            setHasInitializedPosition(true);
-          }
-        }, 2000);
-      }
-    }
-  }, [readingScrollViewRef, readingPlanWeek, shouldShowLoadingIndicator]);
-
   React.useLayoutEffect(() => {
     navigation.setOptions({});
   }, [navigation]);
 
   useEffect(() => {
     if (!isLoading && !!readingPlanDay && !!readingPlanProgress) {
-      setTimeout(() => {
-        setShouldShowLoadingIndicator(false);
-      }, 250);
+      setShouldShowLoadingIndicator(false);
     }
   }, [isLoading, readingPlanDay, readingPlanProgress]);
 
@@ -316,6 +295,25 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
     "Sunday",
   ];
 
+  const scrollToToday = useCallback(
+    (animated = true) => {
+      const dayCount = readingPlanWeek?.days.length ?? 0;
+      if (!readingScrollViewRef.current || dayCount === 0) {
+        return;
+      }
+
+      pendingScrollAnimatedRef.current = animated;
+      const targetIndex =
+        currentDayIndex < dayCount ? currentDayIndex : dayCount - 1;
+
+      readingScrollViewRef.current.scrollToIndex({
+        index: targetIndex,
+        animated,
+      });
+    },
+    [readingPlanWeek, currentDayIndex]
+  );
+
   const renderReadingItem: ListRenderItem<ReadingPlanDay> = ({
     item,
     index,
@@ -392,6 +390,30 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
     );
   };
 
+  useEffect(() => {
+    if (hasInitializedPosition || shouldShowLoadingIndicator) {
+      return;
+    }
+    const dayCount = readingPlanWeek?.days.length ?? 0;
+    if (!readingScrollViewRef.current || dayCount === 0) {
+      return;
+    }
+
+    const interaction = InteractionManager.runAfterInteractions(() => {
+      scrollToToday(false);
+      setHasInitializedPosition(true);
+    });
+
+    return () => {
+      interaction.cancel();
+    };
+  }, [
+    readingPlanWeek,
+    shouldShowLoadingIndicator,
+    hasInitializedPosition,
+    scrollToToday,
+  ]);
+
   return (
     <SafeAreaView style={themedStyles.screen} edges={["left", "right"]}>
       {shouldShowLoadingIndicator ? (
@@ -459,15 +481,7 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
                   ]}
                   accessibilityRole="button"
                   onPress={() => {
-                    if (readingScrollViewRef.current) {
-                      const numberOfDays = readingPlanWeek?.days.length ?? 0;
-                      readingScrollViewRef.current.scrollToIndex({
-                        index:
-                          currentDayIndex < numberOfDays
-                            ? currentDayIndex
-                            : numberOfDays - 1,
-                      });
-                    }
+                    scrollToToday();
                   }}
                 >
                   <Text style={{ color: colors.accent, fontSize: 18 }}>
@@ -482,8 +496,22 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
                 renderItem={renderReadingItem}
                 style={themedStyles.scrollRow}
                 ref={readingScrollViewRef}
-                onScrollToIndexFailed={() => {
-                  // Handle scroll to index failure gracefully
+                onScrollToIndexFailed={(info) => {
+                  if (!readingScrollViewRef.current) {
+                    return;
+                  }
+                  readingScrollViewRef.current.scrollToIndex({
+                    index: Math.max(info.highestMeasuredFrameIndex, 0),
+                    animated: false,
+                  });
+                  setTimeout(() => {
+                    if (readingScrollViewRef.current) {
+                      readingScrollViewRef.current.scrollToIndex({
+                        index: info.index,
+                        animated: pendingScrollAnimatedRef.current,
+                      });
+                    }
+                  }, 50);
                 }}
                 contentContainerStyle={{
                   marginTop: spacing.small,
