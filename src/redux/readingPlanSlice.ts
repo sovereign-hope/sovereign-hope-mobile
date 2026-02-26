@@ -1,4 +1,8 @@
-import { createAsyncThunk, createSlice, current } from "@reduxjs/toolkit";
+import {
+  createAsyncThunk,
+  createSelector,
+  createSlice,
+} from "@reduxjs/toolkit";
 import { RootState } from "src/app/store";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
@@ -8,7 +12,9 @@ import {
   collection,
   getDocs,
 } from "firebase/firestore";
-import { getDayInWeek, getWeekNumber } from "src/app/utils";
+import { writeThroughReadingPlanProgress } from "src/services/syncWriteThrough";
+import { getDayOfYearIndices } from "src/app/utils";
+import { storeSubscribedPlans } from "./settingsSlice";
 
 export interface ReadingPlanState {
   availablePlans: Array<ReadingPlan>;
@@ -49,6 +55,20 @@ export interface ReadingPlanProgressState {
   }>;
 }
 
+// Plan type utility functions
+// Multi-year plans (like Two Year Bible) have a .1 suffix
+const isMultiYearPlan = (planId: string): boolean => planId.endsWith(".1");
+
+// Extract the year from a plan ID (e.g., "2025.1" -> 2025)
+const getPlanYear = (planId: string): number =>
+  Number.parseInt(planId.split(".")[0], 10);
+
+// Get the equivalent plan ID for the current year (e.g., "2025.1" -> "2026.1" for 2026)
+const getUpdatedPlanId = (planId: string, currentYear: number): string => {
+  const parts = planId.split(".");
+  return `${currentYear}.${parts[1]}`;
+};
+
 const initialState: ReadingPlanState = {
   availablePlans: [],
   readingPlan: undefined,
@@ -87,21 +107,33 @@ export const getAvailablePlans = createAsyncThunk(
 
 export const getReadingPlan = createAsyncThunk(
   "readingPlan/getReadingPlan",
-  async (_, { getState }) => {
+  async (_, { getState, dispatch }) => {
     try {
       const state = getState() as RootState;
       const today = new Date();
-      const year = today.getFullYear();
-      // FOR TESTING NEXT YEAR
-      // const year = 2026;
+      const currentYear = today.getFullYear();
       let subscribedPlans = state.settings.subscribedPlans;
-      if (subscribedPlans.length === 0 && year > 2024) {
+
+      if (subscribedPlans.length === 0 && currentYear > 2024) {
         return { id: "", weeks: [], title: "", description: "" };
-      } else if (year < 2025) {
-        subscribedPlans = [year.toString()];
+      } else if (currentYear < 2025) {
+        subscribedPlans = [currentYear.toString()];
       }
+
       // For now, we only allow one plan
-      const subscribedPlan = subscribedPlans[0];
+      let subscribedPlan = subscribedPlans[0];
+      const planYear = getPlanYear(subscribedPlan);
+
+      // Handle year transition for multi-year plans (like Two Year Bible)
+      // Auto-upgrade to current year's version when year changes
+      if (isMultiYearPlan(subscribedPlan) && planYear < currentYear) {
+        const newPlanId = getUpdatedPlanId(subscribedPlan, currentYear);
+
+        // Update the subscription to the new year's plan
+        void dispatch(storeSubscribedPlans([newPlanId]));
+        subscribedPlan = newPlanId;
+      }
+
       const db = getFirestore();
       const docRef = doc(db, "readingPlans", subscribedPlan);
       const docSnap = await getDoc(docRef);
@@ -121,22 +153,30 @@ export const storeReadingPlanProgressState = createAsyncThunk(
   "readingPlan/storeReadingPlanProgressState",
   async (readingPlanState: ReadingPlanProgressState, { getState }) => {
     const state = getState() as RootState;
-    // FOR TESTING NEXT YEAR
-    // const currentYear = 2026;
     const currentYear = new Date().getFullYear();
     const subscribedPlans =
       currentYear > 2024 ? state.settings.subscribedPlans : ["2024"];
+
     if (subscribedPlans.length === 0 && currentYear > 2024) {
       return readingPlanState;
     }
+
     // For now, we only allow one plan
-    const subscribedPlan = subscribedPlans[0];
+    let subscribedPlan = subscribedPlans[0];
+
+    // For multi-year plans, use current year's plan ID for progress storage
+    // This ensures year 2 of a Two Year Bible gets fresh progress
+    if (isMultiYearPlan(subscribedPlan)) {
+      subscribedPlan = getUpdatedPlanId(subscribedPlan, currentYear);
+    }
+
     try {
       const jsonValue = JSON.stringify(readingPlanState);
       await AsyncStorage.setItem(
         `@readingPlanState${subscribedPlan}`,
         jsonValue
       );
+      await writeThroughReadingPlanProgress(state, readingPlanState);
     } catch (error) {
       console.error(error);
     }
@@ -147,26 +187,32 @@ export const storeReadingPlanProgressState = createAsyncThunk(
 export const getReadingPlanProgressState = createAsyncThunk(
   "readingPlan/getReadingPlanProgressState",
   async (_, { getState }) => {
-    const blankState = {
-      // eslint-disable-next-line unicorn/new-for-builtins
-      weeks: Array(52).fill({
-        // eslint-disable-next-line unicorn/new-for-builtins
-        days: Array(7).fill({
+    // Use Array.from with factory functions to create unique objects per week/day
+    // (Array.fill creates shared references, causing data corruption when mutating)
+    const blankState: ReadingPlanProgressState = {
+      // 53 weeks to handle years with 53 weeks (day 365/366 falls in week 53)
+      weeks: Array.from({ length: 53 }, () => ({
+        days: Array.from({ length: 7 }, () => ({
           isCompleted: false,
-        }),
-      }),
+        })),
+      })),
     };
 
     const state = getState() as RootState;
     const subscribedPlans = state.settings.subscribedPlans;
-    // FOR TESTING NEXT YEAR
-    // const currentYear = 2026;
     const currentYear = new Date().getFullYear();
+
     if (subscribedPlans.length === 0 && currentYear > 2024) {
       return blankState;
     }
+
     // For now, we only allow one plan
-    const subscribedPlan = subscribedPlans[0] ?? currentYear.toString();
+    let subscribedPlan = subscribedPlans[0] ?? currentYear.toString();
+
+    // For multi-year plans, use current year's plan ID for progress storage
+    if (isMultiYearPlan(subscribedPlan)) {
+      subscribedPlan = getUpdatedPlanId(subscribedPlan, currentYear);
+    }
 
     try {
       const jsonValue = await AsyncStorage.getItem(
@@ -265,72 +311,59 @@ export const selectAvailablePlans = (state: RootState): Array<ReadingPlan> =>
 export const selectReadingPlan = (state: RootState): ReadingPlan | undefined =>
   state.readingPlan.readingPlan;
 
-export const selectWeekReadingPlan = (
-  state: RootState
-): ReadingPlanWeek | undefined => {
-  // FOR TESTING NEXT YEAR
-  // const currentWeekIndex = 0;
-  const currentWeekIndex = getWeekNumber(new Date()).week - 1;
-  const currentWeek = state.readingPlan.readingPlan?.weeks[
-    currentWeekIndex
-  ] ?? { days: [] };
+// Memoized selector to avoid unnecessary re-renders
+export const selectWeekReadingPlan = createSelector(
+  [
+    (state: RootState) => state.readingPlan.readingPlan,
+    (state: RootState) => state.readingPlan.readingPlanProgressState,
+  ],
+  (readingPlan, progressState): ReadingPlanWeek | undefined => {
+    const { weekIndex } = getDayOfYearIndices(new Date());
+    const currentWeek = readingPlan?.weeks[weekIndex] ?? {
+      days: [],
+    };
 
-  const plan = {
-    days: currentWeek.days.map((day, index) => ({
-      ...day,
-      isComplete:
-        state.readingPlan.readingPlanProgressState?.weeks[currentWeekIndex]
-          .days[index].isCompleted ?? false,
-    })),
-  };
-  return plan;
-};
+    return {
+      days: currentWeek.days.map((day, index) => ({
+        ...day,
+        isComplete:
+          progressState?.weeks[weekIndex]?.days[index]?.isCompleted ?? false,
+      })),
+    };
+  }
+);
 
 export const selectDailyReadingPlan = (
   state: RootState
 ): ReadingPlanDay | undefined => {
-  // FOR TESTING NEXT YEAR
-  // const currentWeekIndex = 0;
-  // const currentDayIndex = 0;
-  const currentWeekIndex = getWeekNumber(new Date()).week - 1;
-  const currentDayIndex = getDayInWeek() - 1;
-  const currentWeek = state.readingPlan.readingPlan?.weeks[
-    currentWeekIndex
-  ] ?? { days: [] };
-  const isEndOfWeek = currentDayIndex > currentWeek.days.length - 1;
+  const { weekIndex, dayIndex } = getDayOfYearIndices(new Date());
+  const currentWeek = state.readingPlan.readingPlan?.weeks[weekIndex] ?? {
+    days: [],
+  };
+  const isEndOfWeek = dayIndex > currentWeek.days.length - 1;
 
-  return currentWeek.days[
-    isEndOfWeek ? currentWeek.days.length - 1 : currentDayIndex
-  ];
+  return currentWeek.days[isEndOfWeek ? currentWeek.days.length - 1 : dayIndex];
 };
 
-export const selectWeeklyReadingPlanProgress = (
-  state: RootState
-): Array<boolean> => {
-  // FOR TESTING NEXT YEAR
-  // const currentWeekIndex = 0;
-  const currentWeekIndex = getWeekNumber(new Date()).week - 1;
-  const currentWeek = state.readingPlan.readingPlanProgressState?.weeks[
-    currentWeekIndex
-  ] ?? { days: [] };
+export const selectWeeklyReadingPlanProgress = createSelector(
+  [(state: RootState) => state.readingPlan.readingPlanProgressState],
+  (progressState): Array<boolean> => {
+    const { weekIndex } = getDayOfYearIndices(new Date());
+    const currentWeek = progressState?.weeks[weekIndex] ?? { days: [] };
 
-  return currentWeek.days.map((day) => day.isCompleted);
-};
+    return currentWeek.days.map((day) => day.isCompleted);
+  }
+);
 
 export const selectDailyReadingPlanProgress = (state: RootState): boolean => {
-  // FOR TESTING NEXT YEAR
-  // const currentWeekIndex = 0;
-  const currentWeekIndex = getWeekNumber(new Date()).week - 1;
-  // const currentDayIndex = 0;
-  const currentDayIndex = getDayInWeek() - 1;
+  const { weekIndex, dayIndex } = getDayOfYearIndices(new Date());
   const currentWeek = state.readingPlan.readingPlanProgressState?.weeks[
-    currentWeekIndex
+    weekIndex
   ] ?? { days: [] };
-  const isEndOfWeek = currentDayIndex > currentWeek.days.length - 1;
+  const isEndOfWeek = dayIndex > currentWeek.days.length - 1;
 
-  return currentWeek.days[
-    isEndOfWeek ? currentWeek.days.length - 1 : currentDayIndex
-  ]?.isCompleted;
+  return currentWeek.days[isEndOfWeek ? currentWeek.days.length - 1 : dayIndex]
+    ?.isCompleted;
 };
 
 export const selectReadingPlanProgressState = (

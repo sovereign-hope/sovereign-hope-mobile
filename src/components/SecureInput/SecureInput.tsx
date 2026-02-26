@@ -12,7 +12,7 @@ interface Props extends TextInputProps {
 export const SecureInput: React.ForwardRefExoticComponent<
   Props & React.RefAttributes<TextInput>
 > = React.forwardRef<TextInput, Props>(function SecureInput(
-  { onChangeText, value, placeholderMessage, ...rest }: Props,
+  { onChangeText, value, placeholderMessage, style, ...rest }: Props,
   ref
 ) {
   const theme = useTheme();
@@ -20,7 +20,7 @@ export const SecureInput: React.ForwardRefExoticComponent<
 
   return (
     <TextInput
-      style={themedStyles.input}
+      style={[themedStyles.input, style]}
       onChangeText={onChangeText}
       value={value}
       placeholder={placeholderMessage}

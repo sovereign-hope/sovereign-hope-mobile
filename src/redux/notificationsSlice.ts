@@ -2,6 +2,7 @@ import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import { RootState } from "src/app/store";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { getFirestore, collection, getDocs } from "firebase/firestore";
+import { writeThroughDismissedNotifications } from "src/services/syncWriteThrough";
 
 export interface ActiveNotificationsState {
   notifications: Array<NotificationState>;
@@ -31,11 +32,12 @@ export const storeDismissedNotificationState = createAsyncThunk(
     try {
       const jsonValue = JSON.stringify(dismissedNotificationIDs);
       await AsyncStorage.setItem(`@dismissedNotifications`, jsonValue);
+      await writeThroughDismissedNotifications(dismissedNotificationIDs);
     } catch (error) {
       console.error(error);
     }
-    const currentState = getState() as ActiveNotificationsState;
-    return currentState.notifications.filter(
+    const currentState = getState() as RootState;
+    return currentState.notifications.notifications.filter(
       (notification) =>
         !dismissedNotificationIDs.some((id) => id == notification.id)
     );

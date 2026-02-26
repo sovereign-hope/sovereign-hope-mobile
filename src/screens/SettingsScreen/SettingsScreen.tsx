@@ -1,5 +1,15 @@
 import React, { useEffect, useState } from "react";
-import { Pressable, Switch, Text, View, Platform } from "react-native";
+import {
+  ActivityIndicator,
+  Alert,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  Pressable,
+  Switch,
+  Text,
+  View,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useAppSelector, useAppDispatch } from "src/hooks/store";
@@ -27,6 +37,17 @@ import {
   selectAvailablePlans,
   selectReadingPlan,
 } from "src/redux/readingPlanSlice";
+import { SecureInput } from "src/components/SecureInput/SecureInput";
+import {
+  clearAuthError,
+  deleteAccount,
+  selectAuthErrorMessage,
+  selectAuthIsInitialized,
+  selectAuthIsLoading,
+  selectAuthIsSyncing,
+  selectAuthUser,
+  signOut,
+} from "src/redux/authSlice";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Settings">;
 
@@ -78,11 +99,19 @@ export const SettingsScreen: React.FunctionComponent<Props> = ({
   const enableChurchCenterDeepLink = useAppSelector(
     selectEnableChurchCenterDeepLink
   );
+  const authUser = useAppSelector(selectAuthUser);
+  const authIsInitialized = useAppSelector(selectAuthIsInitialized);
+  const authIsLoading = useAppSelector(selectAuthIsLoading);
+  const authIsSyncing = useAppSelector(selectAuthIsSyncing);
+  const authErrorMessage = useAppSelector(selectAuthErrorMessage);
 
   // Ref Hooks
 
   // State hooks
   const [isDatePickerVisible, setIsDatePickerVisible] = useState(false);
+  const [deletePassword, setDeletePassword] = useState("");
+  const [isDeletePasswordPromptVisible, setIsDeletePasswordPromptVisible] =
+    useState(false);
 
   // Callback hooks
 
@@ -120,59 +149,87 @@ export const SettingsScreen: React.FunctionComponent<Props> = ({
     navigation.push("Font Size");
   };
 
+  const handleSignOut = () => {
+    Alert.alert("Sign Out", "Keep data on this device?", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Keep Data",
+        onPress: () => {
+          void dispatch(signOut({ clearLocalData: false }));
+        },
+      },
+      {
+        text: "Remove Data",
+        style: "destructive",
+        onPress: () => {
+          void dispatch(signOut({ clearLocalData: true }));
+        },
+      },
+    ]);
+  };
+
+  const handleDeleteAccount = () => {
+    const providerIds = authUser?.providerIds ?? [];
+    if (providerIds.includes("password")) {
+      setDeletePassword("");
+      setIsDeletePasswordPromptVisible(true);
+      return;
+    }
+
+    Alert.alert(
+      "Delete Account",
+      "This will permanently delete your synced data and account.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete Account",
+          style: "destructive",
+          onPress: () => {
+            const reauth = providerIds.includes("apple.com")
+              ? ({ useAppleSignIn: true } as const)
+              : providerIds.includes("google.com")
+              ? ({ useGoogleSignIn: true } as const)
+              : undefined;
+            void dispatch(deleteAccount({ reauth, clearLocalData: true }));
+          },
+        },
+      ]
+    );
+  };
+
+  const showAccountSignIn = () => {
+    navigation.push("Account Sign In");
+  };
+
   // Constants
   const themedStyles = styles({ theme });
+  const isSignedIn = Boolean(authUser);
+  const isBusy = authIsLoading || authIsSyncing;
 
   return (
     <SafeAreaView edges={["left", "right"]} style={themedStyles.screen}>
-      <ScrollView contentInsetAdjustmentBehavior="automatic">
-        <Text style={themedStyles.settingsSectionHeader}>Notifications</Text>
-        <View style={themedStyles.settingsRow}>
-          <Text style={themedStyles.settingsRowText}>
-            Daily Reading Notifications
-          </Text>
-          <Switch
-            onValueChange={handleToggleNotifications}
-            value={enableNotifications}
-          />
-        </View>
-
-        <Pressable
-          onPress={() => setIsDatePickerVisible(true)}
-          accessibilityRole="button"
-          style={({ pressed }) => [
-            themedStyles.settingsRow,
-            {
-              backgroundColor: pressed
-                ? theme.colors.background
-                : theme.colors.card,
-            },
-          ]}
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        keyboardVerticalOffset={16}
+      >
+        <ScrollView
+          contentInsetAdjustmentBehavior="automatic"
+          keyboardShouldPersistTaps="handled"
         >
-          <Text style={themedStyles.settingsRowText}>Notification Time</Text>
-          <View style={themedStyles.settingsRowValueContainer}>
-            <Text style={themedStyles.settingsRowText}>{notificationTime}</Text>
-            <Ionicons
-              name="chevron-forward"
-              size={24}
-              color={theme.colors.border}
-              style={themedStyles.disclosureIcon}
+          <Text style={themedStyles.settingsSectionHeader}>Notifications</Text>
+          <View style={themedStyles.settingsRow}>
+            <Text style={themedStyles.settingsRowText}>
+              Daily Reading Notifications
+            </Text>
+            <Switch
+              onValueChange={handleToggleNotifications}
+              value={enableNotifications}
             />
           </View>
-          <DateTimePickerModal
-            isVisible={isDatePickerVisible}
-            mode="time"
-            date={getDateFromTimeString(notificationTime)}
-            onConfirm={handleSetNotificationTime}
-            onCancel={() => setIsDatePickerVisible(false)}
-          />
-        </Pressable>
 
-        <Text style={themedStyles.settingsSectionHeader}>Reading</Text>
-
-        {availablePlans.length > 1 && (
           <Pressable
-            onPress={showSelectReadingPlan}
+            onPress={() => setIsDatePickerVisible(true)}
             accessibilityRole="button"
             style={({ pressed }) => [
               themedStyles.settingsRow,
@@ -183,10 +240,10 @@ export const SettingsScreen: React.FunctionComponent<Props> = ({
               },
             ]}
           >
-            <Text style={themedStyles.settingsRowText}>Reading Plan</Text>
+            <Text style={themedStyles.settingsRowText}>Notification Time</Text>
             <View style={themedStyles.settingsRowValueContainer}>
               <Text style={themedStyles.settingsRowText}>
-                {readingPlan?.title}
+                {notificationTime}
               </Text>
               <Ionicons
                 name="chevron-forward"
@@ -195,54 +252,172 @@ export const SettingsScreen: React.FunctionComponent<Props> = ({
                 style={themedStyles.disclosureIcon}
               />
             </View>
-          </Pressable>
-        )}
-
-        <Pressable
-          onPress={showSelectFontSize}
-          accessibilityRole="button"
-          style={({ pressed }) => [
-            themedStyles.settingsRow,
-            {
-              backgroundColor: pressed
-                ? theme.colors.background
-                : theme.colors.card,
-            },
-          ]}
-        >
-          <Text style={themedStyles.settingsRowText}>Reading Font Size</Text>
-          <View style={themedStyles.settingsRowValueContainer}>
-            <Ionicons
-              name="chevron-forward"
-              size={24}
-              color={theme.colors.border}
-              style={themedStyles.disclosureIcon}
+            <DateTimePickerModal
+              isVisible={isDatePickerVisible}
+              mode="time"
+              date={getDateFromTimeString(notificationTime)}
+              onConfirm={handleSetNotificationTime}
+              onCancel={() => setIsDatePickerVisible(false)}
             />
-          </View>
-        </Pressable>
+          </Pressable>
 
-        {Platform.OS === "ios" && (
-          <>
-            <Text style={themedStyles.settingsSectionHeader}>Church</Text>
-            <View style={themedStyles.settingsRow}>
-              <View style={themedStyles.settingsRowTextContainer}>
+          <Text style={themedStyles.settingsSectionHeader}>Reading</Text>
+
+          {availablePlans.length > 1 && (
+            <Pressable
+              onPress={showSelectReadingPlan}
+              accessibilityRole="button"
+              style={({ pressed }) => [
+                themedStyles.settingsRow,
+                {
+                  backgroundColor: pressed
+                    ? theme.colors.background
+                    : theme.colors.card,
+                },
+              ]}
+            >
+              <Text style={themedStyles.settingsRowText}>Reading Plan</Text>
+              <View style={themedStyles.settingsRowValueContainer}>
                 <Text style={themedStyles.settingsRowText}>
-                  Open Church Center App
+                  {readingPlan?.title}
                 </Text>
-                <Text style={themedStyles.settingsRowSubtext}>
-                  Automatically open the Church Center app when tapping the
-                  Church tab (if installed)
-                </Text>
+                <Ionicons
+                  name="chevron-forward"
+                  size={24}
+                  color={theme.colors.border}
+                  style={themedStyles.disclosureIcon}
+                />
               </View>
-              <Switch
-                onValueChange={handleToggleChurchCenterDeepLink}
-                value={enableChurchCenterDeepLink}
+            </Pressable>
+          )}
+
+          <Pressable
+            onPress={showSelectFontSize}
+            accessibilityRole="button"
+            style={({ pressed }) => [
+              themedStyles.settingsRow,
+              {
+                backgroundColor: pressed
+                  ? theme.colors.background
+                  : theme.colors.card,
+              },
+            ]}
+          >
+            <Text style={themedStyles.settingsRowText}>Reading Font Size</Text>
+            <View style={themedStyles.settingsRowValueContainer}>
+              <Ionicons
+                name="chevron-forward"
+                size={24}
+                color={theme.colors.border}
+                style={themedStyles.disclosureIcon}
               />
             </View>
-          </>
-        )}
+          </Pressable>
 
-        {/* <View style={themedStyles.settingsRow}>
+          {Platform.OS === "ios" && (
+            <>
+              <Text style={themedStyles.settingsSectionHeader}>Church</Text>
+              <View style={themedStyles.settingsRow}>
+                <View style={themedStyles.settingsRowTextContainer}>
+                  <Text style={themedStyles.settingsRowText}>
+                    Open Church Center App
+                  </Text>
+                  <Text style={themedStyles.settingsRowSubtext}>
+                    Automatically open the Church Center app when tapping the
+                    Church tab (if installed)
+                  </Text>
+                </View>
+                <Switch
+                  onValueChange={handleToggleChurchCenterDeepLink}
+                  value={enableChurchCenterDeepLink}
+                />
+              </View>
+            </>
+          )}
+
+          <Text style={themedStyles.settingsSectionHeader}>Account</Text>
+          <View style={themedStyles.accountPanel}>
+            {!authIsInitialized && (
+              <ActivityIndicator style={{ marginBottom: 12 }} />
+            )}
+
+            {authErrorMessage && (
+              <Text style={themedStyles.accountErrorText}>
+                {authErrorMessage}
+              </Text>
+            )}
+
+            {isSignedIn ? (
+              <>
+                <Text style={themedStyles.settingsRowText}>
+                  {authUser?.displayName || authUser?.email || "Signed In"}
+                </Text>
+                <Text style={themedStyles.accountPanelMutedText}>
+                  {authUser?.email ??
+                    "Your account is connected for cloud sync."}
+                </Text>
+                <Text style={themedStyles.accountPanelMutedText}>
+                  {authIsSyncing ? "Syncing…" : "Cloud sync enabled"}
+                </Text>
+
+                <Pressable
+                  accessibilityRole="button"
+                  disabled={isBusy}
+                  onPress={handleSignOut}
+                  style={({ pressed }) => [
+                    themedStyles.accountButton,
+                    { marginVertical: 12 },
+                    (pressed || isBusy) && { opacity: 0.7 },
+                  ]}
+                >
+                  <Text style={themedStyles.accountButtonText}>Sign Out</Text>
+                </Pressable>
+
+                <Pressable
+                  accessibilityRole="button"
+                  disabled={isBusy}
+                  onPress={handleDeleteAccount}
+                  style={({ pressed }) => [
+                    themedStyles.accountTextAction,
+                    (pressed || isBusy) && { opacity: 0.7 },
+                  ]}
+                >
+                  <Text style={themedStyles.accountTextActionDanger}>
+                    Delete Account
+                  </Text>
+                </Pressable>
+              </>
+            ) : (
+              <>
+                <Text style={themedStyles.accountPanelMutedText}>
+                  Sign in to back up your progress and settings across devices.
+                  The app still works without an account.
+                </Text>
+                <Pressable
+                  accessibilityRole="button"
+                  disabled={isBusy}
+                  onPress={showAccountSignIn}
+                  style={({ pressed }) => [
+                    themedStyles.accountButton,
+                    themedStyles.accountButtonPrimary,
+                    { marginTop: 12 },
+                    (pressed || isBusy) && { opacity: 0.7 },
+                  ]}
+                >
+                  <Text
+                    style={[
+                      themedStyles.accountButtonText,
+                      themedStyles.accountButtonPrimaryText,
+                    ]}
+                  >
+                    Sign In / Create Account
+                  </Text>
+                </Pressable>
+              </>
+            )}
+          </View>
+
+          {/* <View style={themedStyles.settingsRow}>
           <Text style={themedStyles.settingsRowText}>
             Show Children&apos;s Plan
           </Text>
@@ -251,7 +426,96 @@ export const SettingsScreen: React.FunctionComponent<Props> = ({
             value={showChildrensPlan}
           />
         </View> */}
-      </ScrollView>
+        </ScrollView>
+
+        <Modal
+          animationType="fade"
+          transparent
+          visible={isDeletePasswordPromptVisible}
+          onRequestClose={() => {
+            setIsDeletePasswordPromptVisible(false);
+          }}
+        >
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Close dialog"
+            accessibilityHint="Dismisses the delete account password prompt"
+            style={themedStyles.modalBackdrop}
+            onPress={() => {
+              setIsDeletePasswordPromptVisible(false);
+            }}
+          >
+            <Pressable
+              accessibilityRole="none"
+              style={themedStyles.modalCard}
+              onPress={(event) => {
+                event.stopPropagation();
+              }}
+            >
+              <Text style={themedStyles.modalTitle}>Delete Account</Text>
+              <Text style={themedStyles.modalBody}>
+                Enter your password to continue. Your synced data will be
+                permanently deleted.
+              </Text>
+              <SecureInput
+                placeholderMessage="Password"
+                value={deletePassword}
+                onChangeText={(value) => {
+                  setDeletePassword(value);
+                  if (authErrorMessage) {
+                    dispatch(clearAuthError());
+                  }
+                }}
+              />
+              <View style={themedStyles.modalButtonRow}>
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={() => {
+                    setIsDeletePasswordPromptVisible(false);
+                  }}
+                  style={({ pressed }) => [
+                    themedStyles.accountButton,
+                    (pressed || isBusy) && { opacity: 0.7 },
+                  ]}
+                >
+                  <Text style={themedStyles.accountButtonText}>Cancel</Text>
+                </Pressable>
+                <Pressable
+                  accessibilityRole="button"
+                  disabled={isBusy}
+                  onPress={() => {
+                    if (!deletePassword) {
+                      Alert.alert("Missing Password", "Enter your password.");
+                      return;
+                    }
+                    setIsDeletePasswordPromptVisible(false);
+                    void dispatch(
+                      deleteAccount({
+                        reauth: { password: deletePassword },
+                        clearLocalData: true,
+                      })
+                    );
+                  }}
+                  style={({ pressed }) => [
+                    themedStyles.accountButton,
+                    themedStyles.accountButtonDanger,
+                    (pressed || isBusy) && { opacity: 0.7 },
+                  ]}
+                >
+                  <Text
+                    style={[
+                      themedStyles.accountButtonText,
+                      themedStyles.accountButtonDangerText,
+                    ]}
+                  >
+                    Delete
+                  </Text>
+                </Pressable>
+              </View>
+            </Pressable>
+          </Pressable>
+        </Modal>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 };

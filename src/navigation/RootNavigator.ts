@@ -11,6 +11,7 @@ export type RootStackParamList = {
     onComplete: () => void;
   };
   Settings: undefined;
+  "Account Sign In": undefined;
   SettingsView: undefined;
   Resources: undefined;
   PodcastView: undefined;

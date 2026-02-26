@@ -1,4 +1,10 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   ActivityIndicator,
   AppState,
@@ -35,7 +41,7 @@ import {
 } from "src/redux/readingPlanSlice";
 import { selectIsLoading as selectIsMemoryLoading } from "src/redux/memorySlice";
 import { colors } from "src/style/colors";
-import { getDayInWeek, getWeekNumber, parsePassageString } from "src/app/utils";
+import { getDayOfYearIndices, parsePassageString } from "src/app/utils";
 import { spacing } from "src/style/layout";
 import { styles } from "./TodayScreen.styles";
 import {
@@ -58,6 +64,11 @@ import Animated, {
   LinearTransition,
 } from "react-native-reanimated";
 import { selectCurrentEpisode } from "src/redux/podcastSlice";
+import {
+  selectAuthIsInitialized,
+  selectAuthIsSyncing,
+  selectIsAuthenticated,
+} from "src/redux/authSlice";
 import thumbnail from "../../../assets/podcast-icon.png";
 import icon from "../../../assets/icon.png";
 import { FeedItem } from "react-native-rss-parser";
@@ -109,11 +120,24 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
   const [shouldShowLoadingIndicator, setShouldShowLoadingIndicator] =
     useState(true);
   const [currentDate, setCurrentDate] = useState(new Date());
+  const isAuthenticated = useAppSelector(selectIsAuthenticated);
+  const authIsInitialized = useAppSelector(selectAuthIsInitialized);
+  const authIsSyncing = useAppSelector(selectAuthIsSyncing);
 
   // Ref Hooks
   const appState = useRef(AppState.currentState);
   const readingScrollViewRef = useRef<FlatList<ReadingPlanDay>>(null);
   const pendingScrollAnimatedRef = useRef(true);
+
+  // Memoized values
+  // Find first day with actual memory content (skip empty placeholder days)
+  const weeklyMemoryDay = useMemo(
+    () =>
+      readingPlanWeek?.days.find(
+        (day) => day?.memory?.passage && day.memory.passage.length > 0
+      ),
+    [readingPlanWeek]
+  );
 
   // Effect hooks
   useEffect(() => {
@@ -160,30 +184,60 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
   }, [availablePlans, subscribedPlans]);
 
   useEffect(() => {
-    const hasActivePlan = subscribedPlans.length > 0;
     const currentYear = currentDate.getFullYear();
+    const shouldWaitForAuthSync =
+      isAuthenticated && (!authIsInitialized || authIsSyncing);
     if (
       currentYear > 2024 &&
-      !hasActivePlan &&
+      !shouldWaitForAuthSync &&
       hasLoadedSubscribedPlans &&
       availablePlans.length > 0
     ) {
-      // Do a quick check for old plans
-      const newSubscriptions = subscribedPlans.filter((subscribedPlan) => {
-        return availablePlans.some((plan) => plan.id === subscribedPlan);
-      });
-      // If any plans were culled because they aren't available, remove them
-      if (newSubscriptions.length !== subscribedPlans.length) {
-        void dispatch(storeSubscribedPlans(newSubscriptions));
+      // Check each subscribed plan for expiration
+      const stillValidPlans: string[] = [];
+      let needsPlanPicker = false;
+
+      for (const subscribedPlan of subscribedPlans) {
+        const planYear = Number.parseInt(subscribedPlan.split(".")[0], 10);
+        const isMultiYear = subscribedPlan.endsWith(".1");
+
+        if (isMultiYear) {
+          // Multi-year plans (like Two Year Bible) auto-continue
+          // They're handled in getReadingPlan thunk which auto-upgrades
+          stillValidPlans.push(subscribedPlan);
+        } else {
+          // One-year plans expire when the year changes
+          if (planYear === currentYear) {
+            stillValidPlans.push(subscribedPlan);
+          } else {
+            // Plan has expired - need to show picker
+            needsPlanPicker = true;
+          }
+        }
       }
-      if (newSubscriptions.length === 0) {
+
+      // Update subscriptions if any were culled
+      if (stillValidPlans.length !== subscribedPlans.length) {
+        void dispatch(storeSubscribedPlans(stillValidPlans));
+      }
+
+      // Show picker if no valid plans remain OR if we explicitly need it
+      if (stillValidPlans.length === 0 || needsPlanPicker) {
         navigation.navigate("Available Plans");
       }
     }
-  }, [subscribedPlans, hasLoadedSubscribedPlans, availablePlans]);
+  }, [
+    subscribedPlans,
+    hasLoadedSubscribedPlans,
+    availablePlans,
+    currentDate,
+    isAuthenticated,
+    authIsInitialized,
+    authIsSyncing,
+  ]);
 
   useEffect(() => {
-    const passage = readingPlanWeek?.days[0]?.memory.passage;
+    const passage = weeklyMemoryDay?.memory.passage;
     if (passage && !memoryPassageAcronym) {
       void dispatch(
         getMemoryPassageText({
@@ -191,7 +245,7 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
         })
       );
     }
-  }, [readingPlanDay]);
+  }, [weeklyMemoryDay, memoryPassageAcronym, dispatch]);
 
   React.useLayoutEffect(() => {
     navigation.setOptions({});
@@ -211,14 +265,14 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
       void Haptics.selectionAsync();
     }
     if (readingPlanProgress) {
-      const currentWeekIndex = getWeekNumber(currentDate).week - 1;
+      const { weekIndex } = getDayOfYearIndices(currentDate);
       const tempPlan: ReadingPlanProgressState =
         // This is disabled because structuredClone isn't available on hermes
         // eslint-disable-next-line unicorn/prefer-structured-clone
         JSON.parse(
           JSON.stringify(readingPlanProgress)
         ) as ReadingPlanProgressState;
-      tempPlan.weeks[currentWeekIndex].days[dayIndex].isCompleted = isComplete;
+      tempPlan.weeks[weekIndex].days[dayIndex].isCompleted = isComplete;
       void dispatch(storeReadingPlanProgressState(tempPlan));
     }
   };
@@ -277,7 +331,7 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
 
   // Constants
   const themedStyles = styles({ theme });
-  const currentDayIndex = getDayInWeek() - 1;
+  const currentDayIndex = getDayOfYearIndices(currentDate).dayIndex;
   const subscribedPlan = availablePlans.find(
     (plan) => plan.id === subscribedPlans[0]
   );
@@ -553,13 +607,13 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
               ]}
             >
               <View style={themedStyles.contentCardColumn}>
-                {readingPlanWeek?.days[0]?.memory.heading && (
+                {weeklyMemoryDay?.memory.heading && (
                   <Text style={themedStyles.contentCardHeader}>
-                    {readingPlanWeek?.days[0]?.memory.heading}
+                    {weeklyMemoryDay?.memory.heading}
                   </Text>
                 )}
                 <Text style={themedStyles.contentCardHeader}>
-                  {readingPlanWeek?.days[0]?.memory.passage}
+                  {weeklyMemoryDay?.memory.passage}
                 </Text>
 
                 {shouldShowMemoryLoadingIndicator ? (

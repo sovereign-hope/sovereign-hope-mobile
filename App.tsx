@@ -1,14 +1,19 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import axios from "axios";
 import * as Font from "expo-font";
 import * as SplashScreen from "expo-splash-screen";
-import { Alert, Platform, StatusBar as RNStatusBar } from "react-native";
+import {
+  Alert,
+  AppState,
+  AppStateStatus,
+  InteractionManager,
+  Platform,
+  StatusBar as RNStatusBar,
+} from "react-native";
 import { useColorScheme } from "src/hooks/useColorScheme";
 import { Ionicons } from "@expo/vector-icons";
 import { Provider as StoreProvider } from "react-redux";
 import { store } from "src/app/store";
-import { initializeApp, FirebaseApp } from "firebase/app";
-import { getFirestore } from "firebase/firestore";
 import { RootScreen } from "src/screens/RootScreen/RootScreen";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import {
@@ -21,6 +26,17 @@ import * as Sentry from "@sentry/react-native";
 import { MediaPlayer } from "src/components";
 import { TabBarHeightContext } from "src/navigation/TabBarContext";
 import { MediaPlayerContext } from "src/navigation/MediaPlayerContext";
+import NetInfo from "@react-native-community/netinfo";
+import { GoogleSignin } from "@react-native-google-signin/google-signin";
+import Constants from "expo-constants";
+import { initializeFirebaseServices } from "src/config/firebase";
+import {
+  initializeAuthListener,
+  runSyncNow,
+  selectAuthIsInitialized,
+  selectIsAuthenticated,
+} from "src/redux/authSlice";
+import { useAppDispatch, useAppSelector } from "src/hooks/store";
 
 // Keep the splash screen visible while we fetch resources
 // eslint-disable-next-line @typescript-eslint/no-floating-promises
@@ -31,6 +47,25 @@ Sentry.init({
   debug: process.env.ENVIRONMENT !== "production",
 });
 
+const configureGoogleSignIn = () => {
+  const extraGoogleAuth = (
+    Constants.expoConfig?.extra as
+      | { googleAuth?: { webClientId?: string; iosClientId?: string } }
+      | undefined
+  )?.googleAuth;
+
+  GoogleSignin.configure({
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    webClientId:
+      extraGoogleAuth?.webClientId ??
+      process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    iosClientId:
+      extraGoogleAuth?.iosClientId ??
+      process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
+  });
+};
+
 const appLoading = async () => {
   await Font.loadAsync(Ionicons.font);
 
@@ -39,20 +74,7 @@ const appLoading = async () => {
     Authorization: "Token f1cc9c43ce1b1ef0c255171722eed4086057ee39",
   };
 
-  // Initialize Firebase
-  const firebaseConfig = {
-    apiKey: "AIzaSyAvvBaPklg1pC7fb1gyo7B9WaU8a4NMh2g",
-    authDomain: "sovereign-hope-mobile.firebaseapp.com",
-    projectId: "sovereign-hope-mobile",
-    storageBucket: "sovereign-hope-mobile.appspot.com",
-    messagingSenderId: "816081321481",
-    appId: "1:816081321481:web:f44dc2a4f1d29f973f42d8",
-    measurementId: "G-WBM7136G5P",
-  };
-
-  // Initialize Firebase
-  const app: FirebaseApp = initializeApp(firebaseConfig);
-  getFirestore(app);
+  initializeFirebaseServices();
 };
 
 const showErrorAlert = () => {
@@ -64,6 +86,81 @@ const showErrorAlert = () => {
 };
 
 // Redux App wrapper
+const AppLifecycleSyncEffects = (): React.JSX.Element => {
+  const dispatch = useAppDispatch();
+  const isAuthenticated = useAppSelector(selectIsAuthenticated);
+  const authIsInitialized = useAppSelector(selectAuthIsInitialized);
+  const appStateRef = useRef<AppStateStatus>(AppState.currentState);
+  const backgroundedAtRef = useRef<number>(-1);
+  const lastNetworkSyncRef = useRef<number>(0);
+
+  useEffect(() => {
+    void dispatch(initializeAuthListener());
+  }, [dispatch]);
+
+  useEffect(() => {
+    configureGoogleSignIn();
+  }, []);
+
+  useEffect(() => {
+    const subscription = AppState.addEventListener("change", (nextState) => {
+      const wasBackgrounded = /inactive|background/.test(appStateRef.current);
+
+      if (/inactive|background/.test(nextState)) {
+        backgroundedAtRef.current = Date.now();
+      }
+
+      appStateRef.current = nextState;
+
+      if (wasBackgrounded && nextState === "active" && isAuthenticated) {
+        const backgroundDuration =
+          backgroundedAtRef.current > 0
+            ? Date.now() - backgroundedAtRef.current
+            : Infinity;
+        backgroundedAtRef.current = -1;
+        if (backgroundDuration > 30_000) {
+          void dispatch(runSyncNow({ reason: "foreground" }));
+        }
+      }
+    });
+
+    return () => {
+      subscription.remove();
+    };
+  }, [dispatch, isAuthenticated]);
+
+  useEffect(() => {
+    const unsubscribe = NetInfo.addEventListener((state) => {
+      if (state.isConnected && state.isInternetReachable && isAuthenticated) {
+        const now = Date.now();
+        if (now - lastNetworkSyncRef.current < 5000) {
+          return;
+        }
+        lastNetworkSyncRef.current = now;
+        void dispatch(runSyncNow({ reason: "network-reconnect" }));
+      }
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [dispatch, isAuthenticated]);
+
+  useEffect(() => {
+    if (authIsInitialized && isAuthenticated) {
+      const interactionTask = InteractionManager.runAfterInteractions(() => {
+        void dispatch(runSyncNow({ reason: "manual" }));
+      });
+
+      return () => {
+        interactionTask.cancel();
+      };
+    }
+  }, [authIsInitialized, isAuthenticated, dispatch]);
+
+  return <></>;
+};
+
 const App = (): React.JSX.Element => {
   // State Hooks
   const [isReady, updateIsReady] = useState(false);
@@ -164,6 +261,7 @@ const App = (): React.JSX.Element => {
                 void onLayoutRootView();
               }}
             >
+              <AppLifecycleSyncEffects />
               {Platform.OS === "android" && (
                 <RNStatusBar
                   translucent={false}

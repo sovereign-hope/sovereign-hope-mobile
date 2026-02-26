@@ -1,20 +1,59 @@
 import React from "react";
-import { render as rtlRender, RenderAPI } from "@testing-library/react-native";
-import { Provider as StoreProvider } from "react-redux";
-import { store } from "src/app/store";
+import {
+  render as rtlRender,
+  RenderOptions,
+  RenderAPI,
+} from "@testing-library/react-native";
+import { Provider } from "react-redux";
+import { configureStore } from "@reduxjs/toolkit";
+import type { RootState } from "src/app/store";
 
-function render(
-  ui: React.ReactElement<any, string | React.JSXElementConstructor<any>>,
-  { locale = "en", ...renderOptions } = {}
-): RenderAPI {
-  function Wrapper({ children }: { children: React.ReactNode }) {
-    return <StoreProvider store={store}>{children}</StoreProvider>;
-  }
-  return rtlRender(ui, { wrapper: Wrapper, ...renderOptions });
+// Import reducers
+import { esvReducer } from "src/redux/esvSlice";
+import { authReducer } from "src/redux/authSlice";
+import { readingPlanReducer } from "src/redux/readingPlanSlice";
+import { settingsReducer } from "src/redux/settingsSlice";
+import { podcastReducer } from "src/redux/podcastSlice";
+import { memoryReducer } from "src/redux/memorySlice";
+import { notificationsReducer } from "src/redux/notificationsSlice";
+import { commentaryReducer } from "src/redux/commentarySlice";
+
+const rootReducer = {
+  esv: esvReducer,
+  auth: authReducer,
+  readingPlan: readingPlanReducer,
+  settings: settingsReducer,
+  podcast: podcastReducer,
+  memory: memoryReducer,
+  notifications: notificationsReducer,
+  commentary: commentaryReducer,
+};
+
+interface ExtendedRenderOptions extends Omit<RenderOptions, "wrapper"> {
+  preloadedState?: Partial<RootState>;
 }
 
-// re-export everything
+function render(
+  ui: React.ReactElement,
+  { preloadedState, ...renderOptions }: ExtendedRenderOptions = {}
+): RenderAPI & { store: ReturnType<typeof configureStore> } {
+  const store = configureStore({
+    reducer: rootReducer,
+    preloadedState: preloadedState as RootState,
+  });
+
+  function Wrapper({ children }: { children: React.ReactNode }) {
+    return <Provider store={store}>{children}</Provider>;
+  }
+
+  return {
+    store,
+    ...rtlRender(ui, { wrapper: Wrapper, ...renderOptions }),
+  };
+}
+
+// Re-export everything
 export * from "@testing-library/react-native";
 
-// override render method
+// Override render method
 export { render };

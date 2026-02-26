@@ -50,6 +50,7 @@ export default [
       "metro.config.js",
       ".expo/**",
       "jest/**",
+      "functions/**",
     ],
   },
   {
