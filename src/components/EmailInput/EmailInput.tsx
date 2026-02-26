@@ -13,6 +13,7 @@ export const EmailInput: React.FunctionComponent<Props> = ({
   onChangeText,
   value,
   placeholderMessage,
+  style,
   ...rest
 }: Props) => {
   const theme = useTheme();
@@ -20,7 +21,7 @@ export const EmailInput: React.FunctionComponent<Props> = ({
 
   return (
     <TextInput
-      style={themedStyles.input}
+      style={[themedStyles.input, style]}
       onChangeText={onChangeText}
       value={value}
       placeholder={placeholderMessage}

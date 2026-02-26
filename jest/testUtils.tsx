@@ -10,6 +10,7 @@ import type { RootState } from "src/app/store";
 
 // Import reducers
 import { esvReducer } from "src/redux/esvSlice";
+import { authReducer } from "src/redux/authSlice";
 import { readingPlanReducer } from "src/redux/readingPlanSlice";
 import { settingsReducer } from "src/redux/settingsSlice";
 import { podcastReducer } from "src/redux/podcastSlice";
@@ -19,6 +20,7 @@ import { commentaryReducer } from "src/redux/commentarySlice";
 
 const rootReducer = {
   esv: esvReducer,
+  auth: authReducer,
   readingPlan: readingPlanReducer,
   settings: settingsReducer,
   podcast: podcastReducer,

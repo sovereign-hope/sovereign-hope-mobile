@@ -20,6 +20,7 @@ import { colors } from "src/style/colors";
 import { TodayScreen } from "../TodayScreen/TodayScreen";
 import { ReadScreen } from "../ReadScreen/ReadScreen";
 import { SettingsScreen } from "../SettingsScreen/SettingsScreen";
+import { AccountSignInScreen } from "../AccountSignInScreen/AccountSignInScreen";
 import { PodcastScreen } from "../PodcastScreen/PodcastScreen";
 import { SelectPlanScreen } from "../SelectPlanScreen/SelectPlanScreen";
 import { FontSizePickerScreen } from "../FontSizePickerScreen/FontSizePickerScreen";
@@ -112,6 +113,11 @@ const WeekStack = (): React.JSX.Element => {
         })}
       />
       <Stack.Screen name="Settings" component={SettingsScreen} />
+      <Stack.Screen
+        name="Account Sign In"
+        component={AccountSignInScreen}
+        options={{ title: "Sign In", headerLargeTitle: false }}
+      />
     </Stack.Navigator>
   );
 };

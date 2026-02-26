@@ -12,6 +12,7 @@ import {
   collection,
   getDocs,
 } from "firebase/firestore";
+import { writeThroughReadingPlanProgress } from "src/services/syncWriteThrough";
 import { getDayOfYearIndices } from "src/app/utils";
 import { storeSubscribedPlans } from "./settingsSlice";
 
@@ -175,6 +176,7 @@ export const storeReadingPlanProgressState = createAsyncThunk(
         `@readingPlanState${subscribedPlan}`,
         jsonValue
       );
+      await writeThroughReadingPlanProgress(state, readingPlanState);
     } catch (error) {
       console.error(error);
     }

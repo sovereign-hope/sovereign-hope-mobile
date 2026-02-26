@@ -1,5 +1,5 @@
 import { TextStyle } from "react-native";
-import { radius, spacing } from "src/style/layout";
+import { elementSize, radius, spacing } from "src/style/layout";
 import { Theme } from "@react-navigation/native";
 
 type Props = {
@@ -11,7 +11,9 @@ export const TextInputStyle = ({ theme }: Props): TextStyle => ({
   width: "100%",
   borderWidth: 1,
   borderRadius: radius.medium,
-  padding: spacing.medium,
+  minHeight: elementSize.small,
+  paddingVertical: spacing.medium,
+  paddingHorizontal: spacing.large,
   color: theme.colors.text,
   backgroundColor: theme.colors.card,
 });
