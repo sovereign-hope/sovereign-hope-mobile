@@ -96,6 +96,28 @@ jest.mock("firebase/app", () => ({
   getApps: jest.fn().mockReturnValue([]),
 }));
 
+jest.mock("firebase/auth", () => ({
+  getAuth: jest.fn(() => ({ currentUser: null })),
+  initializeAuth: jest.fn(() => ({ currentUser: null })),
+  onAuthStateChanged: jest.fn(() => jest.fn()),
+  signInWithEmailAndPassword: jest.fn(),
+  createUserWithEmailAndPassword: jest.fn(),
+  signInWithCredential: jest.fn(),
+  reauthenticateWithCredential: jest.fn(),
+  sendPasswordResetEmail: jest.fn(),
+  signOut: jest.fn(),
+  deleteUser: jest.fn(),
+  EmailAuthProvider: {
+    credential: jest.fn(() => ({})),
+  },
+  GoogleAuthProvider: {
+    credential: jest.fn(() => ({})),
+  },
+  OAuthProvider: jest.fn(() => ({
+    credential: jest.fn(() => ({})),
+  })),
+}));
+
 // WebView mock
 jest.mock("react-native-webview", () => {
   const { View } = require("react-native");
