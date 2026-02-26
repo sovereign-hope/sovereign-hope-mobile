@@ -35,6 +35,7 @@ const initialState: EsvState = {
   isSignout: false,
   hasError: false,
 };
+const requestTimeoutMs = 15_000;
 
 export const getPassageFromEsvApi = async ({
   passage,
@@ -73,7 +74,8 @@ export const getPassageFromEsvApi = async ({
     }
 
     const response = await axios.get(
-      routes.passageText(query, includeFootnotes, includeVerseNumbers)
+      routes.passageText(query, includeFootnotes, includeVerseNumbers),
+      { timeout: requestTimeoutMs }
     );
     const passageHtml = response.data as EsvResponse;
 
@@ -107,6 +109,7 @@ export const getPassageFromEsvApi = async ({
     return passageHtml;
   } catch (error) {
     console.error(error);
+    throw error;
   }
 };
 

@@ -126,8 +126,10 @@ describe("memorySlice", () => {
       expect(store.getState().memory.currentPassage).toBeUndefined();
     });
 
-    it("handles empty API response gracefully", async () => {
-      mockGetPassageFromEsvApi.mockResolvedValueOnce(undefined);
+    it("handles API errors gracefully", async () => {
+      mockGetPassageFromEsvApi.mockRejectedValueOnce(
+        new Error("network failure")
+      );
       (AsyncStorage.getItem as jest.Mock).mockResolvedValueOnce(null);
 
       const store = createTestStore();

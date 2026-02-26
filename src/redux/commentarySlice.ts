@@ -20,6 +20,7 @@ const initialState: CommentaryState = {
   isSignout: false,
   hasError: false,
 };
+const requestTimeoutMs = 15_000;
 
 export const getCommentaryURLFromBibleHub = async ({
   passage,
@@ -36,7 +37,9 @@ export const getCommentaryURLFromBibleHub = async ({
     const query = `${book}${
       Object.is(startChapter, Number.NaN) ? "" : startChapter
     }+${startVerseString}`;
-    const response = await axios.get(routes.passageText(query));
+    const response = await axios.get(routes.passageText(query), {
+      timeout: requestTimeoutMs,
+    });
     const passageHtml = response.data as string;
 
     // <a href="/commentaries/mhc/genesis/2.htm" title="Expositor's Bible">Expositor's</a>
@@ -80,7 +83,9 @@ export const getPassageFromBibleHub = async ({
         if (!commentaryURL) {
           return "";
         }
-        const commentaryResponse = await axios.get(commentaryURL);
+        const commentaryResponse = await axios.get(commentaryURL, {
+          timeout: requestTimeoutMs,
+        });
         let commentaryHtml = commentaryResponse.data as string;
 
         // Fix Links
