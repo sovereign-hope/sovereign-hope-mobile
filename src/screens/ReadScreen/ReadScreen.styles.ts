@@ -1,5 +1,5 @@
 import { StyleSheet, TextStyle, ViewStyle } from "react-native";
-import { radius, spacing } from "src/style/layout";
+import { elementSize, radius, spacing } from "src/style/layout";
 import { Theme } from "@react-navigation/native";
 import { colors } from "src/style/colors";
 import { header2, header3 } from "src/style/typography";
@@ -14,7 +14,13 @@ interface Style {
   title: TextStyle;
   footer: ViewStyle;
   spacer: ViewStyle;
+  buttonRow: ViewStyle;
   button: ViewStyle;
+  buttonSecondary: ViewStyle;
+  buttonSecondaryPressed: ViewStyle;
+  buttonSecondaryDisabled: ViewStyle;
+  buttonSecondaryText: TextStyle;
+  buttonSecondaryTextDisabled: TextStyle;
   memoryButton: ViewStyle;
   memoryButtonText: TextStyle;
   memoryButtonIcon: TextStyle;
@@ -50,8 +56,38 @@ export const styles = ({ theme }: Props): Style =>
     spacer: {
       flex: 1,
     },
-    button: {
+    buttonRow: {
+      flexDirection: "row",
+      gap: spacing.medium,
       marginBottom: spacing.medium,
+    },
+    button: {
+      flex: 1,
+    },
+    buttonSecondary: {
+      flex: 1,
+      minHeight: elementSize.small,
+      borderRadius: radius.medium,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      paddingVertical: spacing.medium,
+      paddingHorizontal: spacing.large,
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: theme.colors.background,
+    },
+    buttonSecondaryPressed: {
+      opacity: 0.8,
+    },
+    buttonSecondaryDisabled: {
+      opacity: 0.4,
+    },
+    buttonSecondaryText: {
+      color: theme.colors.text,
+      fontWeight: "600",
+    },
+    buttonSecondaryTextDisabled: {
+      color: theme.colors.border,
     },
     memoryButton: {
       display: "flex",

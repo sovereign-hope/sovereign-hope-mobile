@@ -1,5 +1,11 @@
 /* eslint-disable react/prop-types */
-import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 import {
   ActivityIndicator,
   Image,
@@ -51,16 +57,26 @@ import Collapsible from "react-native-collapsible";
 interface ReadScrollViewProps {
   showMemoryButton: boolean;
   heading: string;
+  passageIndex: number;
+  showPreviousPassageButton: boolean;
+  canGoToPreviousPassage: boolean;
+  isNavigatingPassages: boolean;
+  onPreviousPassage: () => void;
   onNextPassage: () => void;
-  isFinalPassage: boolean;
+  hasNextPassage: boolean;
   miniPlayerHeight: number;
 }
 
 const ReadScrollView: React.FunctionComponent<ReadScrollViewProps> = ({
   showMemoryButton,
   heading,
+  passageIndex,
+  showPreviousPassageButton,
+  canGoToPreviousPassage,
+  isNavigatingPassages,
+  onPreviousPassage,
   onNextPassage,
-  isFinalPassage,
+  hasNextPassage,
   miniPlayerHeight,
 }: ReadScrollViewProps) => {
   // State
@@ -90,10 +106,8 @@ const ReadScrollView: React.FunctionComponent<ReadScrollViewProps> = ({
   }, []);
 
   useEffect(() => {
-    if (!isFinalPassage) {
-      scrollViewRef.current?.scrollTo({ y: 0 });
-    }
-  }, [heading, isFinalPassage]);
+    scrollViewRef.current?.scrollTo({ y: 0 });
+  }, [passageIndex]);
 
   useEffect(() => {
     if (commentaryHTML) {
@@ -169,6 +183,9 @@ const ReadScrollView: React.FunctionComponent<ReadScrollViewProps> = ({
       marginBottom: spacing.small,
     },
   };
+
+  const isPreviousPassageDisabled =
+    !canGoToPreviousPassage || isNavigatingPassages;
 
   return (
     <Animated.ScrollView
@@ -321,11 +338,41 @@ const ReadScrollView: React.FunctionComponent<ReadScrollViewProps> = ({
           </Text>
         </Pressable>
       )}
-      <FlatButton
-        title={isFinalPassage ? "Next" : "Done"}
-        onPress={onNextPassage}
-        style={themedStyles.button}
-      />
+      <View style={themedStyles.buttonRow}>
+        {showPreviousPassageButton && (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Previous passage"
+            accessibilityHint="Opens the previous passage in this reading"
+            accessibilityState={{ disabled: isPreviousPassageDisabled }}
+            disabled={isPreviousPassageDisabled}
+            onPress={onPreviousPassage}
+            style={({ pressed }) => [
+              themedStyles.buttonSecondary,
+              isPreviousPassageDisabled && themedStyles.buttonSecondaryDisabled,
+              pressed &&
+                !isPreviousPassageDisabled &&
+                themedStyles.buttonSecondaryPressed,
+            ]}
+          >
+            <Text
+              style={[
+                themedStyles.buttonSecondaryText,
+                isPreviousPassageDisabled &&
+                  themedStyles.buttonSecondaryTextDisabled,
+              ]}
+            >
+              Previous
+            </Text>
+          </Pressable>
+        )}
+        <FlatButton
+          title={hasNextPassage ? "Next" : "Done"}
+          onPress={onNextPassage}
+          disabled={isNavigatingPassages}
+          style={themedStyles.button}
+        />
+      </View>
     </Animated.ScrollView>
   );
 };
@@ -346,6 +393,8 @@ export const ReadScreen: React.FunctionComponent<ReadScreenProps> = ({
   const [passageIndex, setPassageIndex] = useState(0);
   const [shouldShowMemoryButton, setShouldShowMemoryButton] = useState(false);
   const [heading, setHeading] = useState("");
+  const [isNavigatingPassages, setIsNavigatingPassages] = useState(false);
+  const [hasLoadedCurrentPassage, setHasLoadedCurrentPassage] = useState(false);
 
   // Custom hooks
   const dispatch = useAppDispatch();
@@ -356,6 +405,7 @@ export const ReadScreen: React.FunctionComponent<ReadScreenProps> = ({
   const audioTitle = useAppSelector(selectPassageHeader);
   const isLoading = useAppSelector(selectIsLoading);
   const theme = useTheme();
+  const isNavigatingPassagesRef = useRef(false);
 
   // Navbar handlers
   const playAudio = async () => {
@@ -377,15 +427,6 @@ export const ReadScreen: React.FunctionComponent<ReadScreenProps> = ({
       headerRight: undefined,
     });
   }, [navigation]);
-
-  useEffect(() => {
-    const passage = passages[passageIndex];
-    setShouldShowMemoryButton(passage.isMemory);
-    setHeading(passage.heading ?? "");
-    void dispatch(getPassageText({ passage, includeFootnotes: true }));
-    void dispatch(getPassageCommentary({ passage }));
-    void dispatch(getReadingFontSize());
-  }, [dispatch]);
 
   const showSelectFontSize = () => {
     navigation.push("Font Size");
@@ -427,27 +468,88 @@ export const ReadScreen: React.FunctionComponent<ReadScreenProps> = ({
   // Constants
   const themedStyles = styles({ theme });
 
+  const loadPassageAtIndex = useCallback(
+    async (nextPassageIndex: number): Promise<boolean> => {
+      const passage = passages[nextPassageIndex];
+      if (!passage || isNavigatingPassagesRef.current) {
+        return false;
+      }
+
+      isNavigatingPassagesRef.current = true;
+      setIsNavigatingPassages(true);
+
+      try {
+        const [passageAction] = await Promise.all([
+          dispatch(
+            getPassageText({
+              passage,
+              includeFootnotes: !passage.isMemory,
+            })
+          ),
+          dispatch(getPassageCommentary({ passage })),
+        ]);
+        const didLoadPassage = getPassageText.fulfilled.match(passageAction);
+        if (!didLoadPassage) {
+          return false;
+        }
+
+        setShouldShowMemoryButton(passage.isMemory);
+        setHeading(passage.heading ?? "");
+        setPassageIndex(nextPassageIndex);
+        setHasLoadedCurrentPassage(true);
+        return true;
+      } finally {
+        isNavigatingPassagesRef.current = false;
+        setIsNavigatingPassages(false);
+      }
+    },
+    [dispatch, passages]
+  );
+
+  useEffect(() => {
+    void loadPassageAtIndex(0);
+    void dispatch(getReadingFontSize());
+  }, [dispatch, loadPassageAtIndex]);
+
   // Event handlers
   const handleNextPassage = () => {
-    if (passageIndex < passages.length - 1) {
-      const passage = passages[passageIndex + 1];
-      setShouldShowMemoryButton(passage.isMemory);
-      setHeading(passage.heading ?? "");
-      void dispatch(
-        getPassageText({
-          passage,
-          includeFootnotes: !passage.isMemory,
-        })
-      );
-      void dispatch(getPassageCommentary({ passage }));
-      setPassageIndex(passageIndex + 1);
+    if (isNavigatingPassagesRef.current) {
+      return;
+    }
 
-      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+    if (passageIndex < passages.length - 1) {
+      void (async () => {
+        if (await loadPassageAtIndex(passageIndex + 1)) {
+          void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+          return;
+        }
+
+        void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      })();
     } else {
+      if (!hasLoadedCurrentPassage) {
+        void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+        return;
+      }
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       onComplete();
       navigation.goBack();
     }
+  };
+
+  const handlePreviousPassage = () => {
+    if (isNavigatingPassagesRef.current || passageIndex <= 0) {
+      return;
+    }
+
+    void (async () => {
+      if (await loadPassageAtIndex(passageIndex - 1)) {
+        void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        return;
+      }
+
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    })();
   };
 
   return (
@@ -462,8 +564,13 @@ export const ReadScreen: React.FunctionComponent<ReadScreenProps> = ({
           <ReadScrollView
             showMemoryButton={shouldShowMemoryButton}
             heading={heading}
+            passageIndex={passageIndex}
+            showPreviousPassageButton={passages.length > 1}
+            canGoToPreviousPassage={passageIndex > 0}
+            isNavigatingPassages={isNavigatingPassages}
+            onPreviousPassage={handlePreviousPassage}
             onNextPassage={handleNextPassage}
-            isFinalPassage={passageIndex < passages.length - 1}
+            hasNextPassage={passageIndex < passages.length - 1}
             miniPlayerHeight={miniPlayerHeight}
           />
         </>
