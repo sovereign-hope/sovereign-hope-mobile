@@ -1,4 +1,5 @@
 import { configureStore } from "@reduxjs/toolkit";
+import { authReducer } from "src/redux/authSlice";
 import { esvReducer } from "src/redux/esvSlice";
 import { readingPlanReducer } from "src/redux/readingPlanSlice";
 import { settingsReducer } from "src/redux/settingsSlice";
@@ -9,6 +10,7 @@ import { commentaryReducer } from "src/redux/commentarySlice";
 
 export const store = configureStore({
   reducer: {
+    auth: authReducer,
     esv: esvReducer,
     readingPlan: readingPlanReducer,
     settings: settingsReducer,

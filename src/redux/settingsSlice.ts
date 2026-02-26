@@ -2,8 +2,9 @@ import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import { RootState } from "src/app/store";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Notifications from "expo-notifications";
-import { SchedulableTriggerInputTypes } from "expo-notifications";
 import { body } from "src/style/typography";
+import { applyNotificationSchedule } from "src/services/notificationSchedule";
+import { writeThroughSettingsField } from "src/services/syncWriteThrough";
 
 export interface SettingsState {
   enableNotifications: boolean;
@@ -76,36 +77,15 @@ export const storeEnableNotificationsState = createAsyncThunk(
         enableNotifications.toString()
       );
 
-      if (enableNotifications) {
-        const state = getState() as RootState;
-        const time = state.settings.notificationTime;
-        let hour = Number.parseInt(time.split(":")[0]);
-        const minute = Number.parseInt(time.split(":")[1].split(" ")[0]);
-        const ampm = time.split(":")[1].split(" ")[1];
-
-        if (ampm === "PM" && hour !== 12) {
-          hour += 12;
-        }
-
-        if (hour === 24) {
-          hour = 0;
-        }
-
-        await Notifications.cancelAllScheduledNotificationsAsync();
-        await Notifications.scheduleNotificationAsync({
-          content: {
-            title: "Read now to stay on track with your Bible reading plan!",
-          },
-          trigger: {
-            type: SchedulableTriggerInputTypes.CALENDAR,
-            repeats: true,
-            hour,
-            minute,
-          },
-        });
-      } else {
-        await Notifications.cancelAllScheduledNotificationsAsync();
-      }
+      const state = getState() as RootState;
+      await applyNotificationSchedule(
+        enableNotifications,
+        state.settings.notificationTime
+      );
+      await writeThroughSettingsField(
+        "enableNotifications",
+        enableNotifications
+      );
     } catch (error) {
       console.error(error);
     }
@@ -141,33 +121,9 @@ export const storeNotificationTime = createAsyncThunk(
       await AsyncStorage.setItem(`@settings/notificationTime`, timeString);
 
       if (state.settings.enableNotifications) {
-        const time = timeString;
-        let hour = Number.parseInt(time.split(":")[0]);
-        const minute = Number.parseInt(time.split(":")[1].split(" ")[0]);
-        const ampm = time.split(":")[1].split(" ")[1];
-
-        if (ampm === "PM" && hour !== 12) {
-          hour += 12;
-        }
-
-        if (hour === 24) {
-          hour = 0;
-        }
-
-        await Notifications.cancelAllScheduledNotificationsAsync();
-        await Notifications.scheduleNotificationAsync({
-          content: {
-            title: "Have you read today?",
-            subtitle: "Read now to stay on track with your Bible reading plan!",
-          },
-          trigger: {
-            type: SchedulableTriggerInputTypes.CALENDAR,
-            repeats: true,
-            hour,
-            minute,
-          },
-        });
+        await applyNotificationSchedule(true, timeString);
       }
+      await writeThroughSettingsField("notificationTime", timeString);
     } catch (error) {
       console.error(error);
     }
@@ -196,12 +152,13 @@ export const getNotificationTime = createAsyncThunk(
 
 export const storeSubscribedPlans = createAsyncThunk(
   "settings/storeSubscribedPlans",
-  async (subscribedPlans: Array<string>, { getState }) => {
+  async (subscribedPlans: Array<string>) => {
     try {
       await AsyncStorage.setItem(
         "@settings/subscribedPlans",
         subscribedPlans.toString()
       );
+      await writeThroughSettingsField("subscribedPlans", subscribedPlans);
       return subscribedPlans;
     } catch (error) {
       console.error(error);
@@ -234,12 +191,13 @@ export const getSubscribedPlans = createAsyncThunk(
 
 export const storeReadingFontSize = createAsyncThunk(
   "settings/storeReadingFontSize",
-  async (readingFontSize: number, { getState }) => {
+  async (readingFontSize: number) => {
     try {
       await AsyncStorage.setItem(
         "@settings/readingFontSize",
         readingFontSize.toString()
       );
+      await writeThroughSettingsField("readingFontSize", readingFontSize);
       return readingFontSize;
     } catch (error) {
       console.error(error);
@@ -268,11 +226,15 @@ export const getReadingFontSize = createAsyncThunk(
 
 export const storeReadingBackgroundColor = createAsyncThunk(
   "settings/storeReadingBackgroundColor",
-  async (readingBackgroundColor: string, { getState }) => {
+  async (readingBackgroundColor: string) => {
     try {
       await AsyncStorage.setItem(
         "@settings/readingBackgroundColor",
         readingBackgroundColor.toString()
+      );
+      await writeThroughSettingsField(
+        "readingBackgroundColor",
+        readingBackgroundColor
       );
       return readingBackgroundColor;
     } catch (error) {
@@ -297,12 +259,13 @@ export const getReadingBackgroundColor = createAsyncThunk(
 
 export const storeShowChildrensPlan = createAsyncThunk(
   "settings/storeShowChildrensPlan",
-  async (showChildrensPlan: boolean, { getState }) => {
+  async (showChildrensPlan: boolean) => {
     try {
       await AsyncStorage.setItem(
         "@settings/showChildrensPlan",
         showChildrensPlan.toString()
       );
+      await writeThroughSettingsField("showChildrensPlan", showChildrensPlan);
       return showChildrensPlan;
     } catch (error) {
       console.error(error);
@@ -344,6 +307,10 @@ export const storeEnableChurchCenterDeepLink = createAsyncThunk(
       await AsyncStorage.setItem(
         "@settings/enableChurchCenterDeepLink",
         enableChurchCenterDeepLink.toString()
+      );
+      await writeThroughSettingsField(
+        "enableChurchCenterDeepLink",
+        enableChurchCenterDeepLink
       );
       return enableChurchCenterDeepLink;
     } catch (error) {

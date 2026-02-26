@@ -57,6 +57,11 @@ import Animated, {
   LinearTransition,
 } from "react-native-reanimated";
 import { selectCurrentEpisode } from "src/redux/podcastSlice";
+import {
+  selectAuthIsInitialized,
+  selectAuthIsSyncing,
+  selectIsAuthenticated,
+} from "src/redux/authSlice";
 import thumbnail from "../../../assets/podcast-icon.png";
 import icon from "../../../assets/icon.png";
 import { FeedItem } from "react-native-rss-parser";
@@ -108,6 +113,9 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
   const [shouldShowLoadingIndicator, setShouldShowLoadingIndicator] =
     useState(true);
   const [currentDate, setCurrentDate] = useState(new Date());
+  const isAuthenticated = useAppSelector(selectIsAuthenticated);
+  const authIsInitialized = useAppSelector(selectAuthIsInitialized);
+  const authIsSyncing = useAppSelector(selectAuthIsSyncing);
 
   // Ref Hooks
   const appState = useRef(AppState.currentState);
@@ -169,9 +177,11 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
 
   useEffect(() => {
     const currentYear = currentDate.getFullYear();
-
+    const shouldWaitForAuthSync =
+      isAuthenticated && (!authIsInitialized || authIsSyncing);
     if (
       currentYear > 2024 &&
+      !shouldWaitForAuthSync &&
       hasLoadedSubscribedPlans &&
       availablePlans.length > 0
     ) {
@@ -208,7 +218,15 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
         navigation.navigate("Available Plans");
       }
     }
-  }, [subscribedPlans, hasLoadedSubscribedPlans, availablePlans, currentDate]);
+  }, [
+    subscribedPlans,
+    hasLoadedSubscribedPlans,
+    availablePlans,
+    currentDate,
+    isAuthenticated,
+    authIsInitialized,
+    authIsSyncing,
+  ]);
 
   useEffect(() => {
     const passage = weeklyMemoryDay?.memory.passage;
