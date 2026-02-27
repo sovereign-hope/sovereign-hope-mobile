@@ -1,6 +1,6 @@
-import { StyleSheet, ViewStyle, TextStyle } from "react-native";
+import { Platform, StyleSheet, ViewStyle, TextStyle } from "react-native";
 import { elementSize, radius, spacing } from "src/style/layout";
-import { header1, header2, header3 } from "src/style/typography";
+import { header3 } from "src/style/typography";
 import { Theme } from "@react-navigation/native";
 import { colors } from "src/style/colors";
 
@@ -11,7 +11,11 @@ type Props = {
 interface Style {
   screen: ViewStyle;
   settingsSectionHeader: TextStyle;
+  settingsGroup: ViewStyle;
   settingsRow: ViewStyle;
+  settingsRowGrouped: ViewStyle;
+  settingsRowGroupedLast: ViewStyle;
+  settingsRowPressed: ViewStyle;
   settingsRowText: TextStyle;
   settingsRowTextContainer: ViewStyle;
   settingsRowSubtext: TextStyle;
@@ -48,8 +52,18 @@ export const styles = ({ theme }: Props): Style =>
     },
     settingsSectionHeader: {
       ...header3,
-      margin: spacing.large,
+      marginHorizontal: spacing.large,
+      marginTop: spacing.large,
+      marginBottom: Platform.OS === "ios" ? spacing.small : spacing.large,
       color: theme.colors.text,
+    },
+    settingsGroup: {
+      marginHorizontal: spacing.large,
+      borderRadius: radius.large,
+      overflow: "hidden",
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: theme.colors.border,
+      backgroundColor: theme.colors.card,
     },
     settingsRow: {
       flexDirection: "row",
@@ -59,6 +73,15 @@ export const styles = ({ theme }: Props): Style =>
       borderBottomColor: theme.colors.border,
       borderBottomWidth: 1,
       padding: spacing.large,
+    },
+    settingsRowGrouped: {
+      borderBottomWidth: StyleSheet.hairlineWidth,
+    },
+    settingsRowGroupedLast: {
+      borderBottomWidth: 0,
+    },
+    settingsRowPressed: {
+      backgroundColor: theme.colors.background,
     },
     settingsRowText: {
       color: theme.colors.text,
@@ -82,11 +105,14 @@ export const styles = ({ theme }: Props): Style =>
     },
     accountPanel: {
       backgroundColor: theme.colors.card,
-      borderTopColor: theme.colors.border,
-      borderTopWidth: 1,
-      borderBottomColor: theme.colors.border,
-      borderBottomWidth: 1,
       padding: spacing.large,
+      ...(Platform.OS === "ios"
+        ? {
+            marginHorizontal: spacing.large,
+            borderRadius: radius.large,
+            marginBottom: spacing.large,
+          }
+        : {}),
     },
     accountPanelMutedText: {
       color: theme.colors.text,

@@ -15,7 +15,6 @@ import {
   getReadingPlanProgressState,
   ReadingPlanDay,
   selectWeekReadingPlan,
-  selectWeeklyReadingPlanProgress,
 } from "src/redux/readingPlanSlice";
 import { styles } from "./WeekendView.styles";
 import {
@@ -44,7 +43,7 @@ const ReviewList: React.FunctionComponent<ReviewListProps> = ({
       duration: 500,
       useNativeDriver: true,
     }).start();
-  }, []);
+  }, [animation]);
 
   return (
     <Animated.View style={{ opacity: animation }}>
@@ -99,7 +98,7 @@ export const WeekendView: React.FunctionComponent<Props> = ({
     return () => {
       listener.remove();
     };
-  }, []);
+  }, [dispatch]);
 
   // Build list data only when reading plan changes (not on progress updates)
   // Progress/completion state is computed in each list item via Redux selector

@@ -68,6 +68,7 @@ const getGoogleServicesJsonMetadata = (relativeFilePath, packageName) => {
 export default ({ config }) => {
   const isProductionBuild = process.env.EAS_BUILD_PROFILE === "production";
   const developmentAndroidPackage = "com.sovereign_hope.sovereign_hope_dev";
+  const developmentScheme = "sovereign-hope-dev";
   const targetAndroidPackage = isProductionBuild
     ? config.android?.package
     : developmentAndroidPackage;
@@ -120,6 +121,7 @@ export default ({ config }) => {
   return {
     ...baseConfig,
     name: "Sov Hope Dev",
+    scheme: developmentScheme,
     ios: {
       ...(baseConfig.ios ?? {}),
       bundleIdentifier: "com.sovereign-hope.sovereign-hope-dev",

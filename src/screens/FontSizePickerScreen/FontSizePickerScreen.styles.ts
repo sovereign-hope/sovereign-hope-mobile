@@ -1,8 +1,7 @@
 import { StyleSheet, ViewStyle, TextStyle } from "react-native";
 import { spacing } from "src/style/layout";
-import { header1, header2, header3 } from "src/style/typography";
+import { header3 } from "src/style/typography";
 import { Theme } from "@react-navigation/native";
-import { colors } from "src/style/colors";
 
 type Props = {
   theme: Theme;

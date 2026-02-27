@@ -1,22 +1,15 @@
 import React, { useEffect } from "react";
 import { useColorScheme } from "src/hooks/useColorScheme";
 import { ReadingPlanScreen } from "src/screens/ReadingPlanScreen/ReadingPlanScreen";
-import {
-  NavigationContainer,
-  NavigationContainerRef,
-  useFocusEffect,
-} from "@react-navigation/native";
+import { NavigationContainer, useFocusEffect } from "@react-navigation/native";
 import { lightTheme, darkTheme } from "src/style/themes";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import {
-  createBottomTabNavigator,
-  BottomTabBar,
-  BottomTabBarButtonProps,
-} from "@react-navigation/bottom-tabs";
+import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
+import { createNativeBottomTabNavigator } from "@react-navigation/bottom-tabs/unstable";
 import { enableScreens } from "react-native-screens";
 import { Ionicons } from "@expo/vector-icons";
 import { RootStackParamList } from "src/navigation/RootNavigator";
-import { colors } from "src/style/colors";
+import { colors, navigation as navigationColors } from "src/style/colors";
 import { TodayScreen } from "../TodayScreen/TodayScreen";
 import { ReadScreen } from "../ReadScreen/ReadScreen";
 import { SettingsScreen } from "../SettingsScreen/SettingsScreen";
@@ -26,14 +19,8 @@ import { SelectPlanScreen } from "../SelectPlanScreen/SelectPlanScreen";
 import { FontSizePickerScreen } from "../FontSizePickerScreen/FontSizePickerScreen";
 import { ScheduleScreen } from "../ScheduleScreen";
 import { SundaysScreen } from "../SundaysScreen";
-import { SafeAreaView } from "react-native-safe-area-context";
-import {
-  Pressable,
-  Platform,
-  Linking,
-  View,
-  GestureResponderEvent,
-} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Pressable, Platform, Linking } from "react-native";
 import { TabBarHeightContext } from "src/navigation/TabBarContext";
 import { ChurchScreen } from "../ChurchScreen/ChurchScreen";
 import { useAppSelector, useAppDispatch } from "src/hooks/store";
@@ -45,7 +32,32 @@ import {
 // React Navigation configuration
 enableScreens();
 const Stack = createNativeStackNavigator<RootStackParamList>();
-const Tab = createBottomTabNavigator<RootStackParamList>();
+const NativeTab = createNativeBottomTabNavigator<RootStackParamList>();
+const JSTab = createBottomTabNavigator<RootStackParamList>();
+
+const isIOS26OrNewer = (): boolean => {
+  return (
+    Platform.OS === "ios" &&
+    Number.parseInt(String(Platform.Version), 10) >= 26
+  );
+};
+
+const getHeaderBackgroundColor = (
+  colorScheme: "light" | "dark"
+): string | undefined => {
+  if (isIOS26OrNewer()) {
+    return;
+  }
+
+  return colorScheme === "dark"
+    ? navigationColors.dark
+    : navigationColors.light;
+};
+
+const getNativeTabIcon = (iosSymbol: string) => ({
+  type: "sfSymbol" as const,
+  name: iosSymbol as never,
+});
 
 const PodcastStack = (): React.JSX.Element => {
   const colorScheme = useColorScheme();
@@ -56,8 +68,14 @@ const PodcastStack = (): React.JSX.Element => {
         headerTintColor: colors.accent,
         headerShadowVisible: false,
         headerLargeTitle: true,
+        ...(Platform.OS === "ios"
+          ? {
+              headerBackButtonDisplayMode: "minimal" as const,
+              headerBackTitleVisible: false,
+            }
+          : {}),
         headerStyle: {
-          backgroundColor: colorScheme === "dark" ? "#2A2A2A" : "#F8F8F8",
+          backgroundColor: getHeaderBackgroundColor(colorScheme),
         },
         headerTitleStyle: {
           color:
@@ -81,8 +99,14 @@ const WeekStack = (): React.JSX.Element => {
         headerTintColor: colors.accent,
         headerShadowVisible: false,
         headerLargeTitle: true,
+        ...(Platform.OS === "ios"
+          ? {
+              headerBackButtonDisplayMode: "minimal" as const,
+              headerBackTitleVisible: false,
+            }
+          : {}),
         headerStyle: {
-          backgroundColor: colorScheme === "dark" ? "#2A2A2A" : "#F8F8F8",
+          backgroundColor: getHeaderBackgroundColor(colorScheme),
         },
         headerTitleStyle: {
           color:
@@ -95,22 +119,38 @@ const WeekStack = (): React.JSX.Element => {
       <Stack.Screen
         name="This Week"
         component={TodayScreen}
-        options={({ navigation }) => ({
-          headerRight: () => (
-            <Pressable
-              onPress={() =>
-                (navigation as { navigate: (screen: string) => void }).navigate(
-                  "Settings"
-                )
-              }
-              accessibilityRole="button"
-              hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}
-              style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
-            >
-              <Ionicons name="cog" size={24} color={colors.accent} />
-            </Pressable>
-          ),
-        })}
+        options={({ navigation }) => {
+          if (isIOS26OrNewer()) {
+            return {
+              unstable_headerRightItems: () => [
+                {
+                  type: "button" as const,
+                  label: "Settings",
+                  icon: {
+                    type: "sfSymbol" as const,
+                    name: "gearshape" as never,
+                  },
+                  onPress: () => navigation.navigate("Settings"),
+                  tintColor: colors.accent,
+                  sharesBackground: false,
+                },
+              ],
+            };
+          }
+
+          return {
+            headerRight: () => (
+              <Pressable
+                onPress={() => navigation.navigate("Settings")}
+                accessibilityRole="button"
+                hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}
+                style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
+              >
+                <Ionicons name="cog" size={24} color={colors.accent} />
+              </Pressable>
+            ),
+          };
+        }}
       />
       <Stack.Screen name="Settings" component={SettingsScreen} />
       <Stack.Screen
@@ -144,7 +184,7 @@ const ReadingPlanStack = (): React.JSX.Element => {
         headerShadowVisible: false,
         headerLargeTitle: true,
         headerStyle: {
-          backgroundColor: colorScheme === "dark" ? "#2A2A2A" : "#F8F8F8",
+          backgroundColor: getHeaderBackgroundColor(colorScheme),
         },
         headerTitleStyle: {
           color:
@@ -163,81 +203,50 @@ const ReadingPlanStack = (): React.JSX.Element => {
   );
 };
 
-// Custom Church tab button component
-const ChurchTabButton = (props: BottomTabBarButtonProps): React.JSX.Element => {
-  const enableChurchCenterDeepLink = useAppSelector(
-    selectEnableChurchCenterDeepLink
-  );
-
-  const handlePress = async (): Promise<void> => {
-    // Only try to open Church Center app on iOS if setting is enabled
-    if (Platform.OS === "ios" && enableChurchCenterDeepLink) {
-      const churchCenterUrl = "https://churchcenter.com/home";
-
-      try {
-        const canOpen = await Linking.canOpenURL(churchCenterUrl);
-        if (canOpen) {
-          // Use a small delay to ensure the UI is ready
-          await new Promise((resolve) => setTimeout(resolve, 100));
-          try {
-            await Linking.openURL(churchCenterUrl);
-            // If successful, don't switch tabs - stay on current tab
-            return;
-          } catch {
-            // Fall through to normal tab behavior
-            props.onPress?.({} as GestureResponderEvent);
-          }
-        } else {
-          // Fall through to normal tab behavior
-          props.onPress?.({} as GestureResponderEvent);
-        }
-      } catch {
-        // If error, fall through to normal tab behavior
-        props.onPress?.({} as GestureResponderEvent);
-      }
-      return;
-    }
-
-    // If not iOS, not enabled, or error occurred, switch to Church tab normally
-    props.onPress?.({} as GestureResponderEvent);
-  };
-
-  return (
-    <Pressable {...props} onPress={() => void handlePress()}>
-      {props.children}
-    </Pressable>
-  );
-};
-
 const HomeScreen = (): React.JSX.Element => {
   const colorScheme = useColorScheme();
   const dispatch = useAppDispatch();
+  const enableChurchCenterDeepLink = useAppSelector(
+    selectEnableChurchCenterDeepLink
+  );
   const {
     setHeight,
     setMeasuredHeight,
-    measuredHeight,
     setCachedHeight,
     setIsCached,
   } = React.useContext(TabBarHeightContext);
-  const lastMeasuredHeightRef = React.useRef<number>(0);
+  const insets = useSafeAreaInsets();
+
+  const estimatedTabBarHeight =
+    (Platform.OS === "ios" ? 49 : 56) + insets.bottom;
+
+  const updateTabBarHeight = React.useCallback(() => {
+    setMeasuredHeight(estimatedTabBarHeight);
+    setHeight(estimatedTabBarHeight);
+    setCachedHeight(estimatedTabBarHeight);
+    setIsCached(true);
+  }, [
+    estimatedTabBarHeight,
+    setCachedHeight,
+    setHeight,
+    setIsCached,
+    setMeasuredHeight,
+  ]);
 
   // Load settings on app startup
   useEffect(() => {
     void dispatch(getEnableChurchCenterDeepLink());
   }, [dispatch]);
 
-  // When Home gains focus again, restore the last measured tab bar height
+  useEffect(() => {
+    updateTabBarHeight();
+  }, [updateTabBarHeight]);
+
   useFocusEffect(
     React.useCallback(() => {
-      const h = measuredHeight || lastMeasuredHeightRef.current;
-      if (h > 0) {
-        setHeight(h);
-        // Cache the height for immediate positioning
-        setCachedHeight(h);
-        setIsCached(true);
-      }
+      updateTabBarHeight();
       return;
-    }, [setHeight, measuredHeight, setCachedHeight, setIsCached])
+    }, [updateTabBarHeight])
   );
 
   // Reset tab bar height when leaving the tab navigator
@@ -247,187 +256,200 @@ const HomeScreen = (): React.JSX.Element => {
     };
   }, [setHeight]);
 
+  if (Platform.OS === "ios") {
+    return (
+      <NativeTab.Navigator
+        initialRouteName="This Week"
+        screenOptions={{
+          tabBarActiveTintColor: colors.accent,
+          tabBarStyle: {
+            backgroundColor: isIOS26OrNewer()
+              ? undefined
+              : colorScheme === "dark"
+              ? navigationColors.dark
+              : navigationColors.light,
+          },
+        }}
+      >
+        <NativeTab.Screen
+          name="This Week"
+          component={WeekStack}
+          options={{
+            headerShown: false,
+            tabBarLabel: "This Week",
+            tabBarIcon: getNativeTabIcon("calendar"),
+          }}
+        />
+        <NativeTab.Screen
+          name="Reading Plan"
+          component={ReadingPlanStack}
+          options={{
+            lazy: false,
+            headerShown: false,
+            tabBarLabel: "Reading",
+            tabBarIcon: getNativeTabIcon("book"),
+          }}
+        />
+        <NativeTab.Screen
+          name="Church"
+          component={ChurchStack}
+          options={{
+            lazy: false,
+            headerShown: false,
+            tabBarLabel: "Church",
+            tabBarIcon: getNativeTabIcon("house"),
+          }}
+          listeners={{
+            tabPress: () => {
+              if (!enableChurchCenterDeepLink) {
+                return;
+              }
+
+              const churchCenterUrl = "https://churchcenter.com/home";
+              void Linking.canOpenURL(churchCenterUrl)
+                .then((canOpen) => {
+                  if (canOpen) {
+                    return Linking.openURL(churchCenterUrl);
+                  }
+
+                  return;
+                })
+                .catch(() => {});
+            },
+          }}
+        />
+        <NativeTab.Screen
+          name="Resources"
+          component={PodcastStack}
+          options={{
+            lazy: false,
+            headerShown: false,
+            tabBarLabel: "Resources",
+            tabBarIcon: getNativeTabIcon("bookmark"),
+          }}
+        />
+      </NativeTab.Navigator>
+    );
+  }
+
   return (
-    <Tab.Navigator
+    <JSTab.Navigator
       initialRouteName="This Week"
       screenOptions={{
+        tabBarActiveTintColor: colors.accent,
+        tabBarInactiveTintColor:
+          colorScheme === "dark" ? darkTheme.colors.text : lightTheme.colors.text,
         tabBarStyle: {
-          backgroundColor: colorScheme === "dark" ? "#2A2A2A" : "#F8F8F8",
+          backgroundColor:
+            colorScheme === "dark"
+              ? navigationColors.dark
+              : navigationColors.light,
         },
       }}
-      tabBar={(props) => (
-        <View
-          onLayout={(e) => {
-            const h = e?.nativeEvent?.layout?.height ?? 0;
-            lastMeasuredHeightRef.current = h;
-            setMeasuredHeight(h);
-            setHeight(h);
-            // Cache the height for immediate positioning
-            setCachedHeight(h);
-            setIsCached(true);
-          }}
-        >
-          <BottomTabBar {...props} />
-        </View>
-      )}
     >
-      <Tab.Screen
+      <JSTab.Screen
         name="This Week"
         component={WeekStack}
         options={{
           headerShown: false,
-
-          tabBarIcon: ({
-            focused,
-            color,
-            size,
-          }: {
-            focused: boolean;
-            color: string;
-            size: number;
-          }) => (
-            <Ionicons
-              name="today"
-              size={size}
-              color={focused ? colors.accent : color}
-            />
+          tabBarLabel: "This Week",
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="calendar" size={size} color={color} />
           ),
         }}
       />
-      <Tab.Screen
+      <JSTab.Screen
         name="Reading Plan"
         component={ReadingPlanStack}
         options={{
           lazy: false,
           headerShown: false,
-          tabBarIcon: ({
-            focused,
-            color,
-            size,
-          }: {
-            focused: boolean;
-            color: string;
-            size: number;
-          }) => (
-            <Ionicons
-              name="book"
-              size={size}
-              color={focused ? colors.accent : color}
-            />
+          tabBarLabel: "Reading",
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="book" size={size} color={color} />
           ),
         }}
       />
-      <Tab.Screen
+      <JSTab.Screen
         name="Church"
         component={ChurchStack}
         options={{
           lazy: false,
           headerShown: false,
-          tabBarIcon: ({
-            focused,
-            color,
-            size,
-          }: {
-            focused: boolean;
-            color: string;
-            size: number;
-          }) => (
-            <Ionicons
-              name="home"
-              size={size}
-              color={focused ? colors.accent : color}
-            />
+          tabBarLabel: "Church",
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="home" size={size} color={color} />
           ),
-          tabBarButton: ChurchTabButton,
         }}
       />
-      <Tab.Screen
+      <JSTab.Screen
         name="Resources"
         component={PodcastStack}
         options={{
           lazy: false,
           headerShown: false,
-
-          tabBarIcon: ({
-            focused,
-            color,
-            size,
-          }: {
-            focused: boolean;
-            color: string;
-            size: number;
-          }) => (
-            <Ionicons
-              name="bookmarks"
-              size={size}
-              color={focused ? colors.accent : color}
-            />
+          tabBarLabel: "Resources",
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="bookmark" size={size} color={color} />
           ),
         }}
       />
-    </Tab.Navigator>
+    </JSTab.Navigator>
   );
 };
 
 export const RootScreen = (): React.JSX.Element => {
   const colorScheme = useColorScheme();
-  const navRef = React.useRef<NavigationContainerRef<RootStackParamList>>(null);
   const { setHeight, setIsTabBarVisible } =
     React.useContext(TabBarHeightContext);
 
   return (
-    <SafeAreaView
-      edges={["top"]}
-      style={{
-        flex: 1,
-        backgroundColor: colorScheme === "dark" ? "#2A2A2A" : "#F8F8F8",
+    <NavigationContainer
+      theme={colorScheme === "dark" ? darkTheme : lightTheme}
+      onStateChange={(state) => {
+        if (state) {
+          const currentRoute = state.routes[state.index];
+          if (currentRoute?.name === "Home") {
+            // Don't set height here, let HomeScreen handle it
+            setIsTabBarVisible(true);
+          } else {
+            setHeight(0);
+            setIsTabBarVisible(false);
+          }
+        }
       }}
     >
-      <NavigationContainer
-        ref={navRef}
-        theme={colorScheme === "dark" ? darkTheme : lightTheme}
-        onStateChange={(state) => {
-          if (state) {
-            const currentRoute = state.routes[state.index];
-            if (currentRoute?.name === "Home") {
-              // Don't set height here, let HomeScreen handle it
-              setIsTabBarVisible(true);
-            } else {
-              setHeight(0);
-              setIsTabBarVisible(false);
-            }
-          }
+      <Stack.Navigator
+        screenOptions={{
+          headerTintColor: colors.accent,
+          headerShadowVisible: false,
+          headerStyle: {
+            backgroundColor: getHeaderBackgroundColor(colorScheme),
+          },
+          headerTitleStyle: {
+            color:
+              colorScheme === "dark"
+                ? darkTheme.colors.text
+                : lightTheme.colors.text,
+          },
+          ...(isIOS26OrNewer()
+            ? { headerBackButtonDisplayMode: "minimal" as const }
+            : {}),
+          ...(Platform.OS === "android" ? { statusBarTranslucent: true } : {}),
+          statusBarStyle: colorScheme === "dark" ? "light" : "dark",
         }}
       >
-        <Stack.Navigator
-          screenOptions={{
-            headerTintColor: colors.accent,
-            headerShadowVisible: false,
-            headerStyle: {
-              backgroundColor: colorScheme === "dark" ? "#2A2A2A" : "#F8F8F8",
-            },
-            headerTitleStyle: {
-              color:
-                colorScheme === "dark"
-                  ? darkTheme.colors.text
-                  : lightTheme.colors.text,
-            },
-            statusBarTranslucent: true,
-            statusBarStyle: colorScheme === "dark" ? "light" : "dark",
-          }}
-        >
-          <Stack.Screen
-            name="Home"
-            component={HomeScreen}
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen name="Read" component={ReadScreen} />
-          <Stack.Screen name="Available Plans" component={SelectPlanScreen} />
-          <Stack.Screen name="Font Size" component={FontSizePickerScreen} />
-          <Stack.Screen name="Schedule" component={ScheduleScreen} />
-          <Stack.Screen name="Sundays" component={SundaysScreen} />
-        </Stack.Navigator>
-      </NavigationContainer>
-    </SafeAreaView>
+        <Stack.Screen
+          name="Home"
+          component={HomeScreen}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen name="Read" component={ReadScreen} />
+        <Stack.Screen name="Available Plans" component={SelectPlanScreen} />
+        <Stack.Screen name="Font Size" component={FontSizePickerScreen} />
+        <Stack.Screen name="Schedule" component={ScheduleScreen} />
+        <Stack.Screen name="Sundays" component={SundaysScreen} />
+      </Stack.Navigator>
+    </NavigationContainer>
   );
 };

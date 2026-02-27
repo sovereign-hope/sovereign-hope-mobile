@@ -61,7 +61,7 @@ export const getPassageFromBibleHub = async ({
   passage: Passage;
 }) => {
   try {
-    const { book, startChapter, endChapter } = passage;
+    const { startChapter, endChapter } = passage;
     const chapters =
       endChapter && startChapter
         ? Array.from(

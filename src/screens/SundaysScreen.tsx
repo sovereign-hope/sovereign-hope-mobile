@@ -2,12 +2,11 @@ import React from "react";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { RootStackParamList } from "src/navigation/RootNavigator";
 import { WebView } from "react-native-webview";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Sundays">;
 
-export const SundaysScreen: React.FunctionComponent<Props> = ({
-  navigation,
-}: Props) => {
+export const SundaysScreen: React.FunctionComponent<Props> = ({}: Props) => {
   // Custom hooks
   // const theme = useTheme();
 
@@ -25,9 +24,11 @@ export const SundaysScreen: React.FunctionComponent<Props> = ({
   // const themedStyles = styles({ theme });
 
   return (
-    <WebView
-      source={{ uri: "https://sovereignhope.church/watch-live" }}
-      style={{ flex: 1 }}
-    />
+    <SafeAreaView edges={["bottom"]} style={{ flex: 1 }}>
+      <WebView
+        source={{ uri: "https://sovereignhope.church/watch-live" }}
+        style={{ flex: 1 }}
+      />
+    </SafeAreaView>
   );
 };

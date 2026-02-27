@@ -1,8 +1,9 @@
 import React from "react";
-import { StyleSheet, View } from "react-native";
+import { StyleSheet } from "react-native";
 import { colors } from "src/style/colors";
 import { WebView } from "react-native-webview";
 import { useMiniPlayerHeight } from "src/hooks/useMiniPlayerHeight";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 const styles = StyleSheet.create({
   fullScreen: {
@@ -19,7 +20,10 @@ export const ChurchScreen: React.FunctionComponent = () => {
   const miniPlayerHeight = useMiniPlayerHeight();
 
   return (
-    <View style={styles.fullScreen}>
+    <SafeAreaView
+      edges={["top", "bottom", "left", "right"]}
+      style={styles.fullScreen}
+    >
       <WebView
         source={{ uri: "https://sovhope.churchcenter.com/home" }}
         startInLoadingState
@@ -38,6 +42,6 @@ export const ChurchScreen: React.FunctionComponent = () => {
           },
         ]}
       />
-    </View>
+    </SafeAreaView>
   );
 };

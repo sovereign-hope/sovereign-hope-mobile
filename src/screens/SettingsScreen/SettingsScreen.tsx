@@ -23,8 +23,6 @@ import {
   selectNotificationTime,
   storeEnableNotificationsState,
   storeNotificationTime,
-  selectShowChildrensPlan,
-  storeShowChildrensPlan,
   getShowChildrensPlan,
   selectEnableChurchCenterDeepLink,
   storeEnableChurchCenterDeepLink,
@@ -95,7 +93,6 @@ export const SettingsScreen: React.FunctionComponent<Props> = ({
   const notificationTime = useAppSelector(selectNotificationTime);
   const readingPlan = useAppSelector(selectReadingPlan);
   const availablePlans = useAppSelector(selectAvailablePlans);
-  const showChildrensPlan = useAppSelector(selectShowChildrensPlan);
   const enableChurchCenterDeepLink = useAppSelector(
     selectEnableChurchCenterDeepLink
   );
@@ -126,10 +123,6 @@ export const SettingsScreen: React.FunctionComponent<Props> = ({
   // Event handlers
   const handleToggleNotifications = (value: boolean) => {
     void dispatch(storeEnableNotificationsState(value));
-  };
-
-  const handleToggleShowChildrensPlan = (value: boolean) => {
-    void dispatch(storeShowChildrensPlan(value));
   };
 
   const handleToggleChurchCenterDeepLink = (value: boolean) => {
@@ -205,9 +198,13 @@ export const SettingsScreen: React.FunctionComponent<Props> = ({
   const themedStyles = styles({ theme });
   const isSignedIn = Boolean(authUser);
   const isBusy = authIsLoading || authIsSyncing;
+  const isIOS = Platform.OS === "ios";
 
   return (
-    <SafeAreaView edges={["left", "right"]} style={themedStyles.screen}>
+    <SafeAreaView
+      edges={["left", "right", "bottom"]}
+      style={themedStyles.screen}
+    >
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
@@ -218,68 +215,38 @@ export const SettingsScreen: React.FunctionComponent<Props> = ({
           keyboardShouldPersistTaps="handled"
         >
           <Text style={themedStyles.settingsSectionHeader}>Notifications</Text>
-          <View style={themedStyles.settingsRow}>
-            <Text style={themedStyles.settingsRowText}>
-              Daily Reading Notifications
-            </Text>
-            <Switch
-              onValueChange={handleToggleNotifications}
-              value={enableNotifications}
-            />
-          </View>
-
-          <Pressable
-            onPress={() => setIsDatePickerVisible(true)}
-            accessibilityRole="button"
-            style={({ pressed }) => [
-              themedStyles.settingsRow,
-              {
-                backgroundColor: pressed
-                  ? theme.colors.background
-                  : theme.colors.card,
-              },
-            ]}
-          >
-            <Text style={themedStyles.settingsRowText}>Notification Time</Text>
-            <View style={themedStyles.settingsRowValueContainer}>
+          <View style={isIOS ? themedStyles.settingsGroup : undefined}>
+            <View
+              style={[
+                themedStyles.settingsRow,
+                isIOS && themedStyles.settingsRowGrouped,
+              ]}
+            >
               <Text style={themedStyles.settingsRowText}>
-                {notificationTime}
+                Daily Reading Notifications
               </Text>
-              <Ionicons
-                name="chevron-forward"
-                size={24}
-                color={theme.colors.border}
-                style={themedStyles.disclosureIcon}
+              <Switch
+                onValueChange={handleToggleNotifications}
+                value={enableNotifications}
               />
             </View>
-            <DateTimePickerModal
-              isVisible={isDatePickerVisible}
-              mode="time"
-              date={getDateFromTimeString(notificationTime)}
-              onConfirm={handleSetNotificationTime}
-              onCancel={() => setIsDatePickerVisible(false)}
-            />
-          </Pressable>
 
-          <Text style={themedStyles.settingsSectionHeader}>Reading</Text>
-
-          {availablePlans.length > 1 && (
             <Pressable
-              onPress={showSelectReadingPlan}
+              onPress={() => setIsDatePickerVisible(true)}
               accessibilityRole="button"
               style={({ pressed }) => [
                 themedStyles.settingsRow,
-                {
-                  backgroundColor: pressed
-                    ? theme.colors.background
-                    : theme.colors.card,
-                },
+                isIOS && themedStyles.settingsRowGrouped,
+                isIOS && themedStyles.settingsRowGroupedLast,
+                pressed && themedStyles.settingsRowPressed,
               ]}
             >
-              <Text style={themedStyles.settingsRowText}>Reading Plan</Text>
+              <Text style={themedStyles.settingsRowText}>
+                Notification Time
+              </Text>
               <View style={themedStyles.settingsRowValueContainer}>
                 <Text style={themedStyles.settingsRowText}>
-                  {readingPlan?.title}
+                  {notificationTime}
                 </Text>
                 <Ionicons
                   name="chevron-forward"
@@ -288,49 +255,92 @@ export const SettingsScreen: React.FunctionComponent<Props> = ({
                   style={themedStyles.disclosureIcon}
                 />
               </View>
-            </Pressable>
-          )}
-
-          <Pressable
-            onPress={showSelectFontSize}
-            accessibilityRole="button"
-            style={({ pressed }) => [
-              themedStyles.settingsRow,
-              {
-                backgroundColor: pressed
-                  ? theme.colors.background
-                  : theme.colors.card,
-              },
-            ]}
-          >
-            <Text style={themedStyles.settingsRowText}>Reading Font Size</Text>
-            <View style={themedStyles.settingsRowValueContainer}>
-              <Ionicons
-                name="chevron-forward"
-                size={24}
-                color={theme.colors.border}
-                style={themedStyles.disclosureIcon}
+              <DateTimePickerModal
+                isVisible={isDatePickerVisible}
+                mode="time"
+                date={getDateFromTimeString(notificationTime)}
+                onConfirm={handleSetNotificationTime}
+                onCancel={() => setIsDatePickerVisible(false)}
               />
-            </View>
-          </Pressable>
+            </Pressable>
+          </View>
+
+          <Text style={themedStyles.settingsSectionHeader}>Reading</Text>
+          <View style={isIOS ? themedStyles.settingsGroup : undefined}>
+            {availablePlans.length > 1 && (
+              <Pressable
+                onPress={showSelectReadingPlan}
+                accessibilityRole="button"
+                style={({ pressed }) => [
+                  themedStyles.settingsRow,
+                  isIOS && themedStyles.settingsRowGrouped,
+                  pressed && themedStyles.settingsRowPressed,
+                ]}
+              >
+                <Text style={themedStyles.settingsRowText}>Reading Plan</Text>
+                <View style={themedStyles.settingsRowValueContainer}>
+                  <Text style={themedStyles.settingsRowText}>
+                    {readingPlan?.title}
+                  </Text>
+                  <Ionicons
+                    name="chevron-forward"
+                    size={24}
+                    color={theme.colors.border}
+                    style={themedStyles.disclosureIcon}
+                  />
+                </View>
+              </Pressable>
+            )}
+
+            <Pressable
+              onPress={showSelectFontSize}
+              accessibilityRole="button"
+              style={({ pressed }) => [
+                themedStyles.settingsRow,
+                isIOS && themedStyles.settingsRowGrouped,
+                isIOS && themedStyles.settingsRowGroupedLast,
+                pressed && themedStyles.settingsRowPressed,
+              ]}
+            >
+              <Text style={themedStyles.settingsRowText}>
+                Reading Font Size
+              </Text>
+              <View style={themedStyles.settingsRowValueContainer}>
+                <Ionicons
+                  name="chevron-forward"
+                  size={24}
+                  color={theme.colors.border}
+                  style={themedStyles.disclosureIcon}
+                />
+              </View>
+            </Pressable>
+          </View>
 
           {Platform.OS === "ios" && (
             <>
               <Text style={themedStyles.settingsSectionHeader}>Church</Text>
-              <View style={themedStyles.settingsRow}>
-                <View style={themedStyles.settingsRowTextContainer}>
-                  <Text style={themedStyles.settingsRowText}>
-                    Open Church Center App
-                  </Text>
-                  <Text style={themedStyles.settingsRowSubtext}>
-                    Automatically open the Church Center app when tapping the
-                    Church tab (if installed)
-                  </Text>
+              <View style={themedStyles.settingsGroup}>
+                <View
+                  style={[
+                    themedStyles.settingsRow,
+                    themedStyles.settingsRowGrouped,
+                    themedStyles.settingsRowGroupedLast,
+                  ]}
+                >
+                  <View style={themedStyles.settingsRowTextContainer}>
+                    <Text style={themedStyles.settingsRowText}>
+                      Open Church Center App
+                    </Text>
+                    <Text style={themedStyles.settingsRowSubtext}>
+                      Automatically open the Church Center app when tapping the
+                      Church tab (if installed)
+                    </Text>
+                  </View>
+                  <Switch
+                    onValueChange={handleToggleChurchCenterDeepLink}
+                    value={enableChurchCenterDeepLink}
+                  />
                 </View>
-                <Switch
-                  onValueChange={handleToggleChurchCenterDeepLink}
-                  value={enableChurchCenterDeepLink}
-                />
               </View>
             </>
           )}

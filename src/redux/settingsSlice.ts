@@ -45,29 +45,6 @@ Notifications.setNotificationHandler({
   }),
 });
 
-const getSecondsUntilNextOccuranceOfTime = (time: string) => {
-  //d = new Date(); -- temporary to test different dates
-  let hour = Number.parseInt(time.split(":")[0]);
-  const minute = Number.parseInt(time.split(":")[1].split(" ")[0]);
-  const ampm = time.split(":")[1].split(" ")[1];
-
-  if (ampm === "PM" && hour !== 12) {
-    hour += 12;
-  }
-
-  if (hour === 24) {
-    hour = 0;
-  }
-
-  const d = new Date();
-  d.setHours(hour, minute, 0, 0);
-  if (d < new Date()) {
-    d.setDate(d.getDate() + 1);
-  }
-  const now = new Date();
-  return d.getTime() / 1000 - now.getTime() / 1000;
-};
-
 export const storeEnableNotificationsState = createAsyncThunk(
   "settings/storeEnableNotificationsState",
   async (enableNotifications: boolean, { getState }) => {

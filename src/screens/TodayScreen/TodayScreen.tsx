@@ -18,7 +18,10 @@ import {
   Text,
   View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 import { useAppSelector, useAppDispatch } from "src/hooks/store";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { RootStackParamList } from "src/navigation/RootNavigator";
@@ -102,6 +105,7 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
   // Custom hooks
   const dispatch = useAppDispatch();
   const miniPlayerHeight = useMiniPlayerHeight();
+  const insets = useSafeAreaInsets();
   const readingPlanDay = useAppSelector(selectDailyReadingPlan);
   const readingPlanProgress = useAppSelector(selectReadingPlanProgressState);
   const readingPlanWeek = useAppSelector(selectWeekReadingPlan);
@@ -165,7 +169,7 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
     return () => {
       listener.remove();
     };
-  }, []);
+  }, [currentDate, dispatch]);
 
   useEffect(() => {
     setHasInitializedPosition(false);
@@ -181,7 +185,7 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
   useEffect(() => {
     void dispatch(getReadingPlan());
     void dispatch(getReadingPlanProgressState());
-  }, [availablePlans, subscribedPlans]);
+  }, [availablePlans, subscribedPlans, dispatch]);
 
   useEffect(() => {
     const currentYear = currentDate.getFullYear();
@@ -234,6 +238,8 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
     isAuthenticated,
     authIsInitialized,
     authIsSyncing,
+    dispatch,
+    navigation,
   ]);
 
   useEffect(() => {
@@ -483,7 +489,9 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
           layout={LinearTransition}
           style={themedStyles.scrollView}
           contentInsetAdjustmentBehavior="automatic"
-          contentContainerStyle={{ paddingBottom: miniPlayerHeight }}
+          contentContainerStyle={{
+            paddingBottom: miniPlayerHeight + insets.bottom,
+          }}
         >
           <Animated.View
             entering={FadeIn.duration(500)}

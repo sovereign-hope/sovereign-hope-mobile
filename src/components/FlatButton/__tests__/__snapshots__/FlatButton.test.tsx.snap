@@ -36,6 +36,7 @@ exports[`FlatButton should render 1`] = `
     {
       "alignItems": "center",
       "backgroundColor": "#BA8748",
+      "borderColor": "rgb(255, 255, 255)",
       "borderRadius": 10,
       "elevation": 2,
       "flexDirection": "row",
@@ -97,6 +98,7 @@ exports[`FlatButton should render an icon 1`] = `
     {
       "alignItems": "center",
       "backgroundColor": "#BA8748",
+      "borderColor": "rgb(255, 255, 255)",
       "borderRadius": 10,
       "elevation": 2,
       "flexDirection": "row",
@@ -129,7 +131,7 @@ exports[`FlatButton should render an icon 1`] = `
       ]
     }
   >
-    
+    
   </Text>
   <Text
     style={

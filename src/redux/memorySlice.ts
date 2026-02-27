@@ -23,10 +23,6 @@ export const getMemoryPassageText = createAsyncThunk(
   "memory/getMemoryPassageText",
   async ({ passage }: { passage: Passage }) => {
     try {
-      const storedMemoryState = await AsyncStorage.getItem(
-        `@memoryState-${passage.book}-${passage.startChapter}-${passage.startVerse}-${passage.endChapter}-${passage.endVerse}`
-      );
-
       // Turn this back on later, after the esv fetch bug is fixed
       // if (
       //   storedMemoryState &&

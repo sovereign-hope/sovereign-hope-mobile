@@ -9,14 +9,19 @@ import React, {
 import {
   ActivityIndicator,
   Image,
+  ImageSourcePropType,
   Pressable,
+  Platform,
   ScrollView,
   Text,
   useWindowDimensions,
   Animated,
   View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 import { useAppSelector, useAppDispatch } from "src/hooks/store";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { RootStackParamList } from "src/navigation/RootNavigator";
@@ -65,7 +70,11 @@ interface ReadScrollViewProps {
   onNextPassage: () => void;
   hasNextPassage: boolean;
   miniPlayerHeight: number;
+  bottomInset: number;
 }
+
+const isIOS26OrNewer = (): boolean =>
+  Platform.OS === "ios" && Number.parseInt(String(Platform.Version), 10) >= 26;
 
 const ReadScrollView: React.FunctionComponent<ReadScrollViewProps> = ({
   showMemoryButton,
@@ -78,6 +87,7 @@ const ReadScrollView: React.FunctionComponent<ReadScrollViewProps> = ({
   onNextPassage,
   hasNextPassage,
   miniPlayerHeight,
+  bottomInset,
 }: ReadScrollViewProps) => {
   // State
   const [isPressingHideButton, setIsPressingHideButton] = useState(false);
@@ -103,7 +113,7 @@ const ReadScrollView: React.FunctionComponent<ReadScrollViewProps> = ({
       duration: 500,
       useNativeDriver: true,
     }).start();
-  }, []);
+  }, [mountAnimation]);
 
   useEffect(() => {
     scrollViewRef.current?.scrollTo({ y: 0 });
@@ -191,7 +201,16 @@ const ReadScrollView: React.FunctionComponent<ReadScrollViewProps> = ({
     <Animated.ScrollView
       ref={scrollViewRef}
       style={[themedStyles.container, { opacity: mountAnimation }]}
-      contentContainerStyle={{ flexGrow: 1, paddingBottom: miniPlayerHeight }}
+      contentInsetAdjustmentBehavior="never"
+      automaticallyAdjustContentInsets={false}
+      automaticallyAdjustsScrollIndicatorInsets={false}
+      contentContainerStyle={{
+        flexGrow: 1,
+        paddingBottom: miniPlayerHeight + bottomInset + spacing.large,
+      }}
+      scrollIndicatorInsets={{
+        bottom: miniPlayerHeight + bottomInset,
+      }}
     >
       {heading.length > 0 && <Text style={themedStyles.title}>{heading}</Text>}
       <Animated.View style={{ opacity: animation }}>
@@ -399,6 +418,7 @@ export const ReadScreen: React.FunctionComponent<ReadScreenProps> = ({
   // Custom hooks
   const dispatch = useAppDispatch();
   const miniPlayerHeight = useMiniPlayerHeight();
+  const insets = useSafeAreaInsets();
 
   // Custom hooks
   const audioUrl = useAppSelector(selectAudioUrl);
@@ -408,18 +428,20 @@ export const ReadScreen: React.FunctionComponent<ReadScreenProps> = ({
   const isNavigatingPassagesRef = useRef(false);
 
   // Navbar handlers
-  const playAudio = async () => {
+  const playAudio = useCallback(async () => {
+    const esvLogoSource = esvLogo as ImageSourcePropType;
+
     await TrackPlayer.reset();
     const track: Track = {
       url: audioUrl ?? "",
       title: audioTitle ?? "",
       artist: "ESV Bible",
-      artwork: Image.resolveAssetSource(esvLogo).uri,
+      artwork: Image.resolveAssetSource(esvLogoSource).uri,
     };
     await TrackPlayer.add(track);
     await TrackPlayer.play();
     void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-  };
+  }, [audioTitle, audioUrl]);
 
   // Effect hooks
   useLayoutEffect(() => {
@@ -428,20 +450,61 @@ export const ReadScreen: React.FunctionComponent<ReadScreenProps> = ({
     });
   }, [navigation]);
 
-  const showSelectFontSize = () => {
+  const showSelectFontSize = useCallback(() => {
     navigation.push("Font Size");
-  };
+  }, [navigation]);
 
   useEffect(() => {
+    if (isIOS26OrNewer()) {
+      navigation.setOptions({
+        headerRight: undefined,
+        unstable_headerRightItems: ({ tintColor }) => {
+          const items = [
+            {
+              type: "button" as const,
+              label: "Font Size",
+              icon: {
+                type: "sfSymbol" as const,
+                name: "textformat.size" as never,
+              },
+              onPress: showSelectFontSize,
+              tintColor: tintColor ?? colors.accent,
+              sharesBackground: false,
+            },
+          ];
+
+          if (audioUrl && audioUrl !== "") {
+            items.push({
+              type: "button" as const,
+              label: "Play Audio",
+              icon: {
+                type: "sfSymbol" as const,
+                name: "speaker.wave.2" as never,
+              },
+              onPress: () => {
+                void playAudio();
+              },
+              tintColor: tintColor ?? colors.accent,
+              sharesBackground: false,
+            });
+          }
+
+          return items;
+        },
+      });
+      return;
+    }
+
     navigation.setOptions({
-      headerRight: ({ tintColor }: { tintColor?: string | undefined }) => (
+      unstable_headerRightItems: undefined,
+      headerRight: () => (
         <>
           <Pressable
             style={{
               marginRight: spacing.large,
             }}
             accessibilityRole="button"
-            onPress={() => showSelectFontSize()}
+            onPress={showSelectFontSize}
           >
             <Ionicons name="text-outline" size={24} color={colors.accent} />
           </Pressable>
@@ -463,7 +526,7 @@ export const ReadScreen: React.FunctionComponent<ReadScreenProps> = ({
         </>
       ),
     });
-  }, [navigation, audioUrl]);
+  }, [navigation, audioUrl, playAudio, showSelectFontSize]);
 
   // Constants
   const themedStyles = styles({ theme });
@@ -553,12 +616,11 @@ export const ReadScreen: React.FunctionComponent<ReadScreenProps> = ({
   };
 
   return (
-    <SafeAreaView
-      style={themedStyles.screen}
-      edges={["left", "bottom", "right"]}
-    >
+    <SafeAreaView style={themedStyles.screen} edges={["left", "right"]}>
       {isLoading ? (
-        <ActivityIndicator size="large" color={theme.colors.text} />
+        <View style={themedStyles.loadingContainer}>
+          <ActivityIndicator size="large" color={theme.colors.text} />
+        </View>
       ) : (
         <>
           <ReadScrollView
@@ -572,6 +634,7 @@ export const ReadScreen: React.FunctionComponent<ReadScreenProps> = ({
             onNextPassage={handleNextPassage}
             hasNextPassage={passageIndex < passages.length - 1}
             miniPlayerHeight={miniPlayerHeight}
+            bottomInset={insets.bottom}
           />
         </>
       )}

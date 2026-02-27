@@ -2,7 +2,8 @@
   "build": {
     "production": {
       "ios": {
-        "resourceClass": "m-medium"
+        "resourceClass": "m-medium",
+        "image": "latest"
       },
       "channel": "production",
       "autoIncrement": true
@@ -10,7 +11,8 @@
     "staging": {
       "channel": "staging",
       "ios": {
-        "resourceClass": "m-medium"
+        "resourceClass": "m-medium",
+        "image": "latest"
       }
     },
     "development": {
@@ -18,7 +20,8 @@
       "distribution": "internal",
       "developmentClient": true,
       "ios": {
-        "resourceClass": "m-medium"
+        "resourceClass": "m-medium",
+        "image": "latest"
       }
     },
     "preview": {
@@ -27,7 +30,8 @@
       },
       "ios": {
         "simulator": true,
-        "resourceClass": "m-medium"
+        "resourceClass": "m-medium",
+        "image": "latest"
       },
       "channel": "development"
     }

@@ -31,7 +31,9 @@ jobs:
           token: ${{ secrets.EXPO_TOKEN }}
       - name: Create PR preview update
         if: ${{ github.event_name == 'pull_request' }}
-        run: eas update --branch pr-${{ github.event.number }} --message "${{ github.event.pull_request.title }}"
+        run: |
+          eas update --platform android --branch pr-${{ github.event.number }} --message "${{ github.event.pull_request.title }}"
+          eas update --platform ios --branch pr-${{ github.event.number }} --message "${{ github.event.pull_request.title }}"
       - name: Comment PR with preview link
         if: ${{ github.event_name == 'pull_request' }}
         uses: thollander/actions-comment-pull-request@v2

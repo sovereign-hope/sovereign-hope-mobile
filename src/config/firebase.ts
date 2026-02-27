@@ -18,22 +18,57 @@ let firebaseAppSingleton: FirebaseApp | undefined;
 let firebaseAuthSingleton: Auth | undefined;
 let firebaseFirestoreSingleton: Firestore | undefined;
 
+const STORAGE_AVAILABLE_KEY = "__firebase_rn_async_storage_available__";
+type AuthDependencies = NonNullable<Parameters<typeof initializeAuth>[1]>;
+type AuthPersistence = AuthDependencies["persistence"];
+
 const getReactNativePersistenceCompat = (
   storage: typeof AsyncStorage
-): unknown => {
-  try {
-    // Some Firebase versions used in this repo do not export `firebase/auth/react-native`,
-    // but still bundle the RN helper internally. Load it lazily so app startup doesn't crash.
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const rnAuth =
-      // eslint-disable-next-line @typescript-eslint/no-var-requires, unicorn/prefer-module
-      require("firebase/node_modules/@firebase/auth/dist/rn/index") as {
-        getReactNativePersistence?: (value: typeof AsyncStorage) => unknown;
-      };
-    return rnAuth.getReactNativePersistence?.(storage);
-  } catch {
-    return undefined;
+): AuthPersistence => {
+  class ReactNativePersistence {
+    static type = "LOCAL" as const;
+
+    type = "LOCAL" as const;
+
+    async _isAvailable(): Promise<boolean> {
+      try {
+        await storage.setItem(STORAGE_AVAILABLE_KEY, "1");
+        await storage.removeItem(STORAGE_AVAILABLE_KEY);
+        return true;
+      } catch {
+        return false;
+      }
+    }
+
+    _set(key: string, value: unknown): Promise<void> {
+      return storage.setItem(key, JSON.stringify(value));
+    }
+
+    async _get(key: string): Promise<unknown> {
+      const json = await storage.getItem(key);
+      return json ? (JSON.parse(json) as unknown) : null;
+    }
+
+    _remove(key: string): Promise<void> {
+      return storage.removeItem(key);
+    }
+
+    _addListener(key: string, listener: unknown): void {
+      // AsyncStorage doesn't support native key listeners.
+      void key;
+      void listener;
+      return;
+    }
+
+    _removeListener(key: string, listener: unknown): void {
+      // AsyncStorage doesn't support native key listeners.
+      void key;
+      void listener;
+      return;
+    }
   }
+
+  return ReactNativePersistence as AuthPersistence;
 };
 
 export const initializeFirebaseServices = (): {
@@ -48,14 +83,12 @@ export const initializeFirebaseServices = (): {
 
   if (!firebaseAuthSingleton) {
     try {
-      const reactNativePersistence =
-        getReactNativePersistenceCompat(AsyncStorage);
-      firebaseAuthSingleton = reactNativePersistence
-        ? initializeAuth(app, {
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-            persistence: reactNativePersistence as any,
-          })
-        : getAuth(app);
+      const reactNativePersistence = getReactNativePersistenceCompat(
+        AsyncStorage
+      );
+      firebaseAuthSingleton = initializeAuth(app, {
+        persistence: reactNativePersistence,
+      });
     } catch {
       // initializeAuth throws if already initialized in some environments (tests/HMR).
       firebaseAuthSingleton = getAuth(app);

@@ -16,7 +16,6 @@ import {
 } from "react-native";
 import { PanGestureHandler, State } from "react-native-gesture-handler";
 import { Ionicons } from "@expo/vector-icons";
-import { useTheme } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { styles } from "./MediaPlayer.styles";
 import TrackPlayer, {
@@ -44,7 +43,6 @@ type RepeatMode = "off" | "track" | "queue";
 // Media Player Component
 export const MediaPlayer: React.FunctionComponent<Props> = () => {
   // Custom hooks
-  const theme = useTheme();
   const insets = useSafeAreaInsets();
   const {
     height: tabBarHeight,
@@ -483,7 +481,7 @@ export const MediaPlayer: React.FunctionComponent<Props> = () => {
   }, []);
 
   // Constants
-  const themedStyles = styles({ theme });
+  const themedStyles = styles();
 
   if (isPlayerOffscreen) {
     return;
@@ -629,8 +627,8 @@ export const MediaPlayer: React.FunctionComponent<Props> = () => {
         animationType="slide"
         presentationStyle="fullScreen"
         onRequestClose={() => setIsModalVisible(false)}
-        // On Android, ensure status bar isn't translucent over the modal
-        statusBarTranslucent={false}
+        statusBarTranslucent
+        navigationBarTranslucent
       >
         <View style={themedStyles.maximizedContainer}>
           <View

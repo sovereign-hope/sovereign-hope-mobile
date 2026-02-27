@@ -12,7 +12,10 @@ export const NoNetworkComponent: React.FunctionComponent = () => {
   const themedStyles = styles({ theme });
 
   return (
-    <SafeAreaView edges={["left", "right"]} style={themedStyles.screen}>
+    <SafeAreaView
+      edges={["left", "right", "bottom"]}
+      style={themedStyles.screen}
+    >
       <Ionicons
         name="cloud-offline"
         size={elementSize.small}

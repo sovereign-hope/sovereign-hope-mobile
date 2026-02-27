@@ -1,12 +1,6 @@
-import {
-  StyleSheet,
-  ViewStyle,
-  TextStyle,
-  ImageStyle,
-  View,
-} from "react-native";
-import { spacing, elementSize, radius } from "src/style/layout";
-import { header1, header2, header3 } from "src/style/typography";
+import { StyleSheet, ViewStyle, TextStyle, ImageStyle } from "react-native";
+import { spacing, radius } from "src/style/layout";
+import { header2 } from "src/style/typography";
 import { Theme } from "@react-navigation/native";
 import { colors } from "src/style/colors";
 
