@@ -3,6 +3,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { FirebaseApp, getApp, getApps, initializeApp } from "firebase/app";
 import { Auth, getAuth, initializeAuth } from "firebase/auth";
 import { Firestore, getFirestore } from "firebase/firestore";
+import { Functions, getFunctions } from "firebase/functions";
 
 const firebaseConfig = {
   apiKey: "AIzaSyAvvBaPklg1pC7fb1gyo7B9WaU8a4NMh2g",
@@ -17,6 +18,7 @@ const firebaseConfig = {
 let firebaseAppSingleton: FirebaseApp | undefined;
 let firebaseAuthSingleton: Auth | undefined;
 let firebaseFirestoreSingleton: Firestore | undefined;
+let firebaseFunctionsSingleton: Functions | undefined;
 
 const STORAGE_AVAILABLE_KEY = "__firebase_rn_async_storage_available__";
 type AuthDependencies = NonNullable<Parameters<typeof initializeAuth>[1]>;
@@ -75,6 +77,7 @@ export const initializeFirebaseServices = (): {
   app: FirebaseApp;
   auth: Auth;
   firestore: Firestore;
+  functions: Functions;
 } => {
   const app =
     firebaseAppSingleton ??
@@ -83,9 +86,8 @@ export const initializeFirebaseServices = (): {
 
   if (!firebaseAuthSingleton) {
     try {
-      const reactNativePersistence = getReactNativePersistenceCompat(
-        AsyncStorage
-      );
+      const reactNativePersistence =
+        getReactNativePersistenceCompat(AsyncStorage);
       firebaseAuthSingleton = initializeAuth(app, {
         persistence: reactNativePersistence,
       });
@@ -99,10 +101,15 @@ export const initializeFirebaseServices = (): {
     firebaseFirestoreSingleton = getFirestore(app);
   }
 
+  if (!firebaseFunctionsSingleton) {
+    firebaseFunctionsSingleton = getFunctions(app, "us-central1");
+  }
+
   return {
     app,
     auth: firebaseAuthSingleton,
     firestore: firebaseFirestoreSingleton,
+    functions: firebaseFunctionsSingleton,
   };
 };
 
@@ -113,5 +120,8 @@ export const getFirebaseAuth = (): Auth => initializeFirebaseServices().auth;
 
 export const getFirebaseFirestore = (): Firestore =>
   initializeFirebaseServices().firestore;
+
+export const getFirebaseFunctions = (): Functions =>
+  initializeFirebaseServices().functions;
 
 /* eslint-enable unicorn/no-null */

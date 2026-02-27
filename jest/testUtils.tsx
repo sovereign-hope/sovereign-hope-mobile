@@ -17,6 +17,7 @@ import { podcastReducer } from "src/redux/podcastSlice";
 import { memoryReducer } from "src/redux/memorySlice";
 import { notificationsReducer } from "src/redux/notificationsSlice";
 import { commentaryReducer } from "src/redux/commentarySlice";
+import { memberReducer } from "src/redux/memberSlice";
 
 const rootReducer = {
   esv: esvReducer,
@@ -27,6 +28,7 @@ const rootReducer = {
   memory: memoryReducer,
   notifications: notificationsReducer,
   commentary: commentaryReducer,
+  member: memberReducer,
 };
 
 interface ExtendedRenderOptions extends Omit<RenderOptions, "wrapper"> {

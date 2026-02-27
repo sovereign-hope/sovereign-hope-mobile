@@ -13,6 +13,7 @@ import {
   createEmailPasswordAccount,
   deleteCurrentUserAccount,
   formatAuthError,
+  refreshCurrentUserSnapshot,
   signInWithApple,
   signInWithGoogleCredentialToken,
   signInWithEmailPassword,
@@ -136,6 +137,17 @@ export const runSyncNow = createAsyncThunk(
     await dispatch(getNotifications());
 
     return true;
+  }
+);
+
+export const refreshAuthClaims = createAsyncThunk(
+  "auth/refreshAuthClaims",
+  async (_, { rejectWithValue }) => {
+    try {
+      return await refreshCurrentUserSnapshot(true);
+    } catch (error) {
+      return rejectWithValue(formatAuthError(error));
+    }
   }
 );
 
@@ -340,6 +352,12 @@ export const authSlice = createSlice({
       state.isSyncing = false;
     });
 
+    builder.addCase(refreshAuthClaims.fulfilled, (state, action) => {
+      if (action.payload) {
+        state.user = action.payload;
+      }
+    });
+
     builder.addMatcher(
       (action: { type: string }) => pendingCases.has(action.type),
       (state) => {
@@ -397,6 +415,9 @@ export const selectAuthUser = (state: RootState): AuthUserSnapshot | null =>
 
 export const selectIsAuthenticated = (state: RootState): boolean =>
   Boolean(state.auth.user);
+
+export const selectIsMember = (state: RootState): boolean =>
+  state.auth.user?.isMember === true;
 
 export const selectAuthIsInitialized = (state: RootState): boolean =>
   state.auth.isInitialized;

@@ -30,17 +30,17 @@ These features must be **strictly member-only** for privacy and security reasons
 
 ### Architecture Summary (see brainstorm: docs/brainstorms/2026-02-26-member-only-features-brainstorm.md)
 
-| Component | Approach |
-|-----------|----------|
-| Member flag | Firebase custom claims (`isMember: true`) - tamper-proof, token-level |
-| Admin model | Staff manages via Firebase Console (no in-app admin UI) |
-| Data architecture | Flat Firestore collections: `members/`, `prayerAssignments/` |
-| Security | Two layers: client navigation guards + Firestore rules |
-| Prayer generation | Scheduled Cloud Function at midnight Mountain Time |
-| Photo storage | Firebase Storage with download URLs in member docs |
-| Token refresh | Force refresh on app foreground to detect claim changes |
-| Directory data | Name + photo only, staff-managed |
-| Privacy | No opt-out; membership implies participation |
+| Component         | Approach                                                              |
+| ----------------- | --------------------------------------------------------------------- |
+| Member flag       | Firebase custom claims (`isMember: true`) - tamper-proof, token-level |
+| Admin model       | Staff manages via Firebase Console (no in-app admin UI)               |
+| Data architecture | Flat Firestore collections: `members/`, `prayerAssignments/`          |
+| Security          | Two layers: client navigation guards + Firestore rules                |
+| Prayer generation | Scheduled Cloud Function at midnight Mountain Time                    |
+| Photo storage     | Firebase Storage with download URLs in member docs                    |
+| Token refresh     | Force refresh on app foreground to detect claim changes               |
+| Directory data    | Name + photo only, staff-managed                                      |
+| Privacy           | No opt-out; membership implies participation                          |
 
 ## Technical Approach
 
@@ -111,6 +111,7 @@ Tab.Navigator
 ```
 
 **Navigation guard behavior:**
+
 - The "Members" tab is conditionally rendered in the tab navigator based on the `isMember` claim from the auth token
 - If a member's claim is revoked mid-session, the tab disappears on the next token refresh (foreground)
 - Non-members never see the tab - they cannot even attempt to navigate to it
@@ -122,8 +123,8 @@ Extend the existing auth infrastructure to force-refresh the ID token on app for
 
 ```typescript
 // In AppLifecycleSyncEffects or a new hook
-AppState.addEventListener('change', async (nextState) => {
-  if (nextState === 'active' && currentUser) {
+AppState.addEventListener("change", async (nextState) => {
+  if (nextState === "active" && currentUser) {
     const tokenResult = await currentUser.getIdTokenResult(true);
     const isMember = tokenResult.claims.isMember === true;
     dispatch(setMemberStatus(isMember));
@@ -140,6 +141,7 @@ This leverages the existing `AppState` listener pattern used in `TodayScreen` an
 **Trigger:** Scheduled via Cloud Scheduler, runs at `0 0 * * *` America/Boise (midnight Mountain Time)
 
 **Algorithm:**
+
 1. Query all documents in `members/` collection
 2. Build array of member UIDs
 3. For each member:
@@ -149,6 +151,7 @@ This leverages the existing `AppState` listener pattern used in `TodayScreen` an
 4. Log success/failure count
 
 **Edge cases:**
+
 - Fewer than 4 total members: assign as many as available (1-2 instead of 3)
 - 0-1 members: skip generation, no assignments written
 - Function failure: Cloud Scheduler will retry per its default policy. No client-side fallback needed for brief outages.
@@ -166,6 +169,7 @@ This leverages the existing `AppState` listener pattern used in `TodayScreen` an
 **Trigger:** HTTPS callable function (authenticated, admin-only)
 
 **Purpose:** Simplify the staff workflow. Instead of manually navigating Firebase Console to set custom claims (which is buried in the Auth section), provide a callable function that:
+
 1. Sets `isMember: true` custom claim on the specified UID
 2. Creates the `members/{uid}` document with provided `displayName` and `photoURL`
 3. Returns success/failure
@@ -202,11 +206,13 @@ interface MemberState {
 ```
 
 **Thunks:**
+
 - `fetchMemberDirectory` - Reads all docs from `members/` collection
 - `fetchDailyPrayerAssignment` - Reads `prayerAssignments/{today}/assignments/{uid}`
 - `refreshMemberClaim` - Force refreshes auth token, updates `isMember` state
 
 **Selectors:**
+
 - `selectIsMember` - boolean
 - `selectMemberDirectory` - MemberProfile[]
 - `selectPrayerAssignment` - PrayerAssignment | null
@@ -215,10 +221,12 @@ interface MemberState {
 #### New Screens
 
 **`src/screens/MemberDirectoryScreen/`**
+
 - `MemberDirectoryScreen.tsx` - FlatList of member cards with search
 - `MemberDirectoryScreen.styles.ts` - Themed styles
 
 Features:
+
 - Search bar at top (case-insensitive substring match on `displayName`, client-side filtering)
 - Each row shows circular photo thumbnail + display name
 - Photo fallback: generic person silhouette with member's first initial
@@ -226,10 +234,12 @@ Features:
 - Empty state when no members found matching search
 
 **`src/screens/DailyPrayerScreen/`**
+
 - `DailyPrayerScreen.tsx` - 3 prayer partner cards
 - `DailyPrayerScreen.styles.ts` - Themed styles
 
 Features:
+
 - Header: "Pray for these members today"
 - 3 cards showing photo (or fallback) + display name
 - Graceful handling of fewer than 3 assignments
@@ -239,6 +249,7 @@ Features:
 #### New Components
 
 **`src/components/MemberAvatar/MemberAvatar.tsx`**
+
 - Circular image component with fallback to initials on colored background
 - Reused in both directory list and prayer cards
 - Props: `photoURL: string | null`, `displayName: string`, `size: number`
@@ -253,7 +264,7 @@ interface AuthUserSnapshot {
   email: string | null;
   displayName: string | null;
   providerIds: Array<string>;
-  isMember: boolean;  // NEW - from custom claims
+  isMember: boolean; // NEW - from custom claims
 }
 ```
 
@@ -262,6 +273,7 @@ Update `subscribeToAuthStateChanges` to extract `isMember` from token claims on 
 #### New Service: `src/services/members.ts`
 
 Firebase operations for member data:
+
 - `fetchAllMembers()` - Query `members/` collection
 - `fetchPrayerAssignment(uid: string, date: string)` - Read assignment doc
 - `getMountainTimeDate()` - Returns today's date string in `YYYY-MM-DD` Mountain Time format
@@ -298,36 +310,36 @@ Firebase operations for member data:
 
 ### Functional Requirements
 
-- [ ] **Custom claims:** Staff can set `isMember: true` claim on a user via the `setMemberClaim` Cloud Function
-- [ ] **Token refresh:** App force-refreshes auth token on foreground, detecting claim changes within one session cycle
-- [ ] **Navigation guard:** Members tab appears only for users with `isMember: true` claim
-- [ ] **Navigation guard:** Non-members never see the Members tab; direct navigation attempts are blocked
-- [ ] **Directory:** Members can view a scrollable list of all members showing name and photo
-- [ ] **Directory search:** Members can filter the directory by typing a name (case-insensitive substring match)
-- [ ] **Directory photos:** Member photos load from Firebase Storage; missing photos show initials fallback
-- [ ] **Prayer partners:** Members see 3 (or fewer) randomly-assigned prayer partners for today
-- [ ] **Prayer generation:** Cloud Function generates unique assignments per member nightly at midnight MT
-- [ ] **Prayer exclusion:** Members never see themselves in their own prayer assignments
-- [ ] **Prayer edge case:** With fewer than 4 total members, assigns as many as possible (1-2)
-- [ ] **Firestore rules:** `members/` collection readable only by authenticated users with `isMember` claim
-- [ ] **Firestore rules:** `prayerAssignments/` readable only by the assigned member (uid match + isMember)
-- [ ] **Firestore rules:** Both collections have `write: false` for all clients
-- [ ] **Storage rules:** Member photos readable only by authenticated users with `isMember` claim
-- [ ] **Member removal:** Revoking `isMember` claim results in loss of access on next app foreground
-- [ ] **Cleanup:** Old prayer assignments (>7 days) are automatically cleaned up weekly
+- [x] **Custom claims:** Staff can set `isMember: true` claim on a user via the `setMemberClaim` Cloud Function
+- [x] **Token refresh:** App force-refreshes auth token on foreground, detecting claim changes within one session cycle
+- [x] **Navigation guard:** Members tab appears only for users with `isMember: true` claim
+- [x] **Navigation guard:** Non-members never see the Members tab; direct navigation attempts are blocked
+- [x] **Directory:** Members can view a scrollable list of all members showing name and photo
+- [x] **Directory search:** Members can filter the directory by typing a name (case-insensitive substring match)
+- [x] **Directory photos:** Member photos load from Firebase Storage; missing photos show initials fallback
+- [x] **Prayer partners:** Members see 3 (or fewer) randomly-assigned prayer partners for today
+- [x] **Prayer generation:** Cloud Function generates unique assignments per member nightly at midnight MT
+- [x] **Prayer exclusion:** Members never see themselves in their own prayer assignments
+- [x] **Prayer edge case:** With fewer than 4 total members, assigns as many as possible (1-2)
+- [x] **Firestore rules:** `members/` collection readable only by authenticated users with `isMember` claim
+- [x] **Firestore rules:** `prayerAssignments/` readable only by the assigned member (uid match + isMember)
+- [x] **Firestore rules:** Both collections have `write: false` for all clients
+- [x] **Storage rules:** Member photos readable only by authenticated users with `isMember` claim
+- [x] **Member removal:** Revoking `isMember` claim results in loss of access on next app foreground
+- [x] **Cleanup:** Old prayer assignments (>7 days) are automatically cleaned up weekly
 
 ### Non-Functional Requirements
 
 - [ ] Directory loads in under 2 seconds for up to 500 members
 - [ ] Prayer screen loads in under 1 second (single document read with denormalized data)
-- [ ] Dark mode support for all new screens (using existing theme system)
-- [ ] Accessible: proper labels for screen readers on member cards and search input
+- [x] Dark mode support for all new screens (using existing theme system)
+- [x] Accessible: proper labels for screen readers on member cards and search input
 
 ### Quality Gates
 
-- [ ] Unit tests for `memberSlice` (thunks, selectors, state transitions)
-- [ ] Unit tests for `members.ts` service functions
-- [ ] Unit tests for `MemberAvatar` component (photo loaded, fallback states)
+- [x] Unit tests for `memberSlice` (thunks, selectors, state transitions)
+- [x] Unit tests for `members.ts` service functions
+- [x] Unit tests for `MemberAvatar` component (photo loaded, fallback states)
 - [ ] Cloud Function unit tests (assignment algorithm, edge cases)
 - [ ] Firestore rules tests (member access, non-member blocked, write blocked)
 - [ ] Manual testing on both iOS and Android
@@ -339,6 +351,7 @@ Firebase operations for member data:
 **Goal:** Server-side infrastructure in place and tested before any client changes.
 
 **Tasks:**
+
 1. Add `isMember` claim extraction to `AuthUserSnapshot` and `subscribeToAuthStateChanges` in `src/services/auth.ts`
 2. Add foreground token refresh hook (extend `AppLifecycleSyncEffects` or create `useMemberClaimRefresh` hook)
 3. Update `firestore.rules` with `members/` and `prayerAssignments/` rules
@@ -350,6 +363,7 @@ Firebase operations for member data:
 9. Write Firestore rules tests
 
 **Files created/modified:**
+
 - `src/services/auth.ts` (modify - add isMember to snapshot)
 - `src/services/members.ts` (new)
 - `firestore.rules` (modify)
@@ -365,6 +379,7 @@ Firebase operations for member data:
 **Goal:** Redux infrastructure and navigation gating in place.
 
 **Tasks:**
+
 1. Create `src/redux/memberSlice.ts` following existing slice patterns
 2. Register `memberReducer` in `src/app/store.ts`
 3. Add `selectIsMember` selector (reads from auth state or member slice)
@@ -374,6 +389,7 @@ Firebase operations for member data:
 7. Write `memberSlice` unit tests
 
 **Files created/modified:**
+
 - `src/redux/memberSlice.ts` (new)
 - `src/app/store.ts` (modify - add memberReducer)
 - `src/navigation/RootNavigator.ts` (modify - add screen types)
@@ -386,6 +402,7 @@ Firebase operations for member data:
 **Goal:** Functional directory with search.
 
 **Tasks:**
+
 1. Create `MemberAvatar` component with photo + initials fallback
 2. Add `MemberAvatar` to component barrel export (`src/components/index.ts`)
 3. Create `MemberDirectoryScreen` with FlatList, search, pull-to-refresh
@@ -394,6 +411,7 @@ Firebase operations for member data:
 6. Write component and screen tests
 
 **Files created/modified:**
+
 - `src/components/MemberAvatar/MemberAvatar.tsx` (new)
 - `src/components/MemberAvatar/MemberAvatar.styles.ts` (new)
 - `src/components/index.ts` (modify)
@@ -407,6 +425,7 @@ Firebase operations for member data:
 **Goal:** Prayer partner cards displaying correctly.
 
 **Tasks:**
+
 1. Create `DailyPrayerScreen` with prayer partner cards
 2. Create `DailyPrayerScreen.styles.ts` with themed styles
 3. Implement `getMountainTimeDate()` utility for consistent date handling
@@ -415,6 +434,7 @@ Firebase operations for member data:
 6. Write screen tests
 
 **Files created/modified:**
+
 - `src/screens/DailyPrayerScreen/DailyPrayerScreen.tsx` (new)
 - `src/screens/DailyPrayerScreen/DailyPrayerScreen.styles.ts` (new)
 - `src/services/members.ts` (modify - add date utility)
@@ -426,6 +446,7 @@ Firebase operations for member data:
 **Goal:** Production-ready quality.
 
 **Tasks:**
+
 1. Dark mode verification for all new screens
 2. Accessibility audit (screen reader labels, touch targets)
 3. Error state UI for all failure modes (network, permissions, empty states)
@@ -441,14 +462,14 @@ Firebase operations for member data:
 
 (see brainstorm: docs/brainstorms/2026-02-26-member-only-features-brainstorm.md)
 
-| Approach | Why Rejected |
-|----------|-------------|
-| Nested Firestore (under users/) | Harder to query across members; collection group queries add complexity |
-| Embedded assignments in member docs | Documents grow over time; mixed write permissions (staff vs function) |
-| Client-side prayer generation | Requires full member list on client; less secure; harder to guarantee uniqueness |
-| On-demand Cloud Function for prayer | Slower first load; concurrent request handling complexity |
+| Approach                                 | Why Rejected                                                                         |
+| ---------------------------------------- | ------------------------------------------------------------------------------------ |
+| Nested Firestore (under users/)          | Harder to query across members; collection group queries add complexity              |
+| Embedded assignments in member docs      | Documents grow over time; mixed write permissions (staff vs function)                |
+| Client-side prayer generation            | Requires full member list on client; less secure; harder to guarantee uniqueness     |
+| On-demand Cloud Function for prayer      | Slower first load; concurrent request handling complexity                            |
 | Firestore document field for member flag | Can potentially be tampered with if rules aren't perfect; custom claims are stronger |
-| In-app admin UI | Premature; prove the features before investing in admin infrastructure |
+| In-app admin UI                          | Premature; prove the features before investing in admin infrastructure               |
 
 ## Dependencies & Prerequisites
 
@@ -459,20 +480,21 @@ Firebase operations for member data:
 
 ## Risk Analysis & Mitigation
 
-| Risk | Likelihood | Impact | Mitigation |
-|------|-----------|--------|------------|
-| Staff forgets to create member doc after setting claim | Medium | Member sees empty directory entry | `setMemberClaim` function atomically sets claim + creates doc |
-| Cloud Function fails on a given night | Low | No prayer partners for the day | Cloud Scheduler retry policy + client falls back to previous day |
-| Token refresh fails (no network) | Medium | Stale claim state | Use cached claim; member features remain based on last known state |
-| Large member count slows directory | Low (church app) | Slow UI | Client-side filtering; FlatList virtualization handles 500+ members |
-| Photo URL becomes invalid | Low | Broken image | MemberAvatar fallback to initials |
-| Timezone confusion for prayer dates | Medium | Wrong day's assignments | `getMountainTimeDate()` utility used consistently; documented convention |
+| Risk                                                   | Likelihood       | Impact                            | Mitigation                                                               |
+| ------------------------------------------------------ | ---------------- | --------------------------------- | ------------------------------------------------------------------------ |
+| Staff forgets to create member doc after setting claim | Medium           | Member sees empty directory entry | `setMemberClaim` function atomically sets claim + creates doc            |
+| Cloud Function fails on a given night                  | Low              | No prayer partners for the day    | Cloud Scheduler retry policy + client falls back to previous day         |
+| Token refresh fails (no network)                       | Medium           | Stale claim state                 | Use cached claim; member features remain based on last known state       |
+| Large member count slows directory                     | Low (church app) | Slow UI                           | Client-side filtering; FlatList virtualization handles 500+ members      |
+| Photo URL becomes invalid                              | Low              | Broken image                      | MemberAvatar fallback to initials                                        |
+| Timezone confusion for prayer dates                    | Medium           | Wrong day's assignments           | `getMountainTimeDate()` utility used consistently; documented convention |
 
 ## Timezone Strategy
 
 **Convention:** All dates in `prayerAssignments/{date}` use Mountain Time (America/Boise) in `YYYY-MM-DD` format. This is the church's local timezone.
 
 **Client behavior:** The `getMountainTimeDate()` utility converts the current UTC time to Mountain Time to determine "today's" date string. This means:
+
 - A user in Eastern Time at 11 PM ET sees Mountain Time's date (which is 9 PM MT = same calendar day)
 - A user in UTC+12 at 2 AM their time sees Mountain Time's date (which is the previous calendar day)
 - If no assignment exists for the computed date (function hasn't run yet), fall back to the previous day

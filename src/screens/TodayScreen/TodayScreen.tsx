@@ -71,7 +71,17 @@ import {
   selectAuthIsInitialized,
   selectAuthIsSyncing,
   selectIsAuthenticated,
+  selectIsMember,
 } from "src/redux/authSlice";
+import {
+  fetchDailyPrayerAssignment,
+  selectHasPrayerError,
+  selectIsFallbackPrayerAssignment,
+  selectIsLoadingPrayer,
+  selectPrayerAssignment,
+  selectPrayerAssignmentDate,
+} from "src/redux/memberSlice";
+import { MemberAvatar } from "src/components";
 import thumbnail from "../../../assets/podcast-icon.png";
 import icon from "../../../assets/icon.png";
 import { FeedItem } from "react-native-rss-parser";
@@ -127,6 +137,14 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
   const isAuthenticated = useAppSelector(selectIsAuthenticated);
   const authIsInitialized = useAppSelector(selectAuthIsInitialized);
   const authIsSyncing = useAppSelector(selectAuthIsSyncing);
+  const isMember = useAppSelector(selectIsMember);
+  const prayerAssignment = useAppSelector(selectPrayerAssignment);
+  const prayerAssignmentDate = useAppSelector(selectPrayerAssignmentDate);
+  const isFallbackPrayerAssignment = useAppSelector(
+    selectIsFallbackPrayerAssignment
+  );
+  const isLoadingPrayerAssignment = useAppSelector(selectIsLoadingPrayer);
+  const hasPrayerAssignmentError = useAppSelector(selectHasPrayerError);
 
   // Ref Hooks
   const appState = useRef(AppState.currentState);
@@ -253,6 +271,13 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
     }
   }, [weeklyMemoryDay, memoryPassageAcronym, dispatch]);
 
+  useEffect(() => {
+    if (!isMember) {
+      return;
+    }
+    void dispatch(fetchDailyPrayerAssignment());
+  }, [dispatch, isMember, currentDate]);
+
   React.useLayoutEffect(() => {
     navigation.setOptions({});
   }, [navigation]);
@@ -319,6 +344,10 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
         onComplete: () => {},
       });
     }
+  };
+
+  const handleGeneratePrayerAssignment = () => {
+    void dispatch(fetchDailyPrayerAssignment({ generateIfMissing: true }));
   };
 
   const getReadingPlanProgressPercentage = () => {
@@ -650,6 +679,94 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
                 style={themedStyles.disclosureIcon}
               />
             </Pressable>
+            {isMember && (
+              <>
+                <View style={themedStyles.headerRow}>
+                  <Text style={themedStyles.header}>Prayer Assignments</Text>
+                </View>
+                <View style={themedStyles.contentCard}>
+                  <View style={themedStyles.contentCardColumn}>
+                    {isLoadingPrayerAssignment && !prayerAssignment ? (
+                      <ActivityIndicator
+                        size="small"
+                        color={theme.colors.text}
+                      />
+                    ) : hasPrayerAssignmentError && !prayerAssignment ? (
+                      <>
+                        <Text style={themedStyles.prayerStateText}>
+                          We could not load your prayer assignments right now.
+                        </Text>
+                        <Pressable
+                          accessibilityRole="button"
+                          style={themedStyles.prayerActionButton}
+                          onPress={() => {
+                            void dispatch(fetchDailyPrayerAssignment());
+                          }}
+                        >
+                          <Text style={themedStyles.prayerActionButtonText}>
+                            Try again
+                          </Text>
+                        </Pressable>
+                      </>
+                    ) : !prayerAssignment ||
+                      prayerAssignment.members.length === 0 ? (
+                      <>
+                        <Text style={themedStyles.prayerStateText}>
+                          No prayer assignments yet for today.
+                        </Text>
+                        <Pressable
+                          accessibilityRole="button"
+                          style={themedStyles.prayerActionButton}
+                          disabled={isLoadingPrayerAssignment}
+                          onPress={handleGeneratePrayerAssignment}
+                        >
+                          <Text style={themedStyles.prayerActionButtonText}>
+                            Get Today&apos;s Prayer Assignments
+                          </Text>
+                        </Pressable>
+                      </>
+                    ) : (
+                      <>
+                        {isFallbackPrayerAssignment && prayerAssignmentDate ? (
+                          <>
+                            <Text style={themedStyles.prayerAssignmentMeta}>
+                              Showing assignments from {prayerAssignmentDate}.
+                            </Text>
+                            <Pressable
+                              accessibilityRole="button"
+                              style={themedStyles.prayerActionButton}
+                              disabled={isLoadingPrayerAssignment}
+                              onPress={handleGeneratePrayerAssignment}
+                            >
+                              <Text style={themedStyles.prayerActionButtonText}>
+                                Get today&apos;s prayer assignment
+                              </Text>
+                            </Pressable>
+                          </>
+                        ) : undefined}
+                        <View style={themedStyles.prayerAssignmentList}>
+                          {prayerAssignment.members.map((member) => (
+                            <View
+                              key={member.uid}
+                              style={themedStyles.prayerAssignmentRow}
+                            >
+                              <MemberAvatar
+                                size={44}
+                                photoURL={member.photoURL}
+                                displayName={member.displayName}
+                              />
+                              <Text style={themedStyles.prayerAssignmentName}>
+                                {member.displayName}
+                              </Text>
+                            </View>
+                          ))}
+                        </View>
+                      </>
+                    )}
+                  </View>
+                </View>
+              </>
+            )}
             <View style={themedStyles.headerRow}>
               <Text style={themedStyles.header}>Resources</Text>
             </View>

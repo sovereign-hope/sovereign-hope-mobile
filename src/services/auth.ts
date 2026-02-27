@@ -25,6 +25,7 @@ export interface AuthUserSnapshot {
   email: string | null;
   displayName: string | null;
   providerIds: Array<string>;
+  isMember: boolean;
 }
 
 export interface GoogleSignInCredentialParams {
@@ -34,41 +35,65 @@ export interface GoogleSignInCredentialParams {
 
 export const getCurrentAuth = (): Auth => getFirebaseAuth();
 
-export const getCurrentUserSnapshot = (): AuthUserSnapshot | null => {
+export const getCurrentUserSnapshot =
+  async (): Promise<AuthUserSnapshot | null> => {
+    const user = getCurrentAuth().currentUser;
+    if (!user) {
+      return null;
+    }
+
+    return mapUser(user);
+  };
+
+export const refreshCurrentUserSnapshot = async (
+  forceRefresh = true
+): Promise<AuthUserSnapshot | null> => {
   const user = getCurrentAuth().currentUser;
   if (!user) {
     return null;
   }
 
-  return {
-    uid: user.uid,
-    email: user.email,
-    displayName: user.displayName,
-    providerIds: user.providerData
-      .map((provider) => provider.providerId)
-      .filter((providerId): providerId is string => Boolean(providerId)),
-  };
+  return mapUser(user, forceRefresh);
 };
 
 export const subscribeToAuthStateChanges = (
   callback: (userSnapshot: AuthUserSnapshot | null) => void
-): (() => void) =>
-  onAuthStateChanged(getCurrentAuth(), (user) => {
-    callback(
-      user
-        ? {
+): (() => void) => {
+  const auth = getCurrentAuth();
+  let authStateVersion = 0;
+
+  return onAuthStateChanged(auth, (user) => {
+    authStateVersion += 1;
+    const eventVersion = authStateVersion;
+
+    if (!user) {
+      callback(null);
+      return;
+    }
+
+    void (async () => {
+      const shouldApplyResult = (): boolean =>
+        eventVersion === authStateVersion && auth.currentUser?.uid === user.uid;
+
+      try {
+        const mappedUser = await mapUser(user);
+        if (shouldApplyResult()) {
+          callback(mappedUser);
+        }
+      } catch {
+        if (shouldApplyResult()) {
+          callback({
             uid: user.uid,
             email: user.email,
             displayName: user.displayName,
-            providerIds: user.providerData
-              .map((provider) => provider.providerId)
-              .filter((providerId): providerId is string =>
-                Boolean(providerId)
-              ),
-          }
-        : null
-    );
+            providerIds: getUserProviderIds(user),
+            isMember: false,
+          });
+        }
+      }
+    })();
   });
+};
 
 export const signInWithEmailPassword = async (
   email: string,
@@ -354,13 +379,32 @@ const logProviderAuthError = (
   );
 };
 
-const mapUser = (user: User): AuthUserSnapshot => ({
+const getUserProviderIds = (user: User): Array<string> =>
+  user.providerData
+    .map((provider) => provider.providerId)
+    .filter((providerId): providerId is string => Boolean(providerId));
+
+const getUserIsMemberClaim = async (
+  user: User,
+  forceRefresh = false
+): Promise<boolean> => {
+  try {
+    const tokenResult = await user.getIdTokenResult(forceRefresh);
+    return tokenResult.claims.isMember === true;
+  } catch {
+    return false;
+  }
+};
+
+const mapUser = async (
+  user: User,
+  forceRefresh = false
+): Promise<AuthUserSnapshot> => ({
   uid: user.uid,
   email: user.email,
   displayName: user.displayName,
-  providerIds: user.providerData
-    .map((provider) => provider.providerId)
-    .filter((providerId): providerId is string => Boolean(providerId)),
+  providerIds: getUserProviderIds(user),
+  isMember: await getUserIsMemberClaim(user, forceRefresh),
 });
 
 /* eslint-enable unicorn/no-null, @typescript-eslint/no-use-before-define, unicorn/prefer-native-coercion-functions, unicorn/switch-case-braces */

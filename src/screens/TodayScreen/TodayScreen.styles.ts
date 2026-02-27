@@ -44,6 +44,13 @@ interface Style {
   spacer: ViewStyle;
   image: ImageStyle;
   text: TextStyle;
+  prayerAssignmentList: ViewStyle;
+  prayerAssignmentRow: ViewStyle;
+  prayerAssignmentName: TextStyle;
+  prayerAssignmentMeta: TextStyle;
+  prayerStateText: TextStyle;
+  prayerActionButton: ViewStyle;
+  prayerActionButtonText: TextStyle;
 }
 
 export const styles = ({ theme }: Props): Style =>
@@ -212,5 +219,43 @@ export const styles = ({ theme }: Props): Style =>
     text: {
       ...body,
       color: theme.colors.text,
+    },
+    prayerAssignmentList: {
+      gap: spacing.medium,
+    },
+    prayerAssignmentRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.medium,
+    },
+    prayerAssignmentName: {
+      ...header3,
+      color: theme.colors.text,
+    },
+    prayerAssignmentMeta: {
+      ...body,
+      color: theme.colors.text,
+      opacity: 0.7,
+      marginBottom: spacing.medium,
+    },
+    prayerStateText: {
+      ...body,
+      color: theme.colors.text,
+    },
+    prayerActionButton: {
+      marginTop: spacing.medium,
+      borderRadius: radius.medium,
+      borderWidth: 1,
+      borderColor: colors.accent,
+      paddingVertical: spacing.medium,
+      paddingHorizontal: spacing.large,
+      minHeight: 45,
+      justifyContent: "center",
+      alignItems: "center",
+      alignSelf: "flex-start",
+    },
+    prayerActionButtonText: {
+      color: colors.accent,
+      fontWeight: "600",
     },
   });

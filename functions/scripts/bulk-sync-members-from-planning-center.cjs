@@ -1,0 +1,562 @@
+#!/usr/bin/env node
+/* eslint-disable no-console */
+
+const fs = require("node:fs");
+const { execSync } = require("node:child_process");
+const admin = require("firebase-admin");
+
+const PCO_API_BASE_URL = "https://api.planningcenteronline.com/people/v2";
+const KEYCHAIN_PCO_CLIENT_ID_SERVICE = "sovereign-hope-mobile.pco_client_id";
+const KEYCHAIN_PCO_ACCESS_TOKEN_SERVICE =
+  "sovereign-hope-mobile.pco_access_token";
+
+function parseArgs(rawArgs) {
+  const args = {};
+
+  for (let index = 0; index < rawArgs.length; index += 1) {
+    const token = rawArgs[index];
+    if (!token.startsWith("--")) {
+      continue;
+    }
+
+    const key = token.slice(2);
+    const nextToken = rawArgs[index + 1];
+    if (!nextToken || nextToken.startsWith("--")) {
+      args[key] = true;
+      continue;
+    }
+
+    args[key] = nextToken;
+    index += 1;
+  }
+
+  return args;
+}
+
+function toPositiveInt(value, fallbackValue) {
+  if (value === undefined || value === null || value === "") {
+    return fallbackValue;
+  }
+
+  const parsed = Number.parseInt(String(value), 10);
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    throw new Error(`Expected a positive integer but received "${value}".`);
+  }
+  return parsed;
+}
+
+function readKeychainSecret(serviceName) {
+  try {
+    const output = execSync(
+      `security find-generic-password -w -s "${serviceName}"`,
+      {
+        stdio: ["ignore", "pipe", "ignore"],
+        encoding: "utf8",
+      }
+    );
+    return output.trim();
+  } catch {
+    return "";
+  }
+}
+
+function getPcoCredentials() {
+  const clientId =
+    process.env.PCO_CLIENT_ID ||
+    readKeychainSecret(KEYCHAIN_PCO_CLIENT_ID_SERVICE);
+  const accessToken =
+    process.env.PCO_ACCESS_TOKEN ||
+    readKeychainSecret(KEYCHAIN_PCO_ACCESS_TOKEN_SERVICE);
+
+  if (!clientId || !accessToken) {
+    throw new Error(
+      "Missing Planning Center credentials. Set PCO_CLIENT_ID and PCO_ACCESS_TOKEN env vars, or save them in macOS Keychain via functions/scripts/save-pco-credentials-keychain.sh."
+    );
+  }
+
+  return { clientId, accessToken };
+}
+
+function getProjectIdFromFirebaseRc() {
+  const firebaseRcPath = `${process.cwd()}/.firebaserc`;
+  if (!fs.existsSync(firebaseRcPath)) {
+    return "";
+  }
+
+  try {
+    const parsed = JSON.parse(fs.readFileSync(firebaseRcPath, "utf8"));
+    const projectMap = parsed?.projects || {};
+    if (typeof projectMap.default === "string" && projectMap.default.trim()) {
+      return projectMap.default.trim();
+    }
+    if (
+      typeof projectMap.production === "string" &&
+      projectMap.production.trim()
+    ) {
+      return projectMap.production.trim();
+    }
+
+    const firstValue = Object.values(projectMap).find(
+      (value) => typeof value === "string" && value.trim()
+    );
+    return typeof firstValue === "string" ? firstValue.trim() : "";
+  } catch {
+    return "";
+  }
+}
+
+function assertGcloudAdcReady() {
+  try {
+    execSync("gcloud auth application-default print-access-token", {
+      stdio: ["ignore", "pipe", "ignore"],
+      encoding: "utf8",
+    });
+  } catch {
+    throw new Error(
+      "ADC is not ready. Run: gcloud auth application-default login"
+    );
+  }
+}
+
+function initializeFirebaseAdmin(projectIdArg) {
+  const credentialsPath =
+    process.env.FIREBASE_SERVICE_ACCOUNT_PATH ||
+    process.env.GOOGLE_APPLICATION_CREDENTIALS;
+  const projectIdFromEnv =
+    process.env.GOOGLE_CLOUD_PROJECT || process.env.GCLOUD_PROJECT;
+  const projectIdFromFirebaseRc = getProjectIdFromFirebaseRc();
+  let projectId =
+    projectIdArg || projectIdFromEnv || projectIdFromFirebaseRc || "";
+
+  if (credentialsPath) {
+    const serviceAccount = JSON.parse(fs.readFileSync(credentialsPath, "utf8"));
+    projectId = projectId || serviceAccount.project_id || "";
+    if (!projectId) {
+      throw new Error(
+        "Unable to resolve Firebase project ID. Provide --project-id, set GOOGLE_CLOUD_PROJECT, or use a service account with project_id."
+      );
+    }
+
+    if (!admin.apps.length) {
+      admin.initializeApp({
+        credential: admin.credential.cert(serviceAccount),
+        projectId,
+      });
+    }
+
+    return {
+      auth: admin.auth(),
+      db: admin.firestore(),
+      projectId,
+      authMode: "service-account",
+    };
+  }
+
+  if (!projectId) {
+    throw new Error(
+      "Unable to resolve Firebase project ID for ADC mode. Provide --project-id, set GOOGLE_CLOUD_PROJECT, or add a project mapping in .firebaserc."
+    );
+  }
+
+  assertGcloudAdcReady();
+
+  if (!admin.apps.length) {
+    admin.initializeApp({
+      credential: admin.credential.applicationDefault(),
+      projectId,
+    });
+  }
+
+  return {
+    auth: admin.auth(),
+    db: admin.firestore(),
+    projectId,
+    authMode: "adc",
+  };
+}
+
+function getPersonDisplayName(personAttributes) {
+  const explicitName = personAttributes?.name?.trim();
+  if (explicitName) {
+    return explicitName;
+  }
+
+  const firstName = personAttributes?.first_name?.trim() || "";
+  const lastName = personAttributes?.last_name?.trim() || "";
+  const combined = `${firstName} ${lastName}`.trim();
+  if (combined) {
+    return combined;
+  }
+
+  return "";
+}
+
+function getPersonPhotoUrl(personAttributes) {
+  const candidates = [
+    personAttributes?.avatar,
+    personAttributes?.avatar_url,
+    personAttributes?.photo_url,
+    personAttributes?.demographic_avatar_url,
+    personAttributes?.photo?.url,
+  ];
+
+  for (const candidate of candidates) {
+    if (typeof candidate === "string" && candidate.trim()) {
+      return candidate.trim();
+    }
+  }
+
+  return null;
+}
+
+function pickBestEmailForPerson(person, emailsById) {
+  const emailRefs = person.relationships?.emails?.data || [];
+  const resolvedEmails = emailRefs
+    .map((ref) => emailsById.get(String(ref.id)))
+    .filter((value) => Boolean(value));
+
+  if (resolvedEmails.length === 0) {
+    return null;
+  }
+
+  const primary = resolvedEmails.find((email) => email.primary === true);
+  return primary || resolvedEmails[0];
+}
+
+async function fetchPcoJson(url, credentials) {
+  const authModePreference = String(
+    process.env.PCO_AUTH_MODE || "auto"
+  ).toLowerCase();
+  const basicAuthHeader = `Basic ${Buffer.from(
+    `${credentials.clientId}:${credentials.accessToken}`
+  ).toString("base64")}`;
+
+  const authAttempts =
+    authModePreference === "basic"
+      ? [{ mode: "basic", headers: { Authorization: basicAuthHeader } }]
+      : authModePreference === "bearer"
+      ? [
+          {
+            mode: "bearer",
+            headers: {
+              Authorization: `Bearer ${credentials.accessToken}`,
+              "X-PCO-Client-Id": credentials.clientId,
+            },
+          },
+        ]
+      : [
+          { mode: "basic", headers: { Authorization: basicAuthHeader } },
+          {
+            mode: "bearer",
+            headers: {
+              Authorization: `Bearer ${credentials.accessToken}`,
+              "X-PCO-Client-Id": credentials.clientId,
+            },
+          },
+        ];
+
+  let lastError;
+  for (const attempt of authAttempts) {
+    const response = await fetch(url, {
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+        "User-Agent": "sovereign-hope-mobile-member-bulk-sync/1.0",
+        ...attempt.headers,
+      },
+    });
+
+    if (response.ok) {
+      return response.json();
+    }
+
+    const text = await response.text();
+    lastError = {
+      mode: attempt.mode,
+      status: response.status,
+      body: text.slice(0, 300),
+    };
+
+    if (response.status !== 401 && response.status !== 403) {
+      break;
+    }
+  }
+
+  throw new Error(
+    `Planning Center request failed (mode=${lastError?.mode}, status=${
+      lastError?.status
+    }). ${lastError?.body || ""}`
+  );
+}
+
+async function resolveMembersList(credentials, listName, listId) {
+  if (listId) {
+    const json = await fetchPcoJson(
+      `${PCO_API_BASE_URL}/lists/${encodeURIComponent(listId)}`,
+      credentials
+    );
+    if (!json?.data || json.data.type !== "List") {
+      throw new Error(`List ID ${listId} was not found in Planning Center.`);
+    }
+    return {
+      id: String(json.data.id),
+      name: json.data.attributes?.name || "Members",
+    };
+  }
+
+  const queryUrl =
+    `${PCO_API_BASE_URL}/lists` +
+    `?where[name]=${encodeURIComponent(listName)}` +
+    "&per_page=100";
+  const json = await fetchPcoJson(queryUrl, credentials);
+  const lists = (json?.data || []).filter((item) => item.type === "List");
+
+  if (lists.length === 0) {
+    throw new Error(`No Planning Center list found with name "${listName}".`);
+  }
+
+  const exactMatches = lists.filter(
+    (list) =>
+      String(list.attributes?.name || "").toLowerCase() ===
+      String(listName).toLowerCase()
+  );
+  const chosen = exactMatches[0] || lists[0];
+
+  return {
+    id: String(chosen.id),
+    name: chosen.attributes?.name || listName,
+  };
+}
+
+async function fetchAllPeopleFromList(credentials, listId, perPage) {
+  const allPeople = [];
+  const allIncludedEmails = [];
+  let nextUrl =
+    `${PCO_API_BASE_URL}/lists/${encodeURIComponent(listId)}/people` +
+    `?per_page=${perPage}` +
+    "&include=emails";
+  const visitedUrls = new Set();
+
+  while (nextUrl) {
+    if (visitedUrls.has(nextUrl)) {
+      throw new Error(
+        "Pagination loop detected while reading Planning Center list."
+      );
+    }
+    visitedUrls.add(nextUrl);
+
+    const json = await fetchPcoJson(nextUrl, credentials);
+    const people = (json?.data || []).filter((item) => item.type === "Person");
+    const emails = (json?.included || []).filter(
+      (item) => item.type === "Email"
+    );
+
+    allPeople.push(...people);
+    allIncludedEmails.push(...emails);
+
+    nextUrl = json?.links?.next || null;
+  }
+
+  return { people: allPeople, includedEmails: allIncludedEmails };
+}
+
+function buildCandidatesFromList(people, includedEmails, limit) {
+  const emailsById = new Map();
+  for (const emailResource of includedEmails) {
+    emailsById.set(String(emailResource.id), {
+      address: emailResource.attributes?.address || "",
+      primary: emailResource.attributes?.primary === true,
+      blocked: emailResource.attributes?.blocked === true,
+    });
+  }
+
+  const dedupeByEmail = new Map();
+  for (const person of people) {
+    const email = pickBestEmailForPerson(person, emailsById);
+    if (!email || !email.address || email.blocked) {
+      continue;
+    }
+
+    const normalizedEmail = String(email.address).trim().toLowerCase();
+    if (!normalizedEmail) {
+      continue;
+    }
+
+    if (dedupeByEmail.has(normalizedEmail)) {
+      continue;
+    }
+
+    const displayName =
+      getPersonDisplayName(person.attributes || {}) || "Church Member";
+    const photoURL = getPersonPhotoUrl(person.attributes || {});
+
+    dedupeByEmail.set(normalizedEmail, {
+      email: normalizedEmail,
+      personId: String(person.id),
+      displayName,
+      photoURL,
+      personApiUrl: person.links?.self || null,
+    });
+  }
+
+  const values = [...dedupeByEmail.values()];
+  if (limit > 0) {
+    return values.slice(0, limit);
+  }
+  return values;
+}
+
+async function upsertMemberDoc(db, uid, payload) {
+  const ref = db.collection("members").doc(uid);
+  await db.runTransaction(async (transaction) => {
+    const existing = await transaction.get(ref);
+    transaction.set(
+      ref,
+      {
+        ...payload,
+        uid,
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        createdAt: existing.exists
+          ? existing.data().createdAt ||
+            admin.firestore.FieldValue.serverTimestamp()
+          : admin.firestore.FieldValue.serverTimestamp(),
+      },
+      { merge: true }
+    );
+  });
+}
+
+async function syncMembers(options) {
+  const { listName, listId, perPage, limit, dryRun, projectId } = options;
+
+  const pcoCredentials = getPcoCredentials();
+  const { auth, db, authMode } = initializeFirebaseAdmin(projectId);
+  const resolvedList = await resolveMembersList(
+    pcoCredentials,
+    listName,
+    listId
+  );
+  const { people, includedEmails } = await fetchAllPeopleFromList(
+    pcoCredentials,
+    resolvedList.id,
+    perPage
+  );
+  const candidates = buildCandidatesFromList(people, includedEmails, limit);
+
+  const summary = {
+    ok: true,
+    dryRun,
+    authMode,
+    list: resolvedList,
+    totalPeopleInList: people.length,
+    includedEmailRecords: includedEmails.length,
+    candidatesWithEmail: candidates.length,
+    matchedFirebaseUsers: 0,
+    updatedMembers: 0,
+    alreadyHadMemberClaim: 0,
+    unmatchedEmails: [],
+    updated: [],
+  };
+
+  for (const candidate of candidates) {
+    try {
+      const userRecord = await auth.getUserByEmail(candidate.email);
+      const uid = userRecord.uid;
+      const existingClaims = userRecord.customClaims || {};
+      const alreadyMember = existingClaims.isMember === true;
+      const nextClaims = {
+        ...existingClaims,
+        isMember: true,
+      };
+
+      summary.matchedFirebaseUsers += 1;
+      if (alreadyMember) {
+        summary.alreadyHadMemberClaim += 1;
+      }
+
+      const memberPayload = {
+        displayName: candidate.displayName,
+        photoURL: candidate.photoURL,
+        email: candidate.email,
+        planningCenterPersonId: candidate.personId,
+        planningCenterPersonUrl: candidate.personApiUrl,
+        planningCenterListId: resolvedList.id,
+        planningCenterListName: resolvedList.name,
+      };
+
+      if (!dryRun) {
+        await auth.setCustomUserClaims(uid, nextClaims);
+        await upsertMemberDoc(db, uid, memberPayload);
+      }
+
+      summary.updatedMembers += 1;
+      if (summary.updated.length < 50) {
+        summary.updated.push({
+          uid,
+          email: candidate.email,
+          displayName: candidate.displayName,
+          alreadyMember,
+          planningCenterPersonId: candidate.personId,
+        });
+      }
+    } catch (error) {
+      const firebaseCode = error?.errorInfo?.code || error?.code || "";
+      if (firebaseCode === "auth/user-not-found") {
+        if (summary.unmatchedEmails.length < 200) {
+          summary.unmatchedEmails.push(candidate.email);
+        }
+        continue;
+      }
+
+      throw error;
+    }
+  }
+
+  console.log(JSON.stringify(summary, null, 2));
+}
+
+function printUsageAndExit(exitCode = 1) {
+  console.error(`
+Usage:
+  node functions/scripts/bulk-sync-members-from-planning-center.cjs [options]
+
+Options:
+  --list-name <name>            Planning Center list name (default: Members)
+  --list-id <id>                Planning Center list id (overrides --list-name)
+  --per-page <n>                PCO page size (default: 100)
+  --limit <n>                   Limit number of candidate members (testing)
+  --project-id <id>             Firebase project override
+  --dry-run                     Preview without writing
+  --help                        Show this help
+  PCO_AUTH_MODE                 Env var: auto|basic|bearer (default: auto)
+
+Auth:
+  1) Service account JSON:
+     FIREBASE_SERVICE_ACCOUNT_PATH=/abs/path/to/service-account.json ...
+  2) ADC (no service account file):
+     gcloud auth application-default login
+     gcloud config set project <project_id>
+`);
+  process.exit(exitCode);
+}
+
+async function main() {
+  const args = parseArgs(process.argv.slice(2));
+  if (args.help) {
+    printUsageAndExit(0);
+  }
+
+  await syncMembers({
+    listName: args["list-name"] ? String(args["list-name"]).trim() : "Members",
+    listId: args["list-id"] ? String(args["list-id"]).trim() : "",
+    perPage: toPositiveInt(args["per-page"], 100),
+    limit: args.limit ? toPositiveInt(args.limit, 0) : 0,
+    projectId: args["project-id"] ? String(args["project-id"]).trim() : "",
+    dryRun: Boolean(args["dry-run"]),
+  });
+}
+
+main().catch((error) => {
+  console.error(error.message || error);
+  process.exit(1);
+});

@@ -6,6 +6,9 @@ export type RootStackParamList = {
   "Available Plans": undefined;
   "This Week": undefined;
   Church: undefined;
+  Members: undefined;
+  "Member Directory": undefined;
+  "Daily Prayer": undefined;
   Read: {
     passages: Array<Passage>;
     onComplete: () => void;

@@ -20,7 +20,7 @@ import { FontSizePickerScreen } from "../FontSizePickerScreen/FontSizePickerScre
 import { ScheduleScreen } from "../ScheduleScreen";
 import { SundaysScreen } from "../SundaysScreen";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Pressable, Platform, Linking } from "react-native";
+import { Pressable, Platform, Linking, Text, View } from "react-native";
 import { TabBarHeightContext } from "src/navigation/TabBarContext";
 import { ChurchScreen } from "../ChurchScreen/ChurchScreen";
 import { useAppSelector, useAppDispatch } from "src/hooks/store";
@@ -28,6 +28,9 @@ import {
   selectEnableChurchCenterDeepLink,
   getEnableChurchCenterDeepLink,
 } from "src/redux/settingsSlice";
+import { selectIsMember } from "src/redux/authSlice";
+import { MemberDirectoryScreen } from "../MemberDirectoryScreen/MemberDirectoryScreen";
+import { DailyPrayerScreen } from "../DailyPrayerScreen/DailyPrayerScreen";
 
 // React Navigation configuration
 enableScreens();
@@ -37,8 +40,7 @@ const JSTab = createBottomTabNavigator<RootStackParamList>();
 
 const isIOS26OrNewer = (): boolean => {
   return (
-    Platform.OS === "ios" &&
-    Number.parseInt(String(Platform.Version), 10) >= 26
+    Platform.OS === "ios" && Number.parseInt(String(Platform.Version), 10) >= 26
   );
 };
 
@@ -203,18 +205,124 @@ const ReadingPlanStack = (): React.JSX.Element => {
   );
 };
 
+const MemberAccessGuardScreen = (): React.JSX.Element => {
+  const colorScheme = useColorScheme();
+  return (
+    <View
+      style={{
+        flex: 1,
+        alignItems: "center",
+        justifyContent: "center",
+        padding: 16,
+        backgroundColor:
+          colorScheme === "dark"
+            ? darkTheme.colors.background
+            : lightTheme.colors.background,
+      }}
+    >
+      <Text
+        style={{
+          textAlign: "center",
+          color:
+            colorScheme === "dark"
+              ? darkTheme.colors.text
+              : lightTheme.colors.text,
+        }}
+      >
+        This feature is available to church members.
+      </Text>
+    </View>
+  );
+};
+
+const MemberStack = (): React.JSX.Element => {
+  const colorScheme = useColorScheme();
+  const isMember = useAppSelector(selectIsMember);
+
+  return (
+    <Stack.Navigator
+      screenOptions={{
+        headerTintColor: colors.accent,
+        headerShadowVisible: false,
+        headerLargeTitle: true,
+        ...(Platform.OS === "ios"
+          ? {
+              headerBackButtonDisplayMode: "minimal" as const,
+              headerBackTitleVisible: false,
+            }
+          : {}),
+        headerStyle: {
+          backgroundColor: getHeaderBackgroundColor(colorScheme),
+        },
+        headerTitleStyle: {
+          color:
+            colorScheme === "dark"
+              ? darkTheme.colors.text
+              : lightTheme.colors.text,
+        },
+      }}
+    >
+      {isMember ? (
+        <>
+          <Stack.Screen
+            name="Member Directory"
+            component={MemberDirectoryScreen}
+            options={({ navigation }) => {
+              if (isIOS26OrNewer()) {
+                return {
+                  unstable_headerRightItems: () => [
+                    {
+                      type: "button" as const,
+                      label: "Daily Prayer",
+                      onPress: () => navigation.navigate("Daily Prayer"),
+                      tintColor: colors.accent,
+                      sharesBackground: false,
+                    },
+                  ],
+                };
+              }
+
+              return {
+                headerRight: () => (
+                  <Pressable
+                    accessibilityRole="button"
+                    onPress={() => navigation.navigate("Daily Prayer")}
+                    style={({ pressed }) => ({ opacity: pressed ? 0.65 : 1 })}
+                  >
+                    <Text style={{ color: colors.accent, fontWeight: "600" }}>
+                      Daily Prayer
+                    </Text>
+                  </Pressable>
+                ),
+              };
+            }}
+          />
+          <Stack.Screen
+            name="Daily Prayer"
+            component={DailyPrayerScreen}
+            options={{ headerLargeTitle: false }}
+          />
+        </>
+      ) : (
+        <Stack.Screen
+          name="Members"
+          component={MemberAccessGuardScreen}
+          options={{ headerLargeTitle: false }}
+        />
+      )}
+    </Stack.Navigator>
+  );
+};
+
 const HomeScreen = (): React.JSX.Element => {
   const colorScheme = useColorScheme();
   const dispatch = useAppDispatch();
+  const isMember = useAppSelector(selectIsMember);
   const enableChurchCenterDeepLink = useAppSelector(
     selectEnableChurchCenterDeepLink
   );
-  const {
-    setHeight,
-    setMeasuredHeight,
-    setCachedHeight,
-    setIsCached,
-  } = React.useContext(TabBarHeightContext);
+  const { setHeight, setMeasuredHeight, setCachedHeight, setIsCached } =
+    React.useContext(TabBarHeightContext);
   const insets = useSafeAreaInsets();
 
   const estimatedTabBarHeight =
@@ -318,6 +426,18 @@ const HomeScreen = (): React.JSX.Element => {
             },
           }}
         />
+        {isMember ? (
+          <NativeTab.Screen
+            name="Members"
+            component={MemberStack}
+            options={{
+              lazy: false,
+              headerShown: false,
+              tabBarLabel: "Members",
+              tabBarIcon: getNativeTabIcon("person.3"),
+            }}
+          />
+        ) : undefined}
         <NativeTab.Screen
           name="Resources"
           component={PodcastStack}
@@ -338,7 +458,9 @@ const HomeScreen = (): React.JSX.Element => {
       screenOptions={{
         tabBarActiveTintColor: colors.accent,
         tabBarInactiveTintColor:
-          colorScheme === "dark" ? darkTheme.colors.text : lightTheme.colors.text,
+          colorScheme === "dark"
+            ? darkTheme.colors.text
+            : lightTheme.colors.text,
         tabBarStyle: {
           backgroundColor:
             colorScheme === "dark"
@@ -382,6 +504,20 @@ const HomeScreen = (): React.JSX.Element => {
           ),
         }}
       />
+      {isMember ? (
+        <JSTab.Screen
+          name="Members"
+          component={MemberStack}
+          options={{
+            lazy: false,
+            headerShown: false,
+            tabBarLabel: "Members",
+            tabBarIcon: ({ color, size }) => (
+              <Ionicons name="people" size={size} color={color} />
+            ),
+          }}
+        />
+      ) : undefined}
       <JSTab.Screen
         name="Resources"
         component={PodcastStack}
