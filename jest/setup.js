@@ -27,10 +27,26 @@ jest.mock("react-native-screens", () => {
   return RealComponent;
 });
 
-jest.mock("@react-navigation/native/lib/commonjs/useLinking.native", () => ({
+const createUseLinkingMock = () => ({
   default: () => ({ getInitialState: { then: jest.fn() } }),
+  useLinking: () => ({ getInitialState: { then: jest.fn() } }),
   __esModule: true,
-}));
+});
+
+const useLinkingModulePaths = [
+  "@react-navigation/native/lib/commonjs/useLinking.native",
+  "@react-navigation/native/lib/module/useLinking.native",
+];
+
+for (const modulePath of useLinkingModulePaths) {
+  try {
+    require.resolve(modulePath);
+    jest.doMock(modulePath, createUseLinkingMock);
+    break;
+  } catch {
+    // Try the next path. React Navigation changed internal build folders.
+  }
+}
 
 jest.mock("expo-notifications");
 
