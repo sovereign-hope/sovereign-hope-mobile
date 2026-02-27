@@ -24,6 +24,8 @@ We use Github Actions for our CI/CD pipelines; more info on those later.
 If you're here to quickly get the app up and running, for whatever reason, head over to [the Quick Start guide.](#quick-start)
 Otherwise, if you're onboarding as a new mobile engineer or simply want to be thorough, head over to [the Full Mobile Onboarding guide.](#full-mobile-onboarding)
 
+If you need to seed members from Planning Center, link Firebase users by email, or grant/revoke member access, use the [Member Access Runbook](docs/member-access-runbook.md).
+
 ## 💨 Quick Start
 
 To view and run the most recent Development release channel on your device:

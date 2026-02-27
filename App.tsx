@@ -30,6 +30,7 @@ import Constants from "expo-constants";
 import { initializeFirebaseServices } from "src/config/firebase";
 import {
   initializeAuthListener,
+  refreshAuthClaims,
   runSyncNow,
   selectAuthIsInitialized,
   selectIsAuthenticated,
@@ -113,6 +114,7 @@ const AppLifecycleSyncEffects = (): React.JSX.Element => {
       appStateRef.current = nextState;
 
       if (wasBackgrounded && nextState === "active" && isAuthenticated) {
+        void dispatch(refreshAuthClaims());
         const backgroundDuration =
           backgroundedAtRef.current > 0
             ? Date.now() - backgroundedAtRef.current

@@ -85,6 +85,9 @@ google/google-services*.json
 # Debug logs
 pglite-debug.log
 
+# Local build archives
+build-*.tar.gz
+
 # Tool configs
 .codex/
 .serena/

@@ -106,6 +106,11 @@ jest.mock("firebase/firestore", () => ({
   onSnapshot: jest.fn(),
 }));
 
+jest.mock("firebase/functions", () => ({
+  getFunctions: jest.fn(),
+  httpsCallable: jest.fn(),
+}));
+
 jest.mock("firebase/app", () => ({
   initializeApp: jest.fn(),
   getApp: jest.fn(),

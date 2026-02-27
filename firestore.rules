@@ -11,6 +11,24 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    match /members/{memberId} {
+      allow read: if request.auth != null
+        && request.auth.token.isMember == true;
+      allow write: if false;
+    }
+
+    match /prayerAssignments/{date} {
+      allow read: if false;
+      allow write: if false;
+
+      match /assignments/{memberId} {
+        allow read: if request.auth != null
+          && request.auth.token.isMember == true
+          && request.auth.uid == memberId;
+        allow write: if false;
+      }
+    }
+
     match /users/{userId} {
       allow read, write: if request.auth != null && request.auth.uid == userId;
 
@@ -20,4 +38,3 @@ service cloud.firestore {
     }
   }
 }
-
