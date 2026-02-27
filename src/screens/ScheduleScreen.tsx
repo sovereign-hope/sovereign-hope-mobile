@@ -6,9 +6,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Schedule">;
 
-export const ScheduleScreen: React.FunctionComponent<Props> = ({
-  navigation,
-}: Props) => {
+export const ScheduleScreen: React.FunctionComponent<Props> = ({}: Props) => {
   // Custom hooks
   // const theme = useTheme();
 

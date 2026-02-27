@@ -9,6 +9,7 @@ import React, {
 import {
   ActivityIndicator,
   Image,
+  ImageSourcePropType,
   Pressable,
   Platform,
   ScrollView,
@@ -17,7 +18,10 @@ import {
   Animated,
   View,
 } from "react-native";
-import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 import { useAppSelector, useAppDispatch } from "src/hooks/store";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { RootStackParamList } from "src/navigation/RootNavigator";
@@ -109,7 +113,7 @@ const ReadScrollView: React.FunctionComponent<ReadScrollViewProps> = ({
       duration: 500,
       useNativeDriver: true,
     }).start();
-  }, []);
+  }, [mountAnimation]);
 
   useEffect(() => {
     scrollViewRef.current?.scrollTo({ y: 0 });
@@ -425,12 +429,14 @@ export const ReadScreen: React.FunctionComponent<ReadScreenProps> = ({
 
   // Navbar handlers
   const playAudio = useCallback(async () => {
+    const esvLogoSource = esvLogo as ImageSourcePropType;
+
     await TrackPlayer.reset();
     const track: Track = {
       url: audioUrl ?? "",
       title: audioTitle ?? "",
       artist: "ESV Bible",
-      artwork: Image.resolveAssetSource(esvLogo).uri,
+      artwork: Image.resolveAssetSource(esvLogoSource).uri,
     };
     await TrackPlayer.add(track);
     await TrackPlayer.play();
@@ -610,10 +616,7 @@ export const ReadScreen: React.FunctionComponent<ReadScreenProps> = ({
   };
 
   return (
-    <SafeAreaView
-      style={themedStyles.screen}
-      edges={["left", "right"]}
-    >
+    <SafeAreaView style={themedStyles.screen} edges={["left", "right"]}>
       {isLoading ? (
         <View style={themedStyles.loadingContainer}>
           <ActivityIndicator size="large" color={theme.colors.text} />

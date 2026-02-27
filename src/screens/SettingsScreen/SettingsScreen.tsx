@@ -23,8 +23,6 @@ import {
   selectNotificationTime,
   storeEnableNotificationsState,
   storeNotificationTime,
-  selectShowChildrensPlan,
-  storeShowChildrensPlan,
   getShowChildrensPlan,
   selectEnableChurchCenterDeepLink,
   storeEnableChurchCenterDeepLink,
@@ -95,7 +93,6 @@ export const SettingsScreen: React.FunctionComponent<Props> = ({
   const notificationTime = useAppSelector(selectNotificationTime);
   const readingPlan = useAppSelector(selectReadingPlan);
   const availablePlans = useAppSelector(selectAvailablePlans);
-  const showChildrensPlan = useAppSelector(selectShowChildrensPlan);
   const enableChurchCenterDeepLink = useAppSelector(
     selectEnableChurchCenterDeepLink
   );
@@ -126,10 +123,6 @@ export const SettingsScreen: React.FunctionComponent<Props> = ({
   // Event handlers
   const handleToggleNotifications = (value: boolean) => {
     void dispatch(storeEnableNotificationsState(value));
-  };
-
-  const handleToggleShowChildrensPlan = (value: boolean) => {
-    void dispatch(storeShowChildrensPlan(value));
   };
 
   const handleToggleChurchCenterDeepLink = (value: boolean) => {
@@ -208,7 +201,10 @@ export const SettingsScreen: React.FunctionComponent<Props> = ({
   const isIOS = Platform.OS === "ios";
 
   return (
-    <SafeAreaView edges={["left", "right", "bottom"]} style={themedStyles.screen}>
+    <SafeAreaView
+      edges={["left", "right", "bottom"]}
+      style={themedStyles.screen}
+    >
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
@@ -245,7 +241,9 @@ export const SettingsScreen: React.FunctionComponent<Props> = ({
                 pressed && themedStyles.settingsRowPressed,
               ]}
             >
-              <Text style={themedStyles.settingsRowText}>Notification Time</Text>
+              <Text style={themedStyles.settingsRowText}>
+                Notification Time
+              </Text>
               <View style={themedStyles.settingsRowValueContainer}>
                 <Text style={themedStyles.settingsRowText}>
                   {notificationTime}
@@ -304,7 +302,9 @@ export const SettingsScreen: React.FunctionComponent<Props> = ({
                 pressed && themedStyles.settingsRowPressed,
               ]}
             >
-              <Text style={themedStyles.settingsRowText}>Reading Font Size</Text>
+              <Text style={themedStyles.settingsRowText}>
+                Reading Font Size
+              </Text>
               <View style={themedStyles.settingsRowValueContainer}>
                 <Ionicons
                   name="chevron-forward"

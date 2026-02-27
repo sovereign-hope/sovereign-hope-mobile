@@ -34,7 +34,7 @@ export type SelectPlanScreenProps = NativeStackScreenProps<
 >;
 
 export const SelectPlanScreen: React.FunctionComponent<SelectPlanScreenProps> =
-  ({ route, navigation }: SelectPlanScreenProps) => {
+  ({ navigation }: SelectPlanScreenProps) => {
     // Custom hooks
     const dispatch = useAppDispatch();
     const availablePlans = useAppSelector(selectAvailablePlans);
@@ -47,16 +47,19 @@ export const SelectPlanScreen: React.FunctionComponent<SelectPlanScreenProps> =
     // Effect hooks
     React.useEffect(() => {
       void dispatch(getAvailablePlans());
+    }, [dispatch]);
+
+    useEffect(() => {
       if (subscribedPlans.length === 0) {
         navigation.setOptions({ headerBackVisible: false });
       }
-    }, [dispatch]);
+    }, [navigation, subscribedPlans.length]);
 
     useEffect(() => {
       if (subscribedPlans.length > 0 && planHasChanged) {
         navigation.goBack();
       }
-    }, [subscribedPlans, planHasChanged]);
+    }, [navigation, subscribedPlans, planHasChanged]);
 
     // Constants
     const themedStyles = styles({ theme });

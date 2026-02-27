@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useRef } from "react";
 import {
   Animated,
   ActivityIndicator,
@@ -11,7 +11,10 @@ import {
   View,
   ListRenderItem,
 } from "react-native";
-import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useAppSelector, useAppDispatch } from "src/hooks/store";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
@@ -29,7 +32,6 @@ import thumbnail from "../../../assets/podcast-icon.png";
 import icon from "../../../assets/icon.png";
 import * as Haptics from "expo-haptics";
 import { MenuView, NativeActionEvent } from "@react-native-menu/menu";
-import { FlatButton } from "src/components";
 import { colors } from "src/style/colors";
 import { spacing } from "src/style/layout";
 import { ScrollView } from "react-native-gesture-handler";
@@ -134,7 +136,7 @@ export const PodcastScreen: React.FunctionComponent<Props> = ({
         useNativeDriver: true,
       }).start();
     }
-  }, [isLoading]);
+  }, [isLoading, mountAnimation]);
 
   useEffect(() => {
     void dispatch(getEpisodes());

@@ -3,8 +3,7 @@ import { TabBarHeightContext } from "src/navigation/TabBarContext";
 import { MediaPlayerContext } from "src/navigation/MediaPlayerContext";
 
 export const useMiniPlayerHeight = (): number => {
-  const { height: tabBarHeight, measuredHeight } =
-    useContext(TabBarHeightContext);
+  const { height: tabBarHeight } = useContext(TabBarHeightContext);
   const { isVisible } = useContext(MediaPlayerContext);
 
   // Only show padding when media player is actually visible

@@ -25,6 +25,7 @@ export const styles = ({ theme }: Props): Style =>
       borderRadius: radius.medium,
       elevation: elevation.small,
       backgroundColor: colors.accent,
+      borderColor: theme.colors.card,
     },
     icon: {
       marginRight: spacing.small,

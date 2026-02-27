@@ -45,6 +45,7 @@ export default [
       "dist",
       "coverage",
       ".eslintrc.js",
+      "jest.config.js",
       "babel.config.js",
       "app.config.js",
       "metro.config.js",

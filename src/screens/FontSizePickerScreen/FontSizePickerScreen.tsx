@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from "react";
-import { Pressable, Switch, Text, View } from "react-native";
+import React, { useEffect } from "react";
+import { Pressable, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useAppSelector, useAppDispatch } from "src/hooks/store";
@@ -47,7 +47,10 @@ export const FontSizePickerScreen: React.FunctionComponent<Props> = ({
   const fontSizes = [13, 16, 20, 24, 30, 36];
 
   return (
-    <SafeAreaView edges={["left", "right", "bottom"]} style={themedStyles.screen}>
+    <SafeAreaView
+      edges={["left", "right", "bottom"]}
+      style={themedStyles.screen}
+    >
       <ScrollView contentInsetAdjustmentBehavior="automatic">
         {/* <Text style={themedStyles.settingsSectionHeader}>Reading Plan</Text> */}
 

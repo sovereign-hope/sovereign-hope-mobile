@@ -18,7 +18,10 @@ import {
   Text,
   View,
 } from "react-native";
-import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 import { useAppSelector, useAppDispatch } from "src/hooks/store";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { RootStackParamList } from "src/navigation/RootNavigator";
@@ -166,7 +169,7 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
     return () => {
       listener.remove();
     };
-  }, []);
+  }, [currentDate, dispatch]);
 
   useEffect(() => {
     setHasInitializedPosition(false);
@@ -182,7 +185,7 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
   useEffect(() => {
     void dispatch(getReadingPlan());
     void dispatch(getReadingPlanProgressState());
-  }, [availablePlans, subscribedPlans]);
+  }, [availablePlans, subscribedPlans, dispatch]);
 
   useEffect(() => {
     const currentYear = currentDate.getFullYear();
@@ -235,6 +238,8 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
     isAuthenticated,
     authIsInitialized,
     authIsSyncing,
+    dispatch,
+    navigation,
   ]);
 
   useEffect(() => {
