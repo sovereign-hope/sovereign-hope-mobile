@@ -180,6 +180,34 @@ describe("memberSlice", () => {
     expect(state.hasPrayerError).toBe(true);
     expect(state.prayerAssignment).toBeNull();
   });
+
+  it("clears stale prayer assignment data when a new fetch starts and fails", async () => {
+    const store = createTestStore();
+
+    (fetchPrayerAssignment as jest.Mock).mockResolvedValueOnce({
+      memberIds: ["member-2"],
+      members: [{ uid: "member-2", displayName: "Bob", photoURL: null }],
+      generatedAt: 100,
+    });
+    await (
+      store.dispatch as typeof store.dispatch &
+        ((action: unknown) => Promise<unknown>)
+    )(fetchDailyPrayerAssignment());
+
+    (fetchPrayerAssignment as jest.Mock).mockRejectedValueOnce(
+      new Error("Network failed")
+    );
+    await (
+      store.dispatch as typeof store.dispatch &
+        ((action: unknown) => Promise<unknown>)
+    )(fetchDailyPrayerAssignment());
+
+    const state = store.getState().member;
+    expect(state.hasPrayerError).toBe(true);
+    expect(state.prayerAssignment).toBeNull();
+    expect(state.prayerAssignmentDate).toBeNull();
+    expect(state.isFallbackPrayerAssignment).toBe(false);
+  });
 });
 
 /* eslint-enable unicorn/no-null */

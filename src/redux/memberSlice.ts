@@ -130,6 +130,9 @@ const memberSlice = createSlice({
     builder.addCase(fetchDailyPrayerAssignment.pending, (state) => {
       state.isLoadingPrayer = true;
       state.hasPrayerError = false;
+      state.prayerAssignment = null;
+      state.prayerAssignmentDate = null;
+      state.isFallbackPrayerAssignment = false;
     });
     builder.addCase(fetchDailyPrayerAssignment.fulfilled, (state, action) => {
       state.isLoadingPrayer = false;
