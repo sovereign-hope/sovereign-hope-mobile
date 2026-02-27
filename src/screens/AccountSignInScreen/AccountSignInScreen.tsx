@@ -197,7 +197,10 @@ export const AccountSignInScreen: React.FunctionComponent<Props> = ({
   const shouldShowGoogleSpinner = isBusy && pendingPrimaryAction === "google";
 
   return (
-    <SafeAreaView edges={["left", "right"]} style={screenStyles.screen}>
+    <SafeAreaView
+      edges={["left", "right", "bottom"]}
+      style={screenStyles.screen}
+    >
       <KeyboardAvoidingView
         style={screenStyles.flex}
         behavior={Platform.OS === "ios" ? "padding" : undefined}

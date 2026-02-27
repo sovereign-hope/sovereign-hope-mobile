@@ -11,7 +11,7 @@ import {
   View,
   ListRenderItem,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useAppSelector, useAppDispatch } from "src/hooks/store";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
@@ -33,6 +33,7 @@ import { FlatButton } from "src/components";
 import { colors } from "src/style/colors";
 import { spacing } from "src/style/layout";
 import { ScrollView } from "react-native-gesture-handler";
+import { useMiniPlayerHeight } from "src/hooks/useMiniPlayerHeight";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Resources">;
 
@@ -114,6 +115,8 @@ export const PodcastScreen: React.FunctionComponent<Props> = ({
   const theme = useTheme();
   const episodes = useAppSelector(selectEpisodes);
   const isLoading = useAppSelector(selectIsLoading);
+  const miniPlayerHeight = useMiniPlayerHeight();
+  const insets = useSafeAreaInsets();
 
   // Ref Hooks
   const mountAnimation = useRef(new Animated.Value(0)).current;
@@ -208,7 +211,12 @@ export const PodcastScreen: React.FunctionComponent<Props> = ({
 
   return (
     <SafeAreaView edges={["left", "right"]} style={themedStyles.screen}>
-      <ScrollView contentInsetAdjustmentBehavior="automatic">
+      <ScrollView
+        contentInsetAdjustmentBehavior="automatic"
+        contentContainerStyle={{
+          paddingBottom: miniPlayerHeight + insets.bottom,
+        }}
+      >
         {isLoading ? (
           <ActivityIndicator size="large" color={theme.colors.text} />
         ) : (

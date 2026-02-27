@@ -4,16 +4,10 @@ import {
   TextStyle,
   ImageStyle,
   Platform,
-  Dimensions,
 } from "react-native";
 import { radius, spacing } from "src/style/layout";
 import { header3, body } from "src/style/typography";
 import { colors } from "src/style/colors";
-import { Theme } from "@react-navigation/native";
-
-type Props = {
-  theme: Theme;
-};
 
 interface Style {
   // Minimized Player Styles
@@ -81,7 +75,7 @@ interface Style {
   maximizedPlaybackRateTextActive: TextStyle;
 }
 
-export const styles = ({ theme }: Props): Style =>
+export const styles = (): Style =>
   StyleSheet.create({
     // Minimized Player Styles
     minimizedPlayer: {

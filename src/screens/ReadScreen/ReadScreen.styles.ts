@@ -10,6 +10,7 @@ type Props = {
 
 interface Style {
   screen: ViewStyle;
+  loadingContainer: ViewStyle;
   container: ViewStyle;
   title: TextStyle;
   footer: ViewStyle;
@@ -37,10 +38,15 @@ export const styles = ({ theme }: Props): Style =>
   StyleSheet.create({
     screen: {
       flex: 1,
-      justifyContent: "center",
       backgroundColor: theme.colors.background,
     },
+    loadingContainer: {
+      flex: 1,
+      justifyContent: "center",
+      alignItems: "center",
+    },
     container: {
+      flex: 1,
       paddingHorizontal: spacing.large,
     },
     title: {
@@ -59,7 +65,6 @@ export const styles = ({ theme }: Props): Style =>
     buttonRow: {
       flexDirection: "row",
       gap: spacing.medium,
-      marginBottom: spacing.medium,
     },
     button: {
       flex: 1,

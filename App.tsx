@@ -7,8 +7,6 @@ import {
   AppState,
   AppStateStatus,
   InteractionManager,
-  Platform,
-  StatusBar as RNStatusBar,
 } from "react-native";
 import { useColorScheme } from "src/hooks/useColorScheme";
 import { Ionicons } from "@expo/vector-icons";
@@ -37,6 +35,8 @@ import {
   selectIsAuthenticated,
 } from "src/redux/authSlice";
 import { useAppDispatch, useAppSelector } from "src/hooks/store";
+import * as SystemUI from "expo-system-ui";
+import { background as backgroundColors } from "src/style/colors";
 
 // Keep the splash screen visible while we fetch resources
 // eslint-disable-next-line @typescript-eslint/no-floating-promises
@@ -191,6 +191,12 @@ const App = (): React.JSX.Element => {
   }, []);
 
   useEffect(() => {
+    void SystemUI.setBackgroundColorAsync(
+      colorScheme === "dark" ? backgroundColors.dark : backgroundColors.light
+    );
+  }, [colorScheme]);
+
+  useEffect(() => {
     TrackPlayer.registerPlaybackService(() => playerService);
 
     async function setupPlayer() {
@@ -255,24 +261,16 @@ const App = (): React.JSX.Element => {
             <GestureHandlerRootView
               style={{
                 flex: 1,
-                backgroundColor: colorScheme === "dark" ? "#2A2A2A" : "#F8F8F8",
+                backgroundColor:
+                  colorScheme === "dark"
+                    ? backgroundColors.dark
+                    : backgroundColors.light,
               }}
               onLayout={() => {
                 void onLayoutRootView();
               }}
             >
               <AppLifecycleSyncEffects />
-              {Platform.OS === "android" && (
-                <RNStatusBar
-                  translucent={false}
-                  backgroundColor={
-                    colorScheme === "dark" ? "#2A2A2A" : "#F8F8F8"
-                  }
-                  barStyle={
-                    colorScheme === "dark" ? "light-content" : "dark-content"
-                  }
-                />
-              )}
               <RootScreen />
               <MediaPlayer id="sov-hope-media-player" />
             </GestureHandlerRootView>

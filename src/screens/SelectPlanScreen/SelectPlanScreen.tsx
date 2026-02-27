@@ -73,10 +73,7 @@ export const SelectPlanScreen: React.FunctionComponent<SelectPlanScreenProps> =
     };
 
     return (
-      <SafeAreaView
-        edges={["top", "left", "right"]}
-        style={themedStyles.screen}
-      >
+      <SafeAreaView edges={["left", "right"]} style={themedStyles.screen}>
         <ScrollView
           style={themedStyles.screen}
           contentContainerStyle={{ flexGrow: 1 }}

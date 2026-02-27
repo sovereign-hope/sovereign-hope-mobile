@@ -1,7 +1,7 @@
 /* eslint-disable react/prop-types */
 import React, { useEffect, useRef, useState } from "react";
-import { Pressable, SectionList, Text, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { Platform, Pressable, SectionList, Text, View } from "react-native";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useAppSelector, useAppDispatch } from "src/hooks/store";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
@@ -160,12 +160,16 @@ export const ReadingPlanListItem: React.FunctionComponent<{
 export const ReadingPlanScreen: React.FunctionComponent<ReadingPlanProps> = ({
   navigation,
 }: ReadingPlanProps) => {
+  const isIOS26OrNewer =
+    Platform.OS === "ios" && Number.parseInt(String(Platform.Version), 10) >= 26;
+
   // Custom hooks
   const readingPlan = useAppSelector(selectReadingPlan);
   // Note: Progress state is read by each list item directly, not at screen level
   // This prevents re-rendering entire list when a single day's progress changes
   const theme = useTheme();
   const miniPlayerHeight = useMiniPlayerHeight();
+  const insets = useSafeAreaInsets();
 
   // Ref Hooks
   const scrollViewRef = useRef<SectionList<ReadingPlanListItemData>>(null);
@@ -254,29 +258,55 @@ export const ReadingPlanScreen: React.FunctionComponent<ReadingPlanProps> = ({
 
   React.useLayoutEffect(() => {
     const { weekIndex } = getDayOfYearIndices(new Date());
+    const canScrollToToday = listData.length > 0;
+
+    const scrollToToday = () => {
+      if (!canScrollToToday || !scrollViewRef.current) {
+        return;
+      }
+
+      const sectionIndex =
+        weekIndex < listData.length ? weekIndex : listData.length - 1;
+      scrollViewRef.current.scrollToLocation({
+        sectionIndex,
+        itemIndex: 1,
+      });
+    };
+
+    if (isIOS26OrNewer) {
+      navigation.setOptions({
+        headerRight: undefined,
+        unstable_headerRightItems: ({ tintColor }) => [
+          {
+            type: "button",
+            label: "Today",
+            onPress: scrollToToday,
+            variant: "plain",
+            tintColor: tintColor ?? colors.accent,
+            sharesBackground: false,
+            disabled: !canScrollToToday,
+          },
+        ],
+      });
+      return;
+    }
+
     navigation.setOptions({
+      unstable_headerRightItems: undefined,
       headerRight: () => (
         <Pressable
           style={{
             marginRight: spacing.large,
           }}
           accessibilityRole="button"
-          onPress={() => {
-            if (scrollViewRef.current) {
-              const sectionIndex =
-                weekIndex < listData.length ? weekIndex : listData.length - 1;
-              scrollViewRef.current.scrollToLocation({
-                sectionIndex,
-                itemIndex: 1,
-              });
-            }
-          }}
+          onPress={scrollToToday}
+          accessibilityState={{ disabled: !canScrollToToday }}
         >
           <Text style={{ color: colors.accent, fontSize: 18 }}>Today</Text>
         </Pressable>
       ),
     });
-  }, [navigation, listData]);
+  }, [navigation, listData, isIOS26OrNewer]);
 
   // Event handlers
   const handleRowPress = (
@@ -311,7 +341,7 @@ export const ReadingPlanScreen: React.FunctionComponent<ReadingPlanProps> = ({
         stickySectionHeadersEnabled
         bounces={false}
         contentContainerStyle={{
-          paddingBottom: miniPlayerHeight,
+          paddingBottom: miniPlayerHeight + insets.bottom,
         }}
         onScrollToIndexFailed={() => {
           // Handle scroll to index failure gracefully
