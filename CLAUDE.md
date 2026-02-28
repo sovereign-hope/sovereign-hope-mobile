@@ -32,9 +32,9 @@ npm run buildDevelopment:android
 
 ### App Structure
 
-- **Expo SDK 53** with React Native 0.79, using EAS for builds and OTA updates
+- **Expo SDK 54** with React Native 0.81, using EAS for builds and OTA updates
 - **Redux Toolkit** for state management with typed hooks (`useAppSelector`, `useAppDispatch` from `src/hooks/store.ts`)
-- **React Navigation 6** with bottom tabs + native stack navigators
+- **React Navigation 7** with bottom tabs + native stack navigators
 - Dark mode support via `useColorScheme` hook and themes in `src/style/themes.ts`
 
 ### Directory Layout
