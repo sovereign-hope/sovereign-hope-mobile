@@ -81,6 +81,9 @@ web-build/
 # Google/Firebase service credentials
 google/GoogleService-Info*.plist
 google/google-services*.json
+google/*service-account*.json
+google/pc-api-*.json
+google/*appspot*.json
 
 # Debug logs
 pglite-debug.log
