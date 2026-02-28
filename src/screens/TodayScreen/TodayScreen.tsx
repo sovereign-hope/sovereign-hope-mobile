@@ -29,6 +29,7 @@ import { useTheme } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { useMiniPlayerHeight } from "src/hooks/useMiniPlayerHeight";
+import { MemoryAudioCard } from "src/components";
 import {
   getReadingPlan,
   storeReadingPlanProgressState,
@@ -372,6 +373,16 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
   );
   const shouldShowMemoryLoadingIndicator =
     isMemoryPassageLoading || memoryPassageAcronym === undefined;
+  const memoryPassageReference = readingPlanWeek?.days[0]?.memory.passage;
+  const memoryPassage = memoryPassageReference
+    ? parsePassageString(
+        memoryPassageReference,
+        readingPlanWeek?.days[0]?.memory.heading
+      )
+    : undefined;
+  if (memoryPassage) {
+    memoryPassage.isMemory = true;
+  }
   const readingPlanCompletionPercentage = getReadingPlanProgressPercentage();
   // We can do this because we really only need en US
   const weekdayMap = [
@@ -679,6 +690,12 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
                 style={themedStyles.disclosureIcon}
               />
             </Pressable>
+            {memoryPassageReference && memoryPassage && (
+              <MemoryAudioCard
+                verseReference={memoryPassageReference}
+                passage={memoryPassage}
+              />
+            )}
             {isMember && (
               <>
                 <View style={themedStyles.headerRow}>

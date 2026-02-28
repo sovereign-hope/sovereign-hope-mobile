@@ -1,4 +1,10 @@
 import TrackPlayer, { Event } from "react-native-track-player";
+import {
+  handleMemoryAudioRemotePause,
+  handleMemoryAudioRemotePlay,
+  handleMemoryAudioRemoteStop,
+  isMemoryAudioSessionRunning,
+} from "src/services/memoryAudioSession";
 
 const jumpBack = async () => {
   const { position } = await TrackPlayer.getProgress();
@@ -17,19 +23,46 @@ const service = async function () {
   // but it will be used later in the "Receiving Events" section
 
   TrackPlayer.addEventListener(Event.RemotePlay, () => {
-    void TrackPlayer.play();
+    void (async () => {
+      const handledByMemorySession = await handleMemoryAudioRemotePlay();
+      if (!handledByMemorySession) {
+        await TrackPlayer.play();
+      }
+    })();
   });
 
   TrackPlayer.addEventListener(Event.RemotePause, () => {
-    void TrackPlayer.pause();
+    void (async () => {
+      const handledByMemorySession = await handleMemoryAudioRemotePause();
+      if (!handledByMemorySession) {
+        await TrackPlayer.pause();
+      }
+    })();
   });
 
   TrackPlayer.addEventListener(Event.RemoteJumpBackward, () => {
-    void jumpBack();
+    void (async () => {
+      if (!isMemoryAudioSessionRunning()) {
+        await jumpBack();
+      }
+    })();
   });
 
   TrackPlayer.addEventListener(Event.RemoteJumpForward, () => {
-    void jumpForward();
+    void (async () => {
+      if (!isMemoryAudioSessionRunning()) {
+        await jumpForward();
+      }
+    })();
+  });
+
+  TrackPlayer.addEventListener(Event.RemoteStop, () => {
+    void (async () => {
+      const handledByMemorySession = await handleMemoryAudioRemoteStop();
+      if (!handledByMemorySession) {
+        await TrackPlayer.reset();
+      }
+    })();
   });
 };
 

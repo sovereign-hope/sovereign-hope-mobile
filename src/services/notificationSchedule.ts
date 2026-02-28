@@ -1,5 +1,8 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Notifications from "expo-notifications";
 import { SchedulableTriggerInputTypes } from "expo-notifications";
+
+const MEMORY_AUDIO_NOTIFICATION_ID_KEY = "@memoryAudio/reviewNotificationId";
 
 const parseNotificationTime = (
   time: string
@@ -42,4 +45,46 @@ export const applyNotificationSchedule = async (
       minute,
     },
   });
+};
+
+export const scheduleMemoryAudioReviewNotification = async (args: {
+  verseReference: string;
+  nextReviewDate: string;
+  notificationTime: string;
+  enableNotifications: boolean;
+}): Promise<void> => {
+  const existingNotificationId = await AsyncStorage.getItem(
+    MEMORY_AUDIO_NOTIFICATION_ID_KEY
+  );
+  if (existingNotificationId) {
+    await Notifications.cancelScheduledNotificationAsync(
+      existingNotificationId
+    );
+  }
+
+  if (!args.enableNotifications) {
+    await AsyncStorage.removeItem(MEMORY_AUDIO_NOTIFICATION_ID_KEY);
+    return;
+  }
+
+  const [yearString, monthString, dayString] = args.nextReviewDate.split("-");
+  const { hour, minute } = parseNotificationTime(args.notificationTime);
+
+  const notificationId = await Notifications.scheduleNotificationAsync({
+    content: {
+      title: `Time to practice your memory verse: ${args.verseReference}`,
+      subtitle: "Tap to continue your memory verse audio practice.",
+    },
+    trigger: {
+      type: SchedulableTriggerInputTypes.CALENDAR,
+      year: Number.parseInt(yearString, 10),
+      month: Number.parseInt(monthString, 10),
+      day: Number.parseInt(dayString, 10),
+      hour,
+      minute,
+      repeats: false,
+    },
+  });
+
+  await AsyncStorage.setItem(MEMORY_AUDIO_NOTIFICATION_ID_KEY, notificationId);
 };

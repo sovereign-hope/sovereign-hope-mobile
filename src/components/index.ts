@@ -4,3 +4,4 @@ export { SecureInput } from "./SecureInput/SecureInput";
 export { NoNetworkComponent } from "./NoNetworkComponent/NoNetworkComponent";
 export { MediaPlayer } from "./MediaPlayer/MediaPlayer";
 export { MemberAvatar } from "./MemberAvatar/MemberAvatar";
+export { MemoryAudioCard } from "./MemoryAudioCard/MemoryAudioCard";
