@@ -32,6 +32,17 @@ import * as Haptics from "expo-haptics";
 import { formatTime } from "./utils";
 import { TabBarHeightContext } from "src/navigation/TabBarContext";
 import { MediaPlayerContext } from "src/navigation/MediaPlayerContext";
+import { useAppDispatch, useAppSelector } from "src/hooks/store";
+import {
+  pauseMemoryAudioSession,
+  resumeMemoryAudioSession,
+  selectMemoryAudioState,
+  stopMemoryAudioSession,
+} from "src/redux/memoryAudioSlice";
+import {
+  MEMORY_AUDIO_SESSION_TRACK_ID,
+  getEstimatedMemoryAudioSessionDurationSeconds,
+} from "src/services/memoryAudioSession";
 
 interface Props {
   id: string;
@@ -43,6 +54,7 @@ type RepeatMode = "off" | "track" | "queue";
 // Media Player Component
 export const MediaPlayer: React.FunctionComponent<Props> = () => {
   // Custom hooks
+  const dispatch = useAppDispatch();
   const insets = useSafeAreaInsets();
   const {
     height: tabBarHeight,
@@ -53,6 +65,7 @@ export const MediaPlayer: React.FunctionComponent<Props> = () => {
   } = React.useContext(TabBarHeightContext);
   const { setIsVisible } = React.useContext(MediaPlayerContext);
   const playbackState = usePlaybackState();
+  const memoryAudioState = useAppSelector(selectMemoryAudioState);
 
   // Calculate dynamic bottom offset for Android
   const getBottomOffset = useCallback(() => {
@@ -87,14 +100,6 @@ export const MediaPlayer: React.FunctionComponent<Props> = () => {
 
   const { position, duration } = useProgress();
 
-  // Memoize progress to prevent unnecessary re-renders
-  // const progress = useMemo(() => {
-  //   return position > 0 && duration > 0 ? position / duration : 0;
-  // }, [position, duration]);
-
-  const formattedPosition = useMemo(() => formatTime(position), [position]);
-  const formattedDuration = useMemo(() => formatTime(duration), [duration]);
-
   // Ref Hooks
   const mountAnimation = useRef(new Animated.Value(0)).current;
   const bottomAnimation = useRef(new Animated.Value(0)).current;
@@ -111,29 +116,105 @@ export const MediaPlayer: React.FunctionComponent<Props> = () => {
   const [miniScrubberWidth, setMiniScrubberWidth] = useState<number>(0);
   const [maxScrubberWidth, setMaxScrubberWidth] = useState<number>(0);
   const [visualPosition, setVisualPosition] = useState<number>(0);
+  const [sessionElapsedSeconds, setSessionElapsedSeconds] = useState<number>(0);
   const [seekTarget, setSeekTarget] = useState<number | undefined>();
   const visualPositionRef = useRef<number>(0);
   const isDraggingRef = useRef<boolean>(false);
+
+  const isMemorySessionTrack = track?.id === MEMORY_AUDIO_SESSION_TRACK_ID;
+  const isMemorySessionActiveTrack =
+    isMemorySessionTrack && memoryAudioState.isMemorySessionActive;
+  const isMemorySessionPlaying = isMemorySessionActiveTrack
+    ? !memoryAudioState.isSessionPaused
+    : playbackState.state === PlayerState.Playing;
+  const memoryVerseDurationSeconds =
+    memoryAudioState.spokenDurationSeconds > 0
+      ? memoryAudioState.spokenDurationSeconds
+      : duration;
+  const estimatedSessionDuration = useMemo(
+    () =>
+      getEstimatedMemoryAudioSessionDurationSeconds(
+        memoryVerseDurationSeconds,
+        memoryAudioState.recallCyclesTarget
+      ),
+    [memoryVerseDurationSeconds, memoryAudioState.recallCyclesTarget]
+  );
+  const effectiveDuration =
+    isMemorySessionActiveTrack && estimatedSessionDuration > 0
+      ? estimatedSessionDuration
+      : duration;
+  const effectivePosition = isMemorySessionActiveTrack
+    ? Math.min(sessionElapsedSeconds, effectiveDuration)
+    : position;
+  const formattedPosition = useMemo(
+    () => formatTime(effectivePosition),
+    [effectivePosition]
+  );
+  const formattedDuration = useMemo(
+    () => formatTime(effectiveDuration),
+    [effectiveDuration]
+  );
+  const scrubberProgressPercent = useMemo(() => {
+    if (effectiveDuration <= 0) {
+      return 0;
+    }
+    return Math.min(100, (visualPosition / effectiveDuration) * 100);
+  }, [effectiveDuration, visualPosition]);
 
   // Update visibility state when track changes
   React.useEffect(() => {
     setIsVisible(track !== undefined);
   }, [track, setIsVisible]);
 
+  React.useEffect(() => {
+    isDraggingRef.current = isDragging;
+  }, [isDragging]);
+
+  React.useEffect(() => {
+    const sessionStartedAt = memoryAudioState.sessionStartedAt;
+
+    if (
+      !isMemorySessionActiveTrack ||
+      !sessionStartedAt ||
+      !memoryAudioState.isMemorySessionActive
+    ) {
+      setSessionElapsedSeconds(0);
+      return;
+    }
+
+    const updateElapsed = () => {
+      setSessionElapsedSeconds((Date.now() - sessionStartedAt) / 1000);
+    };
+
+    updateElapsed();
+    const intervalId = setInterval(updateElapsed, 1000);
+
+    return () => {
+      clearInterval(intervalId);
+    };
+  }, [
+    isMemorySessionActiveTrack,
+    memoryAudioState.sessionStartedAt,
+    memoryAudioState.isMemorySessionActive,
+  ]);
+
   // Update visual position when not dragging and no seek target
   React.useEffect(() => {
     if (!isDraggingRef.current && seekTarget === undefined) {
-      setVisualPosition(position);
-      visualPositionRef.current = position;
+      setVisualPosition(effectivePosition);
+      visualPositionRef.current = effectivePosition;
     }
-  }, [position, isDragging, seekTarget]);
+  }, [effectivePosition, isDragging, seekTarget]);
 
   // Clear seek target when position catches up
   React.useEffect(() => {
-    if (seekTarget !== undefined && Math.abs(position - seekTarget) < 0.5) {
+    if (
+      seekTarget !== undefined &&
+      Math.abs(effectivePosition - seekTarget) < 0.5
+    ) {
       setSeekTarget(undefined);
     }
-  }, [position, seekTarget]);
+  }, [effectivePosition, seekTarget]);
 
   // Track player events
   useTrackPlayerEvents(
@@ -232,36 +313,52 @@ export const MediaPlayer: React.FunctionComponent<Props> = () => {
 
   // Event handlers
   const stopPlayback = useCallback(async () => {
-    await TrackPlayer.reset();
+    await (isMemorySessionActiveTrack
+      ? dispatch(stopMemoryAudioSession())
+      : TrackPlayer.reset());
     setPlayerMode("minimized");
     setIsModalVisible(false);
     setIsToggling(false);
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-  }, []);
+  }, [dispatch, isMemorySessionActiveTrack]);
 
   const jumpBack = useCallback(async () => {
+    if (isMemorySessionActiveTrack) {
+      return;
+    }
     const progress = await TrackPlayer.getProgress();
     const currentPosition = progress.position;
     await TrackPlayer.seekTo(currentPosition - 15);
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-  }, []);
+  }, [isMemorySessionActiveTrack]);
 
   const jumpForward = useCallback(async () => {
+    if (isMemorySessionActiveTrack) {
+      return;
+    }
     const progress = await TrackPlayer.getProgress();
     const currentPosition = progress.position;
     await TrackPlayer.seekTo(currentPosition + 15);
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-  }, []);
+  }, [isMemorySessionActiveTrack]);
 
   const play = useCallback(async () => {
-    await TrackPlayer.play();
+    await (isMemorySessionActiveTrack
+      ? dispatch(resumeMemoryAudioSession())
+      : TrackPlayer.play());
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-  }, []);
+  }, [dispatch, isMemorySessionActiveTrack]);
 
   const pause = useCallback(async () => {
-    await TrackPlayer.pause();
+    await (isMemorySessionActiveTrack
+      ? dispatch(pauseMemoryAudioSession())
+      : TrackPlayer.pause());
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-  }, []);
+  }, [dispatch, isMemorySessionActiveTrack]);
+
+  const togglePlayPause = useCallback(async () => {
+    await (isMemorySessionPlaying ? pause() : play());
+  }, [isMemorySessionPlaying, pause, play]);
 
   const togglePlayerMode = useCallback(() => {
     if (isToggling) return;
@@ -304,53 +401,67 @@ export const MediaPlayer: React.FunctionComponent<Props> = () => {
 
   // Replace track-skip handlers (next/previous) with long seek +/-60s
   const skipToNext = useCallback(async () => {
+    if (isMemorySessionActiveTrack) {
+      return;
+    }
     const progress = await TrackPlayer.getProgress();
     await TrackPlayer.seekTo(progress.position + 60);
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-  }, []);
+  }, [isMemorySessionActiveTrack]);
 
   const skipToPrevious = useCallback(async () => {
+    if (isMemorySessionActiveTrack) {
+      return;
+    }
     const progress = await TrackPlayer.getProgress();
     await TrackPlayer.seekTo(Math.max(0, progress.position - 60));
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-  }, []);
+  }, [isMemorySessionActiveTrack]);
 
-  const seekToPosition = useCallback(async (position: number) => {
-    setSeekTarget(position);
-    await TrackPlayer.seekTo(position);
-    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-  }, []);
+  const seekToPosition = useCallback(
+    async (position: number) => {
+      if (isMemorySessionActiveTrack) {
+        return;
+      }
+      setSeekTarget(position);
+      await TrackPlayer.seekTo(position);
+      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    },
+    [isMemorySessionActiveTrack]
+  );
 
   const handleScrubberGesture = useCallback(
     (event: { nativeEvent: { translationX: number; state: number } }) => {
+      if (isMemorySessionActiveTrack) return;
       const currentWidth = isModalVisible
         ? maxScrubberWidth
         : miniScrubberWidth;
-      if (currentWidth === 0 || duration === 0) return;
+      if (currentWidth === 0 || effectiveDuration === 0) return;
 
       const { translationX, state } = event.nativeEvent;
 
       switch (state) {
         case State.ACTIVE: {
           setIsDragging(true);
-          visualPositionRef.current = position;
+          visualPositionRef.current = effectivePosition;
           // Update position immediately for Android responsiveness
           const progress = Math.max(
             0,
             Math.min(
               1,
-              (translationX + (position / duration) * currentWidth) /
+              (translationX +
+                (effectivePosition / effectiveDuration) * currentWidth) /
                 currentWidth
             )
           );
-          const newPosition = progress * duration;
+          const newPosition = progress * effectiveDuration;
           setVisualPosition(newPosition);
           break;
         }
         case State.BEGAN: {
           // Also handle BEGAN state for better Android support
           setIsDragging(true);
-          visualPositionRef.current = position;
+          visualPositionRef.current = effectivePosition;
           break;
         }
         case State.END: {
@@ -359,11 +470,12 @@ export const MediaPlayer: React.FunctionComponent<Props> = () => {
             Math.min(
               1,
               (translationX +
-                (visualPositionRef.current / duration) * currentWidth) /
+                (visualPositionRef.current / effectiveDuration) *
+                  currentWidth) /
                 currentWidth
             )
           );
-          const seekPosition = endProgress * duration;
+          const seekPosition = endProgress * effectiveDuration;
           setVisualPosition(seekPosition);
           setIsDragging(false);
           void seekToPosition(seekPosition);
@@ -374,19 +486,21 @@ export const MediaPlayer: React.FunctionComponent<Props> = () => {
     [
       miniScrubberWidth,
       maxScrubberWidth,
-      duration,
-      position,
+      effectiveDuration,
+      effectivePosition,
       seekToPosition,
       isModalVisible,
+      isMemorySessionActiveTrack,
     ]
   );
 
   const handleScrubberGestureEvent = useCallback(
     (event: { nativeEvent: { translationX: number } }) => {
+      if (isMemorySessionActiveTrack) return;
       const currentWidth = isModalVisible
         ? maxScrubberWidth
         : miniScrubberWidth;
-      if (currentWidth === 0 || duration === 0 || !isDragging) return;
+      if (currentWidth === 0 || effectiveDuration === 0 || !isDragging) return;
 
       const { translationX } = event.nativeEvent;
 
@@ -396,72 +510,117 @@ export const MediaPlayer: React.FunctionComponent<Props> = () => {
         Math.min(
           1,
           (translationX +
-            (visualPositionRef.current / duration) * currentWidth) /
+            (visualPositionRef.current / effectiveDuration) * currentWidth) /
             currentWidth
         )
       );
-      const newPosition = progress * duration;
+      const newPosition = progress * effectiveDuration;
       setVisualPosition(newPosition);
     },
-    [isDragging, duration, miniScrubberWidth, maxScrubberWidth, isModalVisible]
+    [
+      isDragging,
+      effectiveDuration,
+      miniScrubberWidth,
+      maxScrubberWidth,
+      isModalVisible,
+      isMemorySessionActiveTrack,
+    ]
   );
 
   const handleScrubberPress = useCallback(
     (event: { nativeEvent: { locationX: number } }) => {
+      if (isMemorySessionActiveTrack) return;
       const currentWidth = isModalVisible
         ? maxScrubberWidth
         : miniScrubberWidth;
-      if (currentWidth === 0 || duration === 0) return;
+      if (currentWidth === 0 || effectiveDuration === 0) return;
 
       const { locationX } = event.nativeEvent;
       const progress = Math.max(0, Math.min(1, locationX / currentWidth));
-      const seekPosition = progress * duration;
+      const seekPosition = progress * effectiveDuration;
       void seekToPosition(seekPosition);
     },
     [
       miniScrubberWidth,
       maxScrubberWidth,
-      duration,
+      effectiveDuration,
       seekToPosition,
       isModalVisible,
+      isMemorySessionActiveTrack,
     ]
   );
 
   // Touch handlers for full-screen player
   const handleTouchStart = useCallback(() => {
-    if (maxScrubberWidth === 0 || duration === 0) return;
+    if (
+      isMemorySessionActiveTrack ||
+      maxScrubberWidth === 0 ||
+      effectiveDuration === 0
+    ) {
+      return;
+    }
 
     setIsDragging(true);
-    visualPositionRef.current = position;
-  }, [maxScrubberWidth, duration, position]);
+    visualPositionRef.current = effectivePosition;
+  }, [
+    isMemorySessionActiveTrack,
+    maxScrubberWidth,
+    effectiveDuration,
+    effectivePosition,
+  ]);
 
   const handleTouchMove = useCallback(
     (event: { nativeEvent: { locationX: number } }) => {
-      if (maxScrubberWidth === 0 || duration === 0 || !isDragging) return;
+      if (
+        isMemorySessionActiveTrack ||
+        maxScrubberWidth === 0 ||
+        effectiveDuration === 0 ||
+        !isDragging
+      ) {
+        return;
+      }
 
       const { locationX } = event.nativeEvent;
       const progress = Math.max(0, Math.min(1, locationX / maxScrubberWidth));
-      const newPosition = progress * duration;
+      const newPosition = progress * effectiveDuration;
 
       // Always update during drag - the threshold was causing issues
       setVisualPosition(newPosition);
     },
-    [maxScrubberWidth, duration, isDragging]
+    [
+      isMemorySessionActiveTrack,
+      maxScrubberWidth,
+      effectiveDuration,
+      isDragging,
+    ]
   );
 
   const handleTouchEnd = useCallback(
     (event: { nativeEvent: { locationX: number } }) => {
-      if (maxScrubberWidth === 0 || duration === 0 || !isDragging) return;
+      if (
+        isMemorySessionActiveTrack ||
+        maxScrubberWidth === 0 ||
+        effectiveDuration === 0 ||
+        !isDragging
+      ) {
+        return;
+      }
 
       const { locationX } = event.nativeEvent;
       const progress = Math.max(0, Math.min(1, locationX / maxScrubberWidth));
-      const seekPosition = progress * duration;
+      const seekPosition = progress * effectiveDuration;
 
       setVisualPosition(seekPosition);
       setIsDragging(false);
       void seekToPosition(seekPosition);
     },
-    [maxScrubberWidth, duration, isDragging, seekToPosition]
+    [
+      isMemorySessionActiveTrack,
+      maxScrubberWidth,
+      effectiveDuration,
+      isDragging,
+      seekToPosition,
+    ]
   );
 
   // Helper function to get safe image source
@@ -539,22 +698,16 @@ export const MediaPlayer: React.FunctionComponent<Props> = () => {
 
           <View style={themedStyles.minimizedControls}>
             <Pressable
-              onPress={() =>
-                void (playbackState.state === PlayerState.Playing
-                  ? pause()
-                  : play())
-              }
+              onPress={() => {
+                void togglePlayPause();
+              }}
               style={themedStyles.minimizedPlayButton}
               accessibilityRole="button"
-              accessibilityLabel={
-                playbackState.state === PlayerState.Playing ? "Pause" : "Play"
-              }
+              accessibilityLabel={isMemorySessionPlaying ? "Pause" : "Play"}
               accessibilityHint="Tap to play or pause the current track"
             >
               <Ionicons
-                name={
-                  playbackState.state === PlayerState.Playing ? "pause" : "play"
-                }
+                name={isMemorySessionPlaying ? "pause" : "play"}
                 size={24}
                 color={colors.white}
               />
@@ -603,7 +756,7 @@ export const MediaPlayer: React.FunctionComponent<Props> = () => {
                     style={[
                       themedStyles.minimizedScrubberProgress,
                       {
-                        width: `${(visualPosition / duration) * 100}%`,
+                        width: `${scrubberProgressPercent}%`,
                       },
                     ]}
                   />
@@ -611,7 +764,7 @@ export const MediaPlayer: React.FunctionComponent<Props> = () => {
                     style={[
                       themedStyles.minimizedScrubberHandle,
                       {
-                        left: `${(visualPosition / duration) * 100}%`,
+                        left: `${scrubberProgressPercent}%`,
                       },
                     ]}
                   />
@@ -723,7 +876,7 @@ export const MediaPlayer: React.FunctionComponent<Props> = () => {
                             style={[
                               themedStyles.maximizedScrubberProgress,
                               {
-                                width: `${(visualPosition / duration) * 100}%`,
+                                width: `${scrubberProgressPercent}%`,
                               },
                             ]}
                           />
@@ -731,7 +884,7 @@ export const MediaPlayer: React.FunctionComponent<Props> = () => {
                             style={[
                               themedStyles.maximizedScrubberHandle,
                               {
-                                left: `${(visualPosition / duration) * 100}%`,
+                                left: `${scrubberProgressPercent}%`,
                               },
                             ]}
                           />
@@ -754,7 +907,7 @@ export const MediaPlayer: React.FunctionComponent<Props> = () => {
                         style={[
                           themedStyles.maximizedScrubberProgress,
                           {
-                            width: `${(visualPosition / duration) * 100}%`,
+                            width: `${scrubberProgressPercent}%`,
                           },
                         ]}
                       />
@@ -762,7 +915,7 @@ export const MediaPlayer: React.FunctionComponent<Props> = () => {
                         style={[
                           themedStyles.maximizedScrubberHandle,
                           {
-                            left: `${(visualPosition / duration) * 100}%`,
+                            left: `${scrubberProgressPercent}%`,
                           },
                         ]}
                       />
@@ -817,24 +970,16 @@ export const MediaPlayer: React.FunctionComponent<Props> = () => {
 
             <View style={themedStyles.maximizedMainControls}>
               <Pressable
-                onPress={() =>
-                  void (playbackState.state === PlayerState.Playing
-                    ? pause()
-                    : play())
-                }
+                onPress={() => {
+                  void togglePlayPause();
+                }}
                 style={themedStyles.maximizedPlayButton}
                 accessibilityRole="button"
-                accessibilityLabel={
-                  playbackState.state === PlayerState.Playing ? "Pause" : "Play"
-                }
+                accessibilityLabel={isMemorySessionPlaying ? "Pause" : "Play"}
                 accessibilityHint="Tap to play or pause the current track"
               >
                 <Ionicons
-                  name={
-                    playbackState.state === PlayerState.Playing
-                      ? "pause"
-                      : "play"
-                  }
+                  name={isMemorySessionPlaying ? "pause" : "play"}
                   size={48}
                   color={colors.white}
                 />

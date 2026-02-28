@@ -16,6 +16,8 @@ import {
   MemoryAudioOutcome,
 } from "src/services/memoryAudioSrs";
 import {
+  pauseMemoryAudioSessionEngine,
+  resumeMemoryAudioSessionEngine,
   startMemoryAudioSessionEngine,
   stopMemoryAudioSessionEngine,
   MemoryAudioSessionPhase,
@@ -76,6 +78,7 @@ export interface MemoryAudioState {
   recallCyclesTarget: number;
   currentGapDuration: number;
   sessionStartedAt?: number;
+  spokenDurationSeconds: number;
   verseAudioUrl?: string;
   isAudioCached: boolean;
   selectedAmbientSound: AmbientSound;
@@ -90,6 +93,7 @@ export interface MemoryAudioState {
   errorMessage?: string;
   hasSeenInstructions: boolean;
   isMemorySessionActive: boolean;
+  isSessionPaused: boolean;
   backgroundedAt?: number;
 }
 
@@ -100,6 +104,7 @@ const initialState: MemoryAudioState = {
   recallCyclesTarget: 6,
   currentGapDuration: 0,
   sessionStartedAt: undefined,
+  spokenDurationSeconds: 0,
   verseAudioUrl: undefined,
   isAudioCached: false,
   selectedAmbientSound: "none",
@@ -114,6 +119,7 @@ const initialState: MemoryAudioState = {
   errorMessage: undefined,
   hasSeenInstructions: false,
   isMemorySessionActive: false,
+  isSessionPaused: false,
   backgroundedAt: undefined,
 };
 
@@ -146,6 +152,14 @@ const memoryAudioSlice = createSlice({
       action: PayloadAction<MemoryAudioSessionPhase>
     ) => {
       state.sessionPhase = action.payload;
+      if (
+        action.payload === "idle" ||
+        action.payload === "completed" ||
+        action.payload === "abandoned"
+      ) {
+        state.isMemorySessionActive = false;
+        state.isSessionPaused = false;
+      }
     },
     setLoading: (state, action: PayloadAction<boolean>) => {
       state.isLoading = action.payload;
@@ -172,8 +186,14 @@ const memoryAudioSlice = createSlice({
     setMemorySessionActive: (state, action: PayloadAction<boolean>) => {
       state.isMemorySessionActive = action.payload;
     },
+    setSessionPaused: (state, action: PayloadAction<boolean>) => {
+      state.isSessionPaused = action.payload;
+    },
     setSessionStartedAt: (state, action: PayloadAction<number>) => {
       state.sessionStartedAt = action.payload;
+    },
+    setSpokenDurationSeconds: (state, action: PayloadAction<number>) => {
+      state.spokenDurationSeconds = action.payload;
     },
     setGapDuration: (state, action: PayloadAction<number>) => {
       state.currentGapDuration = action.payload;
@@ -206,6 +226,9 @@ const memoryAudioSlice = createSlice({
       state.recallCyclesCompleted = 0;
       state.currentGapDuration = 0;
       state.sessionPhase = "idle";
+      state.sessionStartedAt = undefined;
+      state.spokenDurationSeconds = 0;
+      state.isSessionPaused = false;
       state.hasError = false;
       state.errorMessage = undefined;
     },
@@ -214,9 +237,12 @@ const memoryAudioSlice = createSlice({
       state.encodingPlaysCompleted = 0;
       state.recallCyclesCompleted = 0;
       state.currentGapDuration = 0;
+      state.sessionStartedAt = undefined;
+      state.spokenDurationSeconds = 0;
       state.isLoading = false;
       state.ambientIsPlaying = false;
       state.isMemorySessionActive = false;
+      state.isSessionPaused = false;
       state.backgroundedAt = undefined;
     },
   },
@@ -379,10 +405,24 @@ export const startMemoryAudioSession = createAsyncThunk(
           (getState() as RootState).memoryAudio.selectedAmbientSound,
         onSessionStarted: () => {
           dispatch(memoryAudioActions.setMemorySessionActive(true));
-          dispatch(memoryAudioActions.setSessionStartedAt(Date.now()));
+          dispatch(memoryAudioActions.setSessionPaused(false));
           dispatch(memoryAudioActions.setLoading(false));
         },
+        onSpokenDurationChange: (durationSeconds) => {
+          dispatch(
+            memoryAudioActions.setSpokenDurationSeconds(durationSeconds)
+          );
+        },
+        onSessionPausedChange: (isPaused) => {
+          dispatch(memoryAudioActions.setSessionPaused(isPaused));
+        },
         onPhaseChange: (phase, gapDuration) => {
+          if (
+            phase === "encoding_playing" &&
+            !(getState() as RootState).memoryAudio.sessionStartedAt
+          ) {
+            dispatch(memoryAudioActions.setSessionStartedAt(Date.now()));
+          }
           dispatch(memoryAudioActions.setSessionPhase(phase));
           if (gapDuration) {
             dispatch(memoryAudioActions.setGapDuration(gapDuration));
@@ -400,6 +440,7 @@ export const startMemoryAudioSession = createAsyncThunk(
         onSessionCompleted: () => {
           dispatch(memoryAudioActions.setSessionPhase("completed"));
           dispatch(memoryAudioActions.setMemorySessionActive(false));
+          dispatch(memoryAudioActions.setSessionPaused(false));
           void dispatch(recordMemorySessionOutcome("completed"));
           setTimeout(() => {
             dispatch(memoryAudioActions.resetSessionToIdle());
@@ -408,6 +449,7 @@ export const startMemoryAudioSession = createAsyncThunk(
         onSessionAbandoned: () => {
           dispatch(memoryAudioActions.setSessionPhase("abandoned"));
           dispatch(memoryAudioActions.setMemorySessionActive(false));
+          dispatch(memoryAudioActions.setSessionPaused(false));
           void dispatch(recordMemorySessionOutcome("abandoned"));
           setTimeout(() => {
             dispatch(memoryAudioActions.resetSessionToIdle());
@@ -423,6 +465,7 @@ export const startMemoryAudioSession = createAsyncThunk(
       );
       dispatch(memoryAudioActions.setLoading(false));
       dispatch(memoryAudioActions.setMemorySessionActive(false));
+      dispatch(memoryAudioActions.setSessionPaused(false));
     }
   }
 );
@@ -431,6 +474,20 @@ export const stopMemoryAudioSession = createAsyncThunk(
   "memoryAudio/stopMemoryAudioSession",
   async () => {
     await stopMemoryAudioSessionEngine("abandoned");
+  }
+);
+
+export const pauseMemoryAudioSession = createAsyncThunk(
+  "memoryAudio/pauseMemoryAudioSession",
+  async () => {
+    await pauseMemoryAudioSessionEngine();
+  }
+);
+
+export const resumeMemoryAudioSession = createAsyncThunk(
+  "memoryAudio/resumeMemoryAudioSession",
+  async () => {
+    await resumeMemoryAudioSessionEngine();
   }
 );
 
@@ -454,11 +511,17 @@ export const selectMemoryAudioViewModel = createSelector(
     encodingPlaysCompleted: memoryAudio.encodingPlaysCompleted,
     recallCyclesCompleted: memoryAudio.recallCyclesCompleted,
     recallCyclesTarget: memoryAudio.recallCyclesTarget,
-    isSessionActive: memoryAudio.isMemorySessionActive,
+    isSessionActive:
+      memoryAudio.isMemorySessionActive &&
+      memoryAudio.sessionPhase !== "idle" &&
+      memoryAudio.sessionPhase !== "completed" &&
+      memoryAudio.sessionPhase !== "abandoned",
+    isSessionPaused: memoryAudio.isSessionPaused,
     isLoading: memoryAudio.isLoading,
     hasError: memoryAudio.hasError,
     errorMessage: memoryAudio.errorMessage,
     selectedAmbientSound: memoryAudio.selectedAmbientSound,
+    spokenDurationSeconds: memoryAudio.spokenDurationSeconds,
     hasSeenInstructions: memoryAudio.hasSeenInstructions,
     srsStatusLabel: formatRelativeReviewDate(memoryAudio.nextReviewDate),
     completionLabel:

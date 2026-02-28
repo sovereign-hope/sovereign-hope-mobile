@@ -11,6 +11,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useAppSelector, useAppDispatch } from "src/hooks/store";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
@@ -46,6 +47,8 @@ import {
   selectAuthUser,
   signOut,
 } from "src/redux/authSlice";
+import { useMiniPlayerHeight } from "src/hooks/useMiniPlayerHeight";
+import { spacing } from "src/style/layout";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Settings">;
 
@@ -89,6 +92,8 @@ export const SettingsScreen: React.FunctionComponent<Props> = ({
   // Custom hooks
   const dispatch = useAppDispatch();
   const theme = useTheme();
+  const miniPlayerHeight = useMiniPlayerHeight();
+  const insets = useSafeAreaInsets();
   const enableNotifications = useAppSelector(selectEnableNotifications);
   const notificationTime = useAppSelector(selectNotificationTime);
   const readingPlan = useAppSelector(selectReadingPlan);
@@ -213,6 +218,9 @@ export const SettingsScreen: React.FunctionComponent<Props> = ({
         <ScrollView
           contentInsetAdjustmentBehavior="automatic"
           keyboardShouldPersistTaps="handled"
+          contentContainerStyle={{
+            paddingBottom: miniPlayerHeight + insets.bottom + spacing.large,
+          }}
         >
           <Text style={themedStyles.settingsSectionHeader}>Notifications</Text>
           <View style={isIOS ? themedStyles.settingsGroup : undefined}>

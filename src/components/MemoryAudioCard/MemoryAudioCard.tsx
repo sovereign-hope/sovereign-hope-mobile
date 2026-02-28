@@ -1,13 +1,16 @@
 import React from "react";
 import { ActivityIndicator, Modal, Pressable, Text, View } from "react-native";
 import { useTheme } from "@react-navigation/native";
+import { useNavigation } from "@react-navigation/native";
+import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { Ionicons } from "@expo/vector-icons";
 import { Passage } from "src/app/utils";
+import { RootStackParamList } from "src/navigation/RootNavigator";
 import { useAppDispatch, useAppSelector } from "src/hooks/store";
 import {
   hydrateMemoryAudioState,
   markMemoryAudioInstructionsSeen,
   selectMemoryAudioViewModel,
-  setSelectedAmbientSound,
   startMemoryAudioSession,
   stopMemoryAudioSession,
 } from "src/redux/memoryAudioSlice";
@@ -17,29 +20,29 @@ import { styles } from "./MemoryAudioCard.styles";
 type Props = {
   verseReference?: string;
   passage?: Passage;
+  embedded?: boolean;
 };
-
-const phaseLabels: Record<string, string> = {
-  encoding_playing: "Encoding",
-  encoding_gap: "Encoding Gap",
-  recall_playing: "Recall",
-  recall_gap: "Recall Gap",
-  completed: "Completed",
-  abandoned: "Abandoned",
-  fetching: "Loading audio...",
-};
-
-const getPhaseLabel = (phase: string): string => phaseLabels[phase] ?? "Ready";
 
 export const MemoryAudioCard: React.FunctionComponent<Props> = ({
   verseReference,
   passage,
+  embedded = false,
 }) => {
+  const navigation =
+    useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const dispatch = useAppDispatch();
   const theme = useTheme();
   const themedStyles = styles({ theme });
   const viewModel = useAppSelector(selectMemoryAudioViewModel);
   const [showInstructions, setShowInstructions] = React.useState(false);
+  const [showSessionDetails, setShowSessionDetails] = React.useState(false);
+  const selectedAmbientLabel = React.useMemo(() => {
+    return (
+      AMBIENT_SOUND_OPTIONS.find(
+        (option) => option.key === viewModel.selectedAmbientSound
+      )?.label ?? "Silence"
+    );
+  }, [viewModel.selectedAmbientSound]);
 
   React.useEffect(() => {
     if (verseReference) {
@@ -71,102 +74,72 @@ export const MemoryAudioCard: React.FunctionComponent<Props> = ({
   }
 
   const isActive = viewModel.isSessionActive;
-  const phaseLabel = getPhaseLabel(viewModel.phase);
-  const progressLabel =
-    viewModel.phase.startsWith("encoding") ||
-    viewModel.phase === "encoding_playing" ||
-    viewModel.phase === "encoding_gap"
-      ? `Encoding ${viewModel.encodingPlaysCompleted} / 3`
-      : `Cycle ${viewModel.recallCyclesCompleted} of ${viewModel.recallCyclesTarget}`;
 
   return (
-    <View style={themedStyles.card}>
-      <Text style={themedStyles.cardHeader}>Memory Audio Helper</Text>
-      <Text style={themedStyles.cardSubHeader}>{verseReference}</Text>
-
-      <View style={themedStyles.statusRow}>
-        <Text style={themedStyles.statusText}>{viewModel.srsStatusLabel}</Text>
-        <Text style={themedStyles.statusText}>{phaseLabel}</Text>
-      </View>
-      <Text style={themedStyles.progressText}>{viewModel.completionLabel}</Text>
-
+    <View
+      style={[
+        themedStyles.card,
+        embedded ? themedStyles.embeddedCard : undefined,
+      ]}
+    >
       {viewModel.isLoading ? (
         <ActivityIndicator color={theme.colors.text} />
       ) : (
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={
-            isActive ? "Stop memory session" : "Start memory session"
-          }
-          accessibilityHint={
-            isActive
-              ? "Stops the current memory audio session."
-              : "Starts a guided memory audio session."
-          }
-          onPress={() => {
-            if (isActive) {
-              void dispatch(stopMemoryAudioSession());
-            } else {
-              void dispatch(
-                startMemoryAudioSession({ passage, verseReference })
-              );
+        <View style={themedStyles.sessionControlRow}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={
+              isActive ? "Stop daily listening" : "Start daily listening"
             }
-          }}
-          style={({ pressed }) => [
-            themedStyles.actionButton,
-            isActive ? themedStyles.stopButton : undefined,
-            {
-              opacity: pressed ? 0.8 : 1,
-            },
-          ]}
-        >
-          <Text style={themedStyles.actionButtonLabel}>
-            {isActive ? "Stop Session" : "Start Session"}
-          </Text>
-        </Pressable>
-      )}
+            accessibilityHint={
+              isActive
+                ? "Stops the current memory audio session."
+                : "Starts a guided memory audio session."
+            }
+            onPress={() => {
+              if (isActive) {
+                void dispatch(stopMemoryAudioSession());
+              } else {
+                void dispatch(
+                  startMemoryAudioSession({ passage, verseReference })
+                );
+              }
+            }}
+            style={({ pressed }) => [
+              themedStyles.sessionActionButton,
+              isActive ? themedStyles.stopButton : undefined,
+              {
+                opacity: pressed ? 0.8 : 1,
+              },
+            ]}
+          >
+            <Text style={themedStyles.actionButtonLabel}>
+              {isActive ? "Stop Listening" : "Start Daily Listening"}
+            </Text>
+          </Pressable>
 
-      {isActive && (
-        <Text style={themedStyles.progressText}>{progressLabel}</Text>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Daily listening settings"
+            accessibilityHint="Opens details and settings for daily listening."
+            onPress={() => {
+              setShowSessionDetails(true);
+            }}
+            style={({ pressed }) => [
+              themedStyles.settingsIconButton,
+              {
+                opacity: pressed ? 0.8 : 1,
+              },
+            ]}
+          >
+            <Ionicons
+              name="options-outline"
+              size={18}
+              color={theme.colors.text}
+            />
+          </Pressable>
+        </View>
       )}
-
-      <Text style={themedStyles.cardSubHeader}>Ambient Sound</Text>
-      <View style={themedStyles.soundPicker}>
-        {AMBIENT_SOUND_OPTIONS.map((option) => {
-          const isSelected = viewModel.selectedAmbientSound === option.key;
-          return (
-            <Pressable
-              key={option.key}
-              accessibilityRole="button"
-              accessibilityLabel={`Select ambient sound: ${option.label}`}
-              accessibilityHint={`Changes the ambient background to ${option.label}.`}
-              onPress={() => {
-                void dispatch(setSelectedAmbientSound(option.key));
-              }}
-              style={({ pressed }) => [
-                themedStyles.soundPill,
-                isSelected ? themedStyles.soundPillSelected : undefined,
-                {
-                  opacity: pressed ? 0.8 : 1,
-                },
-              ]}
-            >
-              <Text
-                style={[
-                  themedStyles.soundPillText,
-                  isSelected ? themedStyles.soundPillTextSelected : undefined,
-                ]}
-              >
-                {option.label}
-              </Text>
-            </Pressable>
-          );
-        })}
-      </View>
-      <Text style={themedStyles.helperText}>
-        During silence, recite the verse from memory. Gaps widen as you
-        progress.
-      </Text>
 
       <Modal transparent visible={showInstructions} animationType="fade">
         <View style={themedStyles.modalBackdrop}>
@@ -192,6 +165,67 @@ export const MemoryAudioCard: React.FunctionComponent<Props> = ({
               ]}
             >
               <Text style={themedStyles.actionButtonLabel}>Got It</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal transparent visible={showSessionDetails} animationType="fade">
+        <View style={themedStyles.modalBackdrop}>
+          <View style={themedStyles.modalCard}>
+            <Text style={themedStyles.modalTitle}>Daily Listening</Text>
+            <Text style={themedStyles.modalBody}>
+              A guided memory practice that alternates between listening and
+              silence so you can recite from memory during the gaps.
+            </Text>
+
+            <View style={themedStyles.metricsRow}>
+              <Text style={themedStyles.metricLabel}>Completed</Text>
+              <Text style={themedStyles.metricValue}>
+                {viewModel.completionLabel}
+              </Text>
+            </View>
+
+            <View style={themedStyles.metricsRow}>
+              <Text style={themedStyles.metricLabel}>Ambient Sound</Text>
+              <Text style={themedStyles.metricValue}>
+                {selectedAmbientLabel}
+              </Text>
+            </View>
+
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Choose ambient sound"
+              accessibilityHint="Opens ambient sound previews and selection."
+              onPress={() => {
+                setShowSessionDetails(false);
+                navigation.push("Ambient Sounds");
+              }}
+              style={({ pressed }) => [
+                themedStyles.actionButton,
+                {
+                  opacity: pressed ? 0.8 : 1,
+                },
+              ]}
+            >
+              <Text style={themedStyles.actionButtonLabel}>Choose Sound</Text>
+            </Pressable>
+
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Close details"
+              accessibilityHint="Closes daily listening details."
+              onPress={() => {
+                setShowSessionDetails(false);
+              }}
+              style={({ pressed }) => [
+                themedStyles.secondaryButton,
+                {
+                  opacity: pressed ? 0.8 : 1,
+                },
+              ]}
+            >
+              <Text style={themedStyles.secondaryButtonLabel}>Done</Text>
             </Pressable>
           </View>
         </View>

@@ -644,58 +644,61 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
             <View style={themedStyles.headerRow}>
               <Text style={themedStyles.header}>Memory</Text>
             </View>
-            <Pressable
-              onPress={handlePracticePress}
-              accessibilityRole="button"
-              style={({ pressed }) => [
-                themedStyles.contentCard,
-                {
-                  opacity: pressed ? 0.7 : 1,
-                },
-              ]}
-            >
-              <View style={themedStyles.contentCardColumn}>
-                {weeklyMemoryDay?.memory.heading && (
-                  <Text style={themedStyles.contentCardHeader}>
-                    {weeklyMemoryDay?.memory.heading}
-                  </Text>
-                )}
-                <Text style={themedStyles.contentCardHeader}>
-                  {weeklyMemoryDay?.memory.passage}
-                </Text>
-
-                {shouldShowMemoryLoadingIndicator ? (
-                  <ActivityIndicator size="small" color={theme.colors.text} />
-                ) : (
-                  <Animated.View
-                    entering={FadeIn.duration(500)}
-                    exiting={FadeOut}
-                    layout={LinearTransition}
-                  >
-                    <Text
-                      style={{
-                        ...themedStyles.text,
-                        letterSpacing: 2,
-                      }}
-                    >
-                      {memoryPassageAcronym}
+            <View style={[themedStyles.contentCard, themedStyles.memoryCard]}>
+              <Pressable
+                onPress={handlePracticePress}
+                accessibilityRole="button"
+                style={({ pressed }) => [
+                  themedStyles.memoryPassageButton,
+                  {
+                    opacity: pressed ? 0.7 : 1,
+                  },
+                ]}
+              >
+                <View style={themedStyles.contentCardColumn}>
+                  {weeklyMemoryDay?.memory.heading && (
+                    <Text style={themedStyles.contentCardHeader}>
+                      {weeklyMemoryDay?.memory.heading}
                     </Text>
-                  </Animated.View>
-                )}
-              </View>
-              <Ionicons
-                name="chevron-forward"
-                size={24}
-                color={theme.colors.border}
-                style={themedStyles.disclosureIcon}
-              />
-            </Pressable>
-            {memoryPassageReference && memoryPassage && (
-              <MemoryAudioCard
-                verseReference={memoryPassageReference}
-                passage={memoryPassage}
-              />
-            )}
+                  )}
+                  <Text style={themedStyles.contentCardHeader}>
+                    {weeklyMemoryDay?.memory.passage}
+                  </Text>
+
+                  {shouldShowMemoryLoadingIndicator ? (
+                    <ActivityIndicator size="small" color={theme.colors.text} />
+                  ) : (
+                    <Animated.View
+                      entering={FadeIn.duration(500)}
+                      exiting={FadeOut}
+                      layout={LinearTransition}
+                    >
+                      <Text
+                        style={{
+                          ...themedStyles.text,
+                          letterSpacing: 2,
+                        }}
+                      >
+                        {memoryPassageAcronym}
+                      </Text>
+                    </Animated.View>
+                  )}
+                </View>
+                <Ionicons
+                  name="chevron-forward"
+                  size={24}
+                  color={theme.colors.border}
+                  style={themedStyles.disclosureIcon}
+                />
+              </Pressable>
+              {memoryPassageReference && memoryPassage ? (
+                <MemoryAudioCard
+                  verseReference={memoryPassageReference}
+                  passage={memoryPassage}
+                  embedded
+                />
+              ) : undefined}
+            </View>
             {isMember && (
               <>
                 <View style={themedStyles.headerRow}>

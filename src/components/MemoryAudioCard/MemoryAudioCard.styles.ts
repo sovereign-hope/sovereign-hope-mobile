@@ -1,7 +1,7 @@
 import { Theme } from "@react-navigation/native";
 import { StyleSheet, TextStyle, ViewStyle } from "react-native";
 import { colors } from "src/style/colors";
-import { radius, spacing } from "src/style/layout";
+import { elementSize, radius, spacing } from "src/style/layout";
 import { body, header3 } from "src/style/typography";
 
 type Props = {
@@ -10,20 +10,19 @@ type Props = {
 
 interface Style {
   card: ViewStyle;
-  cardHeader: TextStyle;
-  cardSubHeader: TextStyle;
-  statusRow: ViewStyle;
-  statusText: TextStyle;
+  embeddedCard: ViewStyle;
+  sessionControlRow: ViewStyle;
+  sessionActionButton: ViewStyle;
+  settingsIconButton: ViewStyle;
+  metricsRow: ViewStyle;
   progressText: TextStyle;
+  metricLabel: TextStyle;
+  metricValue: TextStyle;
   actionButton: ViewStyle;
   actionButtonLabel: TextStyle;
+  secondaryButton: ViewStyle;
+  secondaryButtonLabel: TextStyle;
   stopButton: ViewStyle;
-  soundPicker: ViewStyle;
-  soundPill: ViewStyle;
-  soundPillSelected: ViewStyle;
-  soundPillText: TextStyle;
-  soundPillTextSelected: TextStyle;
-  helperText: TextStyle;
   modalBackdrop: ViewStyle;
   modalCard: ViewStyle;
   modalTitle: TextStyle;
@@ -33,9 +32,9 @@ interface Style {
 export const styles = ({ theme }: Props): Style =>
   StyleSheet.create({
     card: {
-      marginBottom: spacing.large,
+      marginBottom: spacing.medium,
       marginHorizontal: spacing.large,
-      padding: spacing.lmedium,
+      padding: spacing.medium,
       borderRadius: radius.large,
       backgroundColor: theme.colors.card,
       shadowColor: colors.black,
@@ -45,77 +44,95 @@ export const styles = ({ theme }: Props): Style =>
       },
       shadowOpacity: 0.1,
     },
-    cardHeader: {
-      ...header3,
-      color: theme.colors.text,
-      marginBottom: spacing.small,
+    embeddedCard: {
+      marginBottom: 0,
+      marginHorizontal: 0,
+      padding: 0,
+      borderRadius: 0,
+      backgroundColor: "transparent",
+      shadowOpacity: 0,
     },
-    cardSubHeader: {
-      ...body,
-      color: theme.colors.text,
-      marginBottom: spacing.small,
-    },
-    statusRow: {
+    sessionControlRow: {
       flexDirection: "row",
-      justifyContent: "space-between",
-      alignItems: "center",
-      marginBottom: spacing.medium,
-      gap: spacing.medium,
+      gap: spacing.small,
+      marginTop: spacing.small,
+      marginBottom: spacing.small,
     },
-    statusText: {
-      ...body,
-      color: theme.colors.text,
-      flex: 1,
-    },
-    progressText: {
-      ...body,
-      color: theme.colors.text,
-      marginBottom: spacing.medium,
-    },
-    actionButton: {
+    sessionActionButton: {
+      flex: 4,
+      minHeight: elementSize.small,
       paddingVertical: spacing.medium,
       paddingHorizontal: spacing.lmedium,
       borderRadius: radius.medium,
       backgroundColor: colors.accent,
+      justifyContent: "center",
       alignItems: "center",
-      marginBottom: spacing.medium,
     },
-    actionButtonLabel: {
-      ...header3,
-      color: colors.white,
-    },
-    stopButton: {
-      backgroundColor: colors.red,
-    },
-    soundPicker: {
-      flexDirection: "row",
-      flexWrap: "wrap",
-      gap: spacing.small,
-      marginTop: spacing.small,
-    },
-    soundPill: {
+    settingsIconButton: {
+      flex: 1,
+      minHeight: elementSize.small,
       borderRadius: radius.medium,
       borderWidth: 1,
       borderColor: theme.colors.border,
-      paddingVertical: spacing.small,
-      paddingHorizontal: spacing.medium,
+      backgroundColor: theme.dark ? colors.darkerGrey : colors.grey0,
+      alignItems: "center",
+      justifyContent: "center",
     },
-    soundPillSelected: {
-      backgroundColor: colors.accent,
-      borderColor: colors.accent,
+    metricsRow: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      marginBottom: spacing.small,
+      gap: spacing.medium,
     },
-    soundPillText: {
+    progressText: {
       ...body,
       color: theme.colors.text,
-      fontSize: 13,
     },
-    soundPillTextSelected: {
-      color: colors.white,
-    },
-    helperText: {
+    metricLabel: {
       ...body,
       color: theme.dark ? colors.grey0 : colors.grey2,
-      marginTop: spacing.small,
+    },
+    metricValue: {
+      ...body,
+      color: theme.colors.text,
+      fontWeight: "600",
+      flexShrink: 1,
+      textAlign: "right",
+    },
+    actionButton: {
+      minHeight: elementSize.small,
+      paddingVertical: spacing.medium,
+      paddingHorizontal: spacing.lmedium,
+      borderRadius: radius.medium,
+      backgroundColor: colors.accent,
+      justifyContent: "center",
+      alignItems: "center",
+      marginBottom: spacing.small,
+    },
+    actionButtonLabel: {
+      ...body,
+      fontWeight: "600",
+      color: colors.white,
+    },
+    secondaryButton: {
+      minHeight: elementSize.small,
+      paddingVertical: spacing.medium,
+      paddingHorizontal: spacing.lmedium,
+      borderRadius: radius.medium,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      backgroundColor: theme.colors.card,
+      justifyContent: "center",
+      alignItems: "center",
+    },
+    secondaryButtonLabel: {
+      ...body,
+      fontWeight: "600",
+      color: theme.colors.text,
+    },
+    stopButton: {
+      backgroundColor: colors.red,
     },
     modalBackdrop: {
       flex: 1,

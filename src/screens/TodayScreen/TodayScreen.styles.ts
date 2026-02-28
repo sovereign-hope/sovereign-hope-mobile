@@ -20,6 +20,8 @@ interface Style {
   subHeader: TextStyle;
   textButton: TextStyle;
   contentCard: ViewStyle;
+  memoryCard: ViewStyle;
+  memoryPassageButton: ViewStyle;
   contentCardColumn: ViewStyle;
   contentCardHeader: TextStyle;
   scrollRow: ViewStyle;
@@ -116,6 +118,15 @@ export const styles = ({ theme }: Props): Style =>
         height: 2,
       },
       shadowOpacity: 0.1,
+    },
+    memoryCard: {
+      flexDirection: "column",
+      justifyContent: "flex-start",
+      alignItems: "stretch",
+    },
+    memoryPassageButton: {
+      flexDirection: "row",
+      alignItems: "center",
     },
     contentCardColumn: {
       flex: 1,
