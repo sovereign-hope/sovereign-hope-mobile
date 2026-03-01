@@ -203,7 +203,8 @@ export const SettingsScreen: React.FunctionComponent<Props> = ({
   const themedStyles = styles({ theme });
   const isSignedIn = Boolean(authUser);
   const isBusy = authIsLoading || authIsSyncing;
-  const isIOS = Platform.OS === "ios";
+  const useInsetSettingsGroups =
+    Platform.OS === "ios" || Platform.OS === "android";
 
   return (
     <SafeAreaView
@@ -223,11 +224,15 @@ export const SettingsScreen: React.FunctionComponent<Props> = ({
           }}
         >
           <Text style={themedStyles.settingsSectionHeader}>Notifications</Text>
-          <View style={isIOS ? themedStyles.settingsGroup : undefined}>
+          <View
+            style={
+              useInsetSettingsGroups ? themedStyles.settingsGroup : undefined
+            }
+          >
             <View
               style={[
                 themedStyles.settingsRow,
-                isIOS && themedStyles.settingsRowGrouped,
+                useInsetSettingsGroups && themedStyles.settingsRowGrouped,
               ]}
             >
               <Text style={themedStyles.settingsRowText}>
@@ -244,8 +249,8 @@ export const SettingsScreen: React.FunctionComponent<Props> = ({
               accessibilityRole="button"
               style={({ pressed }) => [
                 themedStyles.settingsRow,
-                isIOS && themedStyles.settingsRowGrouped,
-                isIOS && themedStyles.settingsRowGroupedLast,
+                useInsetSettingsGroups && themedStyles.settingsRowGrouped,
+                useInsetSettingsGroups && themedStyles.settingsRowGroupedLast,
                 pressed && themedStyles.settingsRowPressed,
               ]}
             >
@@ -274,14 +279,18 @@ export const SettingsScreen: React.FunctionComponent<Props> = ({
           </View>
 
           <Text style={themedStyles.settingsSectionHeader}>Reading</Text>
-          <View style={isIOS ? themedStyles.settingsGroup : undefined}>
+          <View
+            style={
+              useInsetSettingsGroups ? themedStyles.settingsGroup : undefined
+            }
+          >
             {availablePlans.length > 1 && (
               <Pressable
                 onPress={showSelectReadingPlan}
                 accessibilityRole="button"
                 style={({ pressed }) => [
                   themedStyles.settingsRow,
-                  isIOS && themedStyles.settingsRowGrouped,
+                  useInsetSettingsGroups && themedStyles.settingsRowGrouped,
                   pressed && themedStyles.settingsRowPressed,
                 ]}
               >
@@ -305,8 +314,8 @@ export const SettingsScreen: React.FunctionComponent<Props> = ({
               accessibilityRole="button"
               style={({ pressed }) => [
                 themedStyles.settingsRow,
-                isIOS && themedStyles.settingsRowGrouped,
-                isIOS && themedStyles.settingsRowGroupedLast,
+                useInsetSettingsGroups && themedStyles.settingsRowGrouped,
+                useInsetSettingsGroups && themedStyles.settingsRowGroupedLast,
                 pressed && themedStyles.settingsRowPressed,
               ]}
             >

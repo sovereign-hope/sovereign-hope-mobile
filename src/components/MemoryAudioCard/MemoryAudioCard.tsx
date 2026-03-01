@@ -1,9 +1,13 @@
 import React from "react";
-import { ActivityIndicator, Modal, Pressable, Text, View } from "react-native";
+import { Modal, Pressable, Text, View } from "react-native";
 import { useTheme } from "@react-navigation/native";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Ionicons } from "@expo/vector-icons";
+import * as Haptics from "expo-haptics";
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore - No types for this package
+import Bar from "react-native-progress/Bar";
 import { Passage } from "src/app/utils";
 import { RootStackParamList } from "src/navigation/RootNavigator";
 import { useAppDispatch, useAppSelector } from "src/hooks/store";
@@ -15,6 +19,7 @@ import {
   stopMemoryAudioSession,
 } from "src/redux/memoryAudioSlice";
 import { AMBIENT_SOUND_OPTIONS } from "src/services/ambientAudioService";
+import { colors } from "src/style/colors";
 import { styles } from "./MemoryAudioCard.styles";
 
 type Props = {
@@ -84,7 +89,26 @@ export const MemoryAudioCard: React.FunctionComponent<Props> = ({
     >
       {viewModel.isLoading ? (
         <View style={themedStyles.loadingState}>
-          <ActivityIndicator color={theme.colors.text} />
+          <Text style={themedStyles.loadingTitle}>
+            Preparing your daily listening
+          </Text>
+          <Text style={themedStyles.loadingCaption}>
+            {viewModel.loadingMessage}
+          </Text>
+          <Bar
+            progress={viewModel.loadingProgress}
+            // eslint-disable-next-line unicorn/no-null
+            width={null}
+            color={colors.accent}
+            unfilledColor={theme.dark ? "rgba(255,255,255,0.18)" : "#D8DCE6"}
+            borderWidth={0}
+            animationType="timing"
+            animationConfig={{
+              duration: 250,
+            }}
+            indeterminate={viewModel.loadingProgress <= 0}
+            style={themedStyles.loadingProgressTrack}
+          />
         </View>
       ) : (
         <View style={themedStyles.sessionControlRow}>
@@ -99,6 +123,7 @@ export const MemoryAudioCard: React.FunctionComponent<Props> = ({
                 : "Starts a guided memory audio session."
             }
             onPress={() => {
+              void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
               if (isActive) {
                 void dispatch(stopMemoryAudioSession());
               } else {
@@ -125,6 +150,7 @@ export const MemoryAudioCard: React.FunctionComponent<Props> = ({
             accessibilityLabel="Daily listening settings"
             accessibilityHint="Opens details and settings for daily listening."
             onPress={() => {
+              void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
               setShowSessionDetails(true);
             }}
             style={({ pressed }) => [
@@ -156,6 +182,7 @@ export const MemoryAudioCard: React.FunctionComponent<Props> = ({
               accessibilityLabel="Got it"
               accessibilityHint="Dismisses instructions and returns to the session."
               onPress={() => {
+                void Haptics.selectionAsync();
                 setShowInstructions(false);
                 void dispatch(markMemoryAudioInstructionsSeen());
               }}
@@ -200,6 +227,7 @@ export const MemoryAudioCard: React.FunctionComponent<Props> = ({
               accessibilityLabel="Choose ambient sound"
               accessibilityHint="Opens ambient sound previews and selection."
               onPress={() => {
+                void Haptics.selectionAsync();
                 setShowSessionDetails(false);
                 navigation.push("Ambient Sounds");
               }}
@@ -218,6 +246,7 @@ export const MemoryAudioCard: React.FunctionComponent<Props> = ({
               accessibilityLabel="Close details"
               accessibilityHint="Closes daily listening details."
               onPress={() => {
+                void Haptics.selectionAsync();
                 setShowSessionDetails(false);
               }}
               style={({ pressed }) => [

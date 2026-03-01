@@ -54,7 +54,10 @@ export const styles = ({ theme }: Props): Style =>
       ...header3,
       marginHorizontal: spacing.large,
       marginTop: spacing.large,
-      marginBottom: Platform.OS === "ios" ? spacing.small : spacing.large,
+      marginBottom:
+        Platform.OS === "ios" || Platform.OS === "android"
+          ? spacing.small
+          : spacing.large,
       color: theme.colors.text,
     },
     settingsGroup: {
@@ -106,11 +109,13 @@ export const styles = ({ theme }: Props): Style =>
     accountPanel: {
       backgroundColor: theme.colors.card,
       padding: spacing.large,
-      ...(Platform.OS === "ios"
+      ...(Platform.OS === "ios" || Platform.OS === "android"
         ? {
             marginHorizontal: spacing.large,
             borderRadius: radius.large,
             marginBottom: spacing.large,
+            borderWidth: StyleSheet.hairlineWidth,
+            borderColor: theme.colors.border,
           }
         : {}),
     },

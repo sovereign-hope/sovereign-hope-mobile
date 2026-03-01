@@ -12,6 +12,9 @@ interface Style {
   card: ViewStyle;
   embeddedCard: ViewStyle;
   loadingState: ViewStyle;
+  loadingTitle: TextStyle;
+  loadingCaption: TextStyle;
+  loadingProgressTrack: ViewStyle;
   sessionControlRow: ViewStyle;
   sessionActionButton: ViewStyle;
   settingsIconButton: ViewStyle;
@@ -55,8 +58,25 @@ export const styles = ({ theme }: Props): Style =>
     },
     loadingState: {
       paddingVertical: spacing.lmedium,
-      alignItems: "center",
+      alignItems: "stretch",
       justifyContent: "center",
+      gap: spacing.small,
+    },
+    loadingTitle: {
+      ...body,
+      color: theme.colors.text,
+      fontWeight: "600",
+      textAlign: "center",
+    },
+    loadingCaption: {
+      ...body,
+      color: theme.dark ? colors.grey0 : colors.grey2,
+      textAlign: "center",
+      fontSize: 13,
+    },
+    loadingProgressTrack: {
+      marginTop: spacing.xs,
+      marginHorizontal: spacing.large,
     },
     sessionControlRow: {
       flexDirection: "row",

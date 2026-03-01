@@ -8,6 +8,7 @@ import {
   stopMemoryAudioPlayback,
   pauseMemoryAudioPlayback,
   resumeMemoryAudioPlayback,
+  seekMemoryAudioPlayback,
 } from "src/services/memoryAudioPlayer";
 import type { MemoryAudioSessionPhase } from "src/services/memoryAudioConstants";
 
@@ -26,6 +27,7 @@ type SessionOutcome = "completed" | "abandoned";
 
 type SessionHandlers = {
   getSelectedAmbientSound: () => AmbientSound;
+  onLoadingProgress: (progress: number, message: string) => void;
   onSessionStarted: (sessionDurationSeconds: number) => void;
   onSessionPausedChange: (isPaused: boolean) => void;
   onSpokenDurationChange: (durationSeconds: number) => void;
@@ -84,8 +86,10 @@ export const startMemoryAudioSessionEngine = async (
   }
 
   handlers = { ...args };
+  const sessionHandlers = handlers;
   isSessionActive = true;
   handlers.onPhaseChange("fetching");
+  handlers.onLoadingProgress(0.05, "Preparing your daily listening...");
 
   const selectedAmbient = handlers.getSelectedAmbientSound();
 
@@ -94,11 +98,21 @@ export const startMemoryAudioSessionEngine = async (
       verseAudioUrl: args.verseAudioUrl,
       ambientSoundKey: selectedAmbient,
       recallCyclesTarget: args.recallCyclesTarget,
+      onProgress: (progress, message) => {
+        handlers?.onLoadingProgress(progress, message);
+      },
     });
 
-    handlers.onSpokenDurationChange(renderedSession.verseDurationSeconds);
-    handlers.onAmbientPlayingChange(selectedAmbient !== "none");
-    handlers.onSessionStarted(renderedSession.durationSeconds);
+    if (!isSessionActive || handlers !== sessionHandlers) {
+      return;
+    }
+
+    sessionHandlers.onSpokenDurationChange(
+      renderedSession.verseDurationSeconds
+    );
+    sessionHandlers.onAmbientPlayingChange(selectedAmbient !== "none");
+    sessionHandlers.onSessionStarted(renderedSession.durationSeconds);
+    sessionHandlers.onLoadingProgress(1, "Starting your session...");
 
     await startMemoryAudioPlayback({
       renderedSession,
@@ -142,5 +156,9 @@ export const pauseMemoryAudioSessionEngine = async (): Promise<boolean> =>
 
 export const resumeMemoryAudioSessionEngine = async (): Promise<boolean> =>
   resumeMemoryAudioPlayback();
+
+export const seekMemoryAudioSessionEngine = async (
+  positionSeconds: number
+): Promise<boolean> => seekMemoryAudioPlayback(positionSeconds);
 
 export const isMemoryAudioSessionRunning = (): boolean => isSessionActive;

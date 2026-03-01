@@ -13,9 +13,16 @@ import {
   Modal,
   Image,
   Platform,
+  DynamicColorIOS,
 } from "react-native";
 import { PanGestureHandler, State } from "react-native-gesture-handler";
 import { Ionicons } from "@expo/vector-icons";
+import { BlurView } from "expo-blur";
+import {
+  GlassView,
+  isGlassEffectAPIAvailable,
+  isLiquidGlassAvailable,
+} from "expo-glass-effect";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { styles } from "./MediaPlayer.styles";
 import TrackPlayer, {
@@ -36,6 +43,7 @@ import { useAppDispatch, useAppSelector } from "src/hooks/store";
 import {
   pauseMemoryAudioSession,
   resumeMemoryAudioSession,
+  seekMemoryAudioSession,
   selectMemoryAudioState,
   stopMemoryAudioSession,
 } from "src/redux/memoryAudioSlice";
@@ -116,7 +124,6 @@ export const MediaPlayer: React.FunctionComponent<Props> = () => {
   const [playbackRate, setPlaybackRate] = useState<number>(1);
   const [isToggling, setIsToggling] = useState<boolean>(false);
   const [isDragging, setIsDragging] = useState<boolean>(false);
-  const [miniScrubberWidth, setMiniScrubberWidth] = useState<number>(0);
   const [maxScrubberWidth, setMaxScrubberWidth] = useState<number>(0);
   const [visualPosition, setVisualPosition] = useState<number>(0);
   const [sessionElapsedSeconds, setSessionElapsedSeconds] = useState<number>(0);
@@ -168,6 +175,24 @@ export const MediaPlayer: React.FunctionComponent<Props> = () => {
   }, [effectiveDuration, visualPosition]);
 
   const shouldShowPlayer = track !== undefined || isMemorySessionActiveTrack;
+  const shouldUseLiquidGlass =
+    Platform.OS === "ios" &&
+    isGlassEffectAPIAvailable() &&
+    isLiquidGlassAvailable();
+  const miniPrimaryForeground =
+    Platform.OS === "ios"
+      ? DynamicColorIOS({
+          light: "#111319",
+          dark: "#FFFFFF",
+        })
+      : colors.white;
+  const miniSecondaryForeground =
+    Platform.OS === "ios"
+      ? DynamicColorIOS({
+          light: "rgba(17, 19, 25, 0.72)",
+          dark: "rgba(255, 255, 255, 0.86)",
+        })
+      : colors.white;
 
   // Update visibility state when track or memory session changes
   React.useEffect(() => {
@@ -282,7 +307,7 @@ export const MediaPlayer: React.FunctionComponent<Props> = () => {
   // Animation effects
   useLayoutEffect(() => {
     // Calculate the distance needed to slide completely off-screen
-    const MINI_HEIGHT = 80;
+    const MINI_HEIGHT = 56;
     const slideDistance = MINI_HEIGHT + 120; // much further off-screen for smooth disappearance
 
     const unmountTiming = Animated.timing(mountAnimation, {
@@ -416,6 +441,10 @@ export const MediaPlayer: React.FunctionComponent<Props> = () => {
   }, [isToggling, playerMode, isModalVisible]);
 
   const toggleRepeatMode = useCallback(async () => {
+    if (isMemorySessionActiveTrack) {
+      return;
+    }
+
     const nextMode: RepeatMode = repeatMode === "off" ? "track" : "off";
     setRepeatMode(nextMode);
 
@@ -425,7 +454,7 @@ export const MediaPlayer: React.FunctionComponent<Props> = () => {
         : TrackPlayerRepeatMode.Track
     );
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-  }, [repeatMode]);
+  }, [isMemorySessionActiveTrack, repeatMode]);
 
   const changePlaybackRate = useCallback(async (rate: number) => {
     setPlaybackRate(rate);
@@ -454,22 +483,18 @@ export const MediaPlayer: React.FunctionComponent<Props> = () => {
 
   const seekToPosition = useCallback(
     async (position: number) => {
-      if (isMemorySessionActiveTrack) {
-        return;
-      }
       setSeekTarget(position);
-      await TrackPlayer.seekTo(position);
+      await (isMemorySessionActiveTrack
+        ? dispatch(seekMemoryAudioSession(position))
+        : TrackPlayer.seekTo(position));
       void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     },
-    [isMemorySessionActiveTrack]
+    [dispatch, isMemorySessionActiveTrack]
   );
 
   const handleScrubberGesture = useCallback(
     (event: { nativeEvent: { translationX: number; state: number } }) => {
-      if (isMemorySessionActiveTrack) return;
-      const currentWidth = isModalVisible
-        ? maxScrubberWidth
-        : miniScrubberWidth;
+      const currentWidth = maxScrubberWidth;
       if (currentWidth === 0 || effectiveDuration === 0) return;
 
       const { translationX, state } = event.nativeEvent;
@@ -517,23 +542,12 @@ export const MediaPlayer: React.FunctionComponent<Props> = () => {
         }
       }
     },
-    [
-      miniScrubberWidth,
-      maxScrubberWidth,
-      effectiveDuration,
-      effectivePosition,
-      seekToPosition,
-      isModalVisible,
-      isMemorySessionActiveTrack,
-    ]
+    [maxScrubberWidth, effectiveDuration, effectivePosition, seekToPosition]
   );
 
   const handleScrubberGestureEvent = useCallback(
     (event: { nativeEvent: { translationX: number } }) => {
-      if (isMemorySessionActiveTrack) return;
-      const currentWidth = isModalVisible
-        ? maxScrubberWidth
-        : miniScrubberWidth;
+      const currentWidth = maxScrubberWidth;
       if (currentWidth === 0 || effectiveDuration === 0 || !isDragging) return;
 
       const { translationX } = event.nativeEvent;
@@ -551,22 +565,12 @@ export const MediaPlayer: React.FunctionComponent<Props> = () => {
       const newPosition = progress * effectiveDuration;
       setVisualPosition(newPosition);
     },
-    [
-      isDragging,
-      effectiveDuration,
-      miniScrubberWidth,
-      maxScrubberWidth,
-      isModalVisible,
-      isMemorySessionActiveTrack,
-    ]
+    [isDragging, effectiveDuration, maxScrubberWidth]
   );
 
   const handleScrubberPress = useCallback(
     (event: { nativeEvent: { locationX: number } }) => {
-      if (isMemorySessionActiveTrack) return;
-      const currentWidth = isModalVisible
-        ? maxScrubberWidth
-        : miniScrubberWidth;
+      const currentWidth = maxScrubberWidth;
       if (currentWidth === 0 || effectiveDuration === 0) return;
 
       const { locationX } = event.nativeEvent;
@@ -574,43 +578,22 @@ export const MediaPlayer: React.FunctionComponent<Props> = () => {
       const seekPosition = progress * effectiveDuration;
       void seekToPosition(seekPosition);
     },
-    [
-      miniScrubberWidth,
-      maxScrubberWidth,
-      effectiveDuration,
-      seekToPosition,
-      isModalVisible,
-      isMemorySessionActiveTrack,
-    ]
+    [maxScrubberWidth, effectiveDuration, seekToPosition]
   );
 
   // Touch handlers for full-screen player
   const handleTouchStart = useCallback(() => {
-    if (
-      isMemorySessionActiveTrack ||
-      maxScrubberWidth === 0 ||
-      effectiveDuration === 0
-    ) {
+    if (maxScrubberWidth === 0 || effectiveDuration === 0) {
       return;
     }
 
     setIsDragging(true);
     visualPositionRef.current = effectivePosition;
-  }, [
-    isMemorySessionActiveTrack,
-    maxScrubberWidth,
-    effectiveDuration,
-    effectivePosition,
-  ]);
+  }, [maxScrubberWidth, effectiveDuration, effectivePosition]);
 
   const handleTouchMove = useCallback(
     (event: { nativeEvent: { locationX: number } }) => {
-      if (
-        isMemorySessionActiveTrack ||
-        maxScrubberWidth === 0 ||
-        effectiveDuration === 0 ||
-        !isDragging
-      ) {
+      if (maxScrubberWidth === 0 || effectiveDuration === 0 || !isDragging) {
         return;
       }
 
@@ -621,22 +604,12 @@ export const MediaPlayer: React.FunctionComponent<Props> = () => {
       // Always update during drag - the threshold was causing issues
       setVisualPosition(newPosition);
     },
-    [
-      isMemorySessionActiveTrack,
-      maxScrubberWidth,
-      effectiveDuration,
-      isDragging,
-    ]
+    [maxScrubberWidth, effectiveDuration, isDragging]
   );
 
   const handleTouchEnd = useCallback(
     (event: { nativeEvent: { locationX: number } }) => {
-      if (
-        isMemorySessionActiveTrack ||
-        maxScrubberWidth === 0 ||
-        effectiveDuration === 0 ||
-        !isDragging
-      ) {
+      if (maxScrubberWidth === 0 || effectiveDuration === 0 || !isDragging) {
         return;
       }
 
@@ -648,13 +621,7 @@ export const MediaPlayer: React.FunctionComponent<Props> = () => {
       setIsDragging(false);
       void seekToPosition(seekPosition);
     },
-    [
-      isMemorySessionActiveTrack,
-      maxScrubberWidth,
-      effectiveDuration,
-      isDragging,
-      seekToPosition,
-    ]
+    [maxScrubberWidth, effectiveDuration, isDragging, seekToPosition]
   );
 
   // Helper function to get safe image source
@@ -695,6 +662,32 @@ export const MediaPlayer: React.FunctionComponent<Props> = () => {
           },
         ]}
       >
+        {Platform.OS === "ios" ? (
+          <>
+            {shouldUseLiquidGlass ? (
+              <GlassView
+                style={themedStyles.minimizedGlassBlur}
+                glassEffectStyle="regular"
+                colorScheme="auto"
+                isInteractive={false}
+                pointerEvents="none"
+              />
+            ) : (
+              <BlurView
+                style={themedStyles.minimizedGlassBlur}
+                tint="systemUltraThinMaterialDark"
+                intensity={100}
+                pointerEvents="none"
+              />
+            )}
+            {shouldUseLiquidGlass ? undefined : (
+              <View
+                style={themedStyles.minimizedGlassOverlay}
+                pointerEvents="none"
+              />
+            )}
+          </>
+        ) : undefined}
         <View style={themedStyles.minimizedContent}>
           <Pressable
             onPress={togglePlayerMode}
@@ -726,20 +719,32 @@ export const MediaPlayer: React.FunctionComponent<Props> = () => {
                 <View style={themedStyles.trackImagePlaceholder}>
                   <Ionicons
                     name="musical-notes"
-                    size={20}
-                    color={colors.white}
+                    size={16}
+                    color={miniPrimaryForeground}
                   />
                 </View>
               )}
             </View>
             <View style={themedStyles.trackDetails}>
-              <Text style={themedStyles.trackTitle} numberOfLines={1}>
+              <Text
+                style={[
+                  themedStyles.trackTitle,
+                  { color: miniPrimaryForeground },
+                ]}
+                numberOfLines={1}
+              >
                 {track?.title ??
                   (isMemorySessionActiveTrack
                     ? MEMORY_AUDIO_SESSION_TRACK_TITLE
                     : "Unknown Track")}
               </Text>
-              <Text style={themedStyles.trackArtist} numberOfLines={1}>
+              <Text
+                style={[
+                  themedStyles.trackArtist,
+                  { color: miniSecondaryForeground },
+                ]}
+                numberOfLines={1}
+              >
                 {track?.artist ??
                   (isMemorySessionActiveTrack
                     ? MEMORY_AUDIO_SESSION_TRACK_ARTIST
@@ -754,6 +759,7 @@ export const MediaPlayer: React.FunctionComponent<Props> = () => {
                 void togglePlayPause();
               }}
               style={themedStyles.minimizedPlayButton}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               accessibilityRole="button"
               accessibilityLabel={isMemorySessionPlaying ? "Pause" : "Play"}
               accessibilityHint="Tap to play or pause the current track"
@@ -761,67 +767,18 @@ export const MediaPlayer: React.FunctionComponent<Props> = () => {
               <Ionicons
                 name={isMemorySessionPlaying ? "pause" : "play"}
                 size={24}
-                color={colors.white}
+                color={miniPrimaryForeground}
               />
             </Pressable>
             <Pressable
               onPress={() => void stopPlayback()}
               style={themedStyles.minimizedCloseButton}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               accessibilityRole="button"
               accessibilityLabel="Stop playback"
               accessibilityHint="Tap to stop the current track"
             >
-              <Ionicons name="close" size={20} color={colors.white} />
-            </Pressable>
-          </View>
-        </View>
-
-        <View style={themedStyles.minimizedProgressBar}>
-          <View
-            style={themedStyles.minimizedProgressBarContainer}
-            onLayout={(event) => {
-              const { width } = event.nativeEvent.layout;
-              setMiniScrubberWidth(width);
-            }}
-          >
-            <Pressable
-              onPress={handleScrubberPress}
-              style={themedStyles.minimizedScrubberTrack}
-              hitSlop={{ top: 20, bottom: 20, left: 0, right: 0 }}
-              accessibilityRole="button"
-              accessibilityLabel="Progress bar"
-              accessibilityHint="Tap to seek to a position in the track"
-            >
-              <PanGestureHandler
-                onHandlerStateChange={handleScrubberGesture}
-                onGestureEvent={handleScrubberGestureEvent}
-                activeOffsetX={[-5, 5]}
-                failOffsetY={[-30, 30]}
-                shouldCancelWhenOutside={false}
-                minDist={0}
-                enableTrackpadTwoFingerGesture={false}
-                avgTouches={true}
-                hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }}
-              >
-                <View style={themedStyles.minimizedScrubberTrack}>
-                  <View
-                    style={[
-                      themedStyles.minimizedScrubberProgress,
-                      {
-                        width: `${scrubberProgressPercent}%`,
-                      },
-                    ]}
-                  />
-                  <View
-                    style={[
-                      themedStyles.minimizedScrubberHandle,
-                      {
-                        left: `${scrubberProgressPercent}%`,
-                      },
-                    ]}
-                  />
-                </View>
-              </PanGestureHandler>
+              <Ionicons name="close" size={20} color={miniPrimaryForeground} />
             </Pressable>
           </View>
         </View>
@@ -835,7 +792,36 @@ export const MediaPlayer: React.FunctionComponent<Props> = () => {
         statusBarTranslucent
         navigationBarTranslucent
       >
-        <View style={themedStyles.maximizedContainer}>
+        <View
+          style={[
+            themedStyles.maximizedContainer,
+            { paddingBottom: insets.bottom },
+          ]}
+        >
+          {Platform.OS === "ios" ? (
+            <>
+              {shouldUseLiquidGlass ? (
+                <GlassView
+                  style={themedStyles.maximizedGlassBlur}
+                  glassEffectStyle="regular"
+                  colorScheme="dark"
+                  isInteractive={false}
+                  pointerEvents="none"
+                />
+              ) : (
+                <BlurView
+                  style={themedStyles.maximizedGlassBlur}
+                  tint="systemMaterialDark"
+                  intensity={100}
+                  pointerEvents="none"
+                />
+              )}
+              <View
+                style={themedStyles.maximizedGlassOverlay}
+                pointerEvents="none"
+              />
+            </>
+          ) : undefined}
           <View
             style={[themedStyles.maximizedHeader, { paddingTop: insets.top }]}
           >
@@ -1135,10 +1121,12 @@ export const MediaPlayer: React.FunctionComponent<Props> = () => {
             <View style={themedStyles.maximizedPlaybackOptionsButtons}>
               <Pressable
                 onPress={() => void toggleRepeatMode()}
+                disabled={isMemorySessionActiveTrack}
                 style={[
                   themedStyles.maximizedPlaybackOptionButton,
                   repeatMode !== "off" &&
                     themedStyles.maximizedPlaybackOptionButtonActive,
+                  isMemorySessionActiveTrack && { opacity: 0.5 },
                 ]}
                 accessibilityRole="button"
                 accessibilityLabel={

@@ -88,6 +88,8 @@ import icon from "../../../assets/icon.png";
 import { FeedItem } from "react-native-rss-parser";
 import TrackPlayer, { Track } from "react-native-track-player";
 import { initializeTrackPlayer } from "src/services/trackPlayerSetup";
+import { store } from "src/app/store";
+import { stopMemoryAudioSession } from "src/redux/memoryAudioSlice";
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore - No types for this package
 import Bar from "react-native-progress/Bar";
@@ -98,6 +100,7 @@ const playEpisode = async (episode: FeedItem) => {
     return;
   }
 
+  await store.dispatch(stopMemoryAudioSession());
   await TrackPlayer.reset();
   const track: Track = {
     url: episode.enclosures[0].url,
