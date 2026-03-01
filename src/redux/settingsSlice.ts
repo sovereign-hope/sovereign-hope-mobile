@@ -509,6 +509,22 @@ export const settingsSlice = createSlice({
       state.hasError = true;
     });
 
+    // getShowChildrensPlan
+    builder.addCase(getShowChildrensPlan.pending, (state) => {
+      state.isLoading = true;
+      state.hasError = false;
+    });
+    builder.addCase(getShowChildrensPlan.fulfilled, (state, action) => {
+      state.showChildrensPlan = action.payload;
+      state.isLoading = false;
+      state.hasError = false;
+    });
+    builder.addCase(getShowChildrensPlan.rejected, (state) => {
+      state.showChildrensPlan = true;
+      state.isLoading = false;
+      state.hasError = true;
+    });
+
     // storeEnableChurchCenterDeepLink
     builder.addCase(storeEnableChurchCenterDeepLink.pending, (state) => {
       state.isLoading = true;

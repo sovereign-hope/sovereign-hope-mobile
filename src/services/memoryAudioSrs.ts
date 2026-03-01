@@ -100,7 +100,12 @@ export const loadSrsEntry = async (
 ): Promise<SRSEntry | undefined> => {
   const storageKey = getSrsStorageKey(getVerseKey(verseReference));
   const rawValue = await AsyncStorage.getItem(storageKey);
-  return rawValue ? (JSON.parse(rawValue) as SRSEntry) : undefined;
+  if (!rawValue) return undefined;
+  try {
+    return JSON.parse(rawValue) as SRSEntry;
+  } catch {
+    return undefined;
+  }
 };
 
 export const saveSrsEntry = async (entry: SRSEntry): Promise<void> => {

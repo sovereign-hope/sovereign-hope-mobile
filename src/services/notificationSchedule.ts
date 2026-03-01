@@ -67,7 +67,11 @@ export const scheduleMemoryAudioReviewNotification = async (args: {
     return;
   }
 
-  const [yearString, monthString, dayString] = args.nextReviewDate.split("-");
+  const dateParts = args.nextReviewDate.split("-");
+  if (dateParts.length < 3) {
+    return;
+  }
+  const [yearString, monthString, dayString] = dateParts;
   const { hour, minute } = parseNotificationTime(args.notificationTime);
 
   const notificationId = await Notifications.scheduleNotificationAsync({

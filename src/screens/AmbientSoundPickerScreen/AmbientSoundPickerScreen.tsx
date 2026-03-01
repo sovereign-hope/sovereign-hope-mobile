@@ -4,8 +4,10 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "@react-navigation/native";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { Ionicons } from "@expo/vector-icons";
+import * as Haptics from "expo-haptics";
 import { RootStackParamList } from "src/navigation/RootNavigator";
 import { useAppDispatch, useAppSelector } from "src/hooks/store";
+import { useMiniPlayerHeight } from "src/hooks/useMiniPlayerHeight";
 import {
   selectIsMemorySessionActive,
   selectMemoryAudioState,
@@ -26,6 +28,7 @@ export const AmbientSoundPickerScreen: React.FunctionComponent<Props> = () => {
   const theme = useTheme();
   const dispatch = useAppDispatch();
   const themedStyles = styles({ theme });
+  const miniPlayerHeight = useMiniPlayerHeight();
   const memoryAudioState = useAppSelector(selectMemoryAudioState);
   const isSessionActive = useAppSelector(selectIsMemorySessionActive);
   const [previewingSound, setPreviewingSound] = React.useState<
@@ -36,11 +39,9 @@ export const AmbientSoundPickerScreen: React.FunctionComponent<Props> = () => {
 
   React.useEffect(() => {
     return () => {
-      if (!isSessionActive) {
-        void stopAmbient();
-      }
+      void stopAmbient();
     };
-  }, [isSessionActive]);
+  }, []);
 
   const onSelectSound = React.useCallback(
     async (sound: AmbientSound) => {
@@ -48,6 +49,7 @@ export const AmbientSoundPickerScreen: React.FunctionComponent<Props> = () => {
         return;
       }
 
+      void Haptics.selectionAsync();
       await dispatch(setSelectedAmbientSound(sound));
       if (sound === "none") {
         await stopAmbient();
@@ -64,17 +66,20 @@ export const AmbientSoundPickerScreen: React.FunctionComponent<Props> = () => {
       }
 
       if (sound === "none") {
+        void Haptics.selectionAsync();
         await stopAmbient();
         setPreviewingSound(undefined);
         return;
       }
 
       if (previewingSound === sound) {
+        void Haptics.selectionAsync();
         await stopAmbient();
         setPreviewingSound(undefined);
         return;
       }
 
+      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       const didStart = await playAmbientPreview(sound);
       setPreviewingSound(didStart ? sound : undefined);
     },
@@ -86,7 +91,11 @@ export const AmbientSoundPickerScreen: React.FunctionComponent<Props> = () => {
       edges={["left", "right", "bottom"]}
       style={themedStyles.screen}
     >
-      <ScrollView contentInsetAdjustmentBehavior="automatic">
+      <ScrollView
+        contentInsetAdjustmentBehavior="automatic"
+        contentContainerStyle={{ paddingBottom: miniPlayerHeight }}
+        scrollIndicatorInsets={{ bottom: miniPlayerHeight }}
+      >
         <View style={themedStyles.headerCard}>
           <Text style={themedStyles.title}>Choose an ambient sound</Text>
           <Text style={themedStyles.subtitle}>

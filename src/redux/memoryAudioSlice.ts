@@ -18,6 +18,7 @@ import {
 import {
   pauseMemoryAudioSessionEngine,
   resumeMemoryAudioSessionEngine,
+  seekMemoryAudioSessionEngine,
   startMemoryAudioSessionEngine,
   stopMemoryAudioSessionEngine,
   MemoryAudioSessionPhase,
@@ -89,6 +90,8 @@ export interface MemoryAudioState {
   lastSessionDate?: string;
   currentVerseReference?: string;
   isLoading: boolean;
+  loadingProgress: number;
+  loadingMessage: string;
   hasError: boolean;
   errorMessage?: string;
   hasSeenInstructions: boolean;
@@ -108,7 +111,7 @@ const initialState: MemoryAudioState = {
   spokenDurationSeconds: 0,
   verseAudioUrl: undefined,
   isAudioCached: false,
-  selectedAmbientSound: "none",
+  selectedAmbientSound: "gentle-word-endless-field",
   ambientIsPlaying: false,
   srsInterval: 0,
   nextReviewDate: undefined,
@@ -116,6 +119,8 @@ const initialState: MemoryAudioState = {
   lastSessionDate: undefined,
   currentVerseReference: undefined,
   isLoading: false,
+  loadingProgress: 0,
+  loadingMessage: "Preparing your daily listening...",
   hasError: false,
   errorMessage: undefined,
   hasSeenInstructions: false,
@@ -165,6 +170,16 @@ const memoryAudioSlice = createSlice({
     },
     setLoading: (state, action: PayloadAction<boolean>) => {
       state.isLoading = action.payload;
+      if (!action.payload) {
+        state.loadingProgress = 0;
+      }
+    },
+    setLoadingProgress: (
+      state,
+      action: PayloadAction<{ progress: number; message: string }>
+    ) => {
+      state.loadingProgress = Math.max(0, Math.min(1, action.payload.progress));
+      state.loadingMessage = action.payload.message;
     },
     setError: (state, action: PayloadAction<string | undefined>) => {
       state.hasError = !!action.payload;
@@ -236,6 +251,8 @@ const memoryAudioSlice = createSlice({
       state.isSessionPaused = false;
       state.hasError = false;
       state.errorMessage = undefined;
+      state.loadingProgress = 0;
+      state.loadingMessage = "Preparing your daily listening...";
     },
     resetSessionToIdle: (state) => {
       state.sessionPhase = "idle";
@@ -246,6 +263,8 @@ const memoryAudioSlice = createSlice({
       state.spokenDurationSeconds = 0;
       state.sessionDurationSeconds = 0;
       state.isLoading = false;
+      state.loadingProgress = 0;
+      state.loadingMessage = "Preparing your daily listening...";
       state.ambientIsPlaying = false;
       state.isMemorySessionActive = false;
       state.isSessionPaused = false;
@@ -266,18 +285,28 @@ export const hydrateMemoryAudioState = createAsyncThunk(
         loadSrsEntry(args.verseReference),
       ]);
 
-    const parsedAmbientRaw =
-      storedAmbientSound && storedAmbientSound !== '""'
-        ? (JSON.parse(storedAmbientSound) as string)
+    let parsedAmbient: AmbientSound | undefined;
+    try {
+      const parsedAmbientRaw =
+        storedAmbientSound && storedAmbientSound !== '""'
+          ? (JSON.parse(storedAmbientSound) as string)
+          : undefined;
+      parsedAmbient = parsedAmbientRaw
+        ? isAmbientSound(parsedAmbientRaw)
+          ? parsedAmbientRaw
+          : undefined
         : undefined;
-    const parsedAmbient = parsedAmbientRaw
-      ? isAmbientSound(parsedAmbientRaw)
-        ? parsedAmbientRaw
-        : undefined
-      : undefined;
-    const parsedHasSeenInstructions = hasSeenInstructions
-      ? (JSON.parse(hasSeenInstructions) as boolean)
-      : false;
+    } catch {
+      parsedAmbient = undefined;
+    }
+    let parsedHasSeenInstructions = false;
+    try {
+      parsedHasSeenInstructions = hasSeenInstructions
+        ? (JSON.parse(hasSeenInstructions) as boolean)
+        : false;
+    } catch {
+      parsedHasSeenInstructions = false;
+    }
 
     let updatedEntry =
       storedEntry ?? createInitialSrsEntry(args.verseReference);
@@ -370,6 +399,12 @@ export const startMemoryAudioSession = createAsyncThunk(
     { dispatch, getState }
   ) => {
     dispatch(memoryAudioActions.setLoading(true));
+    dispatch(
+      memoryAudioActions.setLoadingProgress({
+        progress: 0.04,
+        message: "Preparing your daily listening...",
+      })
+    );
     dispatch(memoryAudioActions.setError(undefined));
     dispatch(memoryAudioActions.setCurrentVerseReference(args.verseReference));
     await dispatch(
@@ -377,9 +412,21 @@ export const startMemoryAudioSession = createAsyncThunk(
         verseReference: args.verseReference,
       })
     );
+    dispatch(
+      memoryAudioActions.setLoadingProgress({
+        progress: 0.12,
+        message: "Checking available verse audio...",
+      })
+    );
 
     let verseAudioUrl = selectMemoryAudioUrl(getState() as RootState);
     if (!verseAudioUrl) {
+      dispatch(
+        memoryAudioActions.setLoadingProgress({
+          progress: 0.2,
+          message: "Fetching verse audio...",
+        })
+      );
       await dispatch(
         getMemoryPassageText({
           passage: args.passage,
@@ -401,6 +448,12 @@ export const startMemoryAudioSession = createAsyncThunk(
     dispatch(memoryAudioActions.setVerseAudioUrl(verseAudioUrl));
     dispatch(memoryAudioActions.resetSessionProgress());
     dispatch(memoryAudioActions.setSessionPhase("fetching"));
+    dispatch(
+      memoryAudioActions.setLoadingProgress({
+        progress: 0.28,
+        message: "Starting audio build...",
+      })
+    );
 
     try {
       await startMemoryAudioSessionEngine({
@@ -409,7 +462,21 @@ export const startMemoryAudioSession = createAsyncThunk(
           .recallCyclesTarget,
         getSelectedAmbientSound: () =>
           (getState() as RootState).memoryAudio.selectedAmbientSound,
+        onLoadingProgress: (progress, message) => {
+          dispatch(
+            memoryAudioActions.setLoadingProgress({
+              progress,
+              message,
+            })
+          );
+        },
         onSessionStarted: (sessionDurationSeconds) => {
+          dispatch(
+            memoryAudioActions.setLoadingProgress({
+              progress: 1,
+              message: "Starting your session...",
+            })
+          );
           dispatch(
             memoryAudioActions.setSessionDurationSeconds(sessionDurationSeconds)
           );
@@ -500,6 +567,36 @@ export const resumeMemoryAudioSession = createAsyncThunk(
   }
 );
 
+export const seekMemoryAudioSession = createAsyncThunk(
+  "memoryAudio/seekMemoryAudioSession",
+  async (positionSeconds: number, { dispatch, getState }) => {
+    const didSeek = await seekMemoryAudioSessionEngine(positionSeconds);
+    if (!didSeek) {
+      return false;
+    }
+
+    const state = getState() as RootState;
+    if (!state.memoryAudio.isMemorySessionActive) {
+      return true;
+    }
+
+    const maxPositionSeconds = state.memoryAudio.sessionDurationSeconds;
+    const clampedPositionSeconds = Math.max(
+      0,
+      maxPositionSeconds > 0
+        ? Math.min(positionSeconds, maxPositionSeconds)
+        : positionSeconds
+    );
+
+    dispatch(
+      memoryAudioActions.setSessionStartedAt(
+        Date.now() - clampedPositionSeconds * 1000
+      )
+    );
+    return true;
+  }
+);
+
 export const selectMemoryAudioState = (state: RootState): MemoryAudioState =>
   state.memoryAudio;
 
@@ -529,6 +626,8 @@ export const selectMemoryAudioViewModel = createSelector(
     isLoading: memoryAudio.isLoading,
     hasError: memoryAudio.hasError,
     errorMessage: memoryAudio.errorMessage,
+    loadingProgress: memoryAudio.loadingProgress,
+    loadingMessage: memoryAudio.loadingMessage,
     selectedAmbientSound: memoryAudio.selectedAmbientSound,
     spokenDurationSeconds: memoryAudio.spokenDurationSeconds,
     hasSeenInstructions: memoryAudio.hasSeenInstructions,

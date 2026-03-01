@@ -39,6 +39,8 @@ export type RenderedSession = {
   phaseTimeline: PhaseTimelineEntry[];
 };
 
+type RenderProgressHandler = (progress: number, message: string) => void;
+
 // ---------------------------------------------------------------------------
 // LRU decode cache (max 3 entries per cache)
 // ---------------------------------------------------------------------------
@@ -122,6 +124,7 @@ const fetchAmbientArrayBuffer = async (
 // ---------------------------------------------------------------------------
 
 const FALLBACK_SAMPLE_RATE = 44_100;
+let cachedDeviceSampleRate: number | undefined;
 
 /**
  * Query the device's native audio sample rate. On iOS this is typically 48000,
@@ -130,11 +133,15 @@ const FALLBACK_SAMPLE_RATE = 44_100;
  * will be ~8.8% faster because react-native-audio-api may not resample.
  */
 const getDeviceSampleRate = async (): Promise<number> => {
+  if (cachedDeviceSampleRate !== undefined) {
+    return cachedDeviceSampleRate;
+  }
   try {
     const tempCtx = new AudioContext();
     const rate = tempCtx.sampleRate;
     await tempCtx.close();
-    return rate > 0 ? rate : FALLBACK_SAMPLE_RATE;
+    cachedDeviceSampleRate = rate > 0 ? rate : FALLBACK_SAMPLE_RATE;
+    return cachedDeviceSampleRate;
   } catch {
     return FALLBACK_SAMPLE_RATE;
   }
@@ -260,20 +267,28 @@ export const renderMemoryAudioSession = async (args: {
   verseAudioUrl: string;
   ambientSoundKey: AmbientSound;
   recallCyclesTarget: number;
+  onProgress?: RenderProgressHandler;
 }): Promise<RenderedSession> => {
-  const { verseAudioUrl, ambientSoundKey, recallCyclesTarget } = args;
+  const { verseAudioUrl, ambientSoundKey, recallCyclesTarget, onProgress } =
+    args;
+  const reportProgress = (progress: number, message: string): void => {
+    onProgress?.(Math.max(0, Math.min(1, progress)), message);
+  };
   const clampedCycles = clampRecallCycles(
     0, // We don't know verse duration yet; clamp again after decode
     Math.max(6, recallCyclesTarget)
   );
 
   // ── Determine sample rate ──────────────────────────────────────────
+  reportProgress(0.08, "Getting audio ready...");
   const sampleRate = await getDeviceSampleRate();
 
   // ── Decode verse audio ──────────────────────────────────────────────
+  reportProgress(0.18, "Loading verse audio...");
   const verseArrayBuffer = await fetchVerseArrayBuffer(verseAudioUrl);
 
   // Create a temporary context just for decoding the verse to learn its duration
+  reportProgress(0.26, "Analyzing verse timing...");
   const decodeCtx = new OfflineAudioContext(2, sampleRate, sampleRate);
   const verseBuffer = await decodeCtx.decodeAudioData(verseArrayBuffer);
   const verseDurationSeconds = verseBuffer.duration;
@@ -289,7 +304,11 @@ export const renderMemoryAudioSession = async (args: {
   );
 
   // ── Build timeline ──────────────────────────────────────────────────
+  reportProgress(0.38, "Building your practice flow...");
   const timeline = computeTimeline(verseDurationSeconds, finalCycles);
+  if (timeline.length === 0) {
+    throw new Error("Timeline is empty — cannot render an audio session");
+  }
   const totalDurationSeconds = timeline.at(-1)!.endSeconds;
   const totalSamples = Math.ceil(totalDurationSeconds * sampleRate);
 
@@ -297,6 +316,7 @@ export const renderMemoryAudioSession = async (args: {
   const offlineCtx = new OfflineAudioContext(2, totalSamples, sampleRate);
 
   // Re-decode verse in this context
+  reportProgress(0.48, "Preparing spoken track...");
   const verseAudio = await offlineCtx.decodeAudioData(verseArrayBuffer);
 
   // ── Schedule verse plays ────────────────────────────────────────────
@@ -318,7 +338,10 @@ export const renderMemoryAudioSession = async (args: {
   }
 
   // ── Schedule ambient ────────────────────────────────────────────────
-  if (ambientSoundKey !== "none") {
+  if (ambientSoundKey === "none") {
+    reportProgress(0.74, "Finalizing spoken track...");
+  } else {
+    reportProgress(0.62, "Adding ambient sound...");
     const moduleId = await getAmbientAssetModuleId(ambientSoundKey);
     const ambientArrayBuffer = await fetchAmbientArrayBuffer(moduleId);
     const ambientAudio = await offlineCtx.decodeAudioData(ambientArrayBuffer);
@@ -377,10 +400,13 @@ export const renderMemoryAudioSession = async (args: {
 
     ambientSource.start(0);
     ambientSource.stop(totalDurationSeconds);
+    reportProgress(0.74, "Balancing voice and ambient...");
   }
 
   // ── Render ──────────────────────────────────────────────────────────
+  reportProgress(0.88, "Encoding session audio...");
   const renderedBuffer = await offlineCtx.startRendering();
+  reportProgress(0.96, "Preparing playback...");
 
   return {
     buffer: renderedBuffer,

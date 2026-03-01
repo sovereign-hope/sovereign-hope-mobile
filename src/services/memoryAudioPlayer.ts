@@ -44,6 +44,9 @@ let lastEmittedPhaseIndex = -1;
 let currentHandlers: PlaybackHandlers | undefined;
 let isPlaying = false;
 let playbackSubscriptions: Array<{ remove: () => void }> = [];
+let renderedBuffer: RenderedSession["buffer"] | undefined;
+let sourceStartedAtContextSeconds = 0;
+let playbackOffsetSeconds = 0;
 
 // ---------------------------------------------------------------------------
 // Audio session configuration
@@ -89,7 +92,7 @@ const hideLockScreenNotification = async (): Promise<void> => {
 // Phase tracking
 // ---------------------------------------------------------------------------
 
-const PHASE_TRACKING_INTERVAL_MS = 250;
+const PHASE_TRACKING_INTERVAL_MS = 1000;
 
 const findPhaseIndex = (
   timeline: PhaseTimelineEntry[],
@@ -111,6 +114,33 @@ const emitPhaseUpdate = (entry: PhaseTimelineEntry): void => {
   currentHandlers.onRecallCyclesChange(entry.recallCyclesCompleted);
 };
 
+const getPlaybackPositionSeconds = (ctx: AudioContext): number => {
+  const rawPositionSeconds =
+    playbackOffsetSeconds +
+    Math.max(0, ctx.currentTime - sourceStartedAtContextSeconds);
+  const durationSeconds = renderedBuffer?.duration ?? 0;
+  if (durationSeconds <= 0) {
+    return rawPositionSeconds;
+  }
+  return Math.min(durationSeconds, rawPositionSeconds);
+};
+
+const emitProgressUpdate = (ctx: AudioContext): void => {
+  const currentTime = getPlaybackPositionSeconds(ctx);
+
+  if (phaseTimeline.length > 0) {
+    const index = findPhaseIndex(phaseTimeline, currentTime);
+    if (index !== lastEmittedPhaseIndex) {
+      lastEmittedPhaseIndex = index;
+      emitPhaseUpdate(phaseTimeline[index]);
+    }
+  }
+
+  void PlaybackNotificationManager.show({
+    elapsedTime: currentTime,
+  }).catch(() => {});
+};
+
 const stopPhaseTracking = (): void => {
   if (phaseTrackingInterval) {
     clearInterval(phaseTrackingInterval);
@@ -123,24 +153,48 @@ const startPhaseTracking = (
   timeline: PhaseTimelineEntry[],
   ctx: AudioContext
 ): void => {
+  if (timeline.length === 0) {
+    return;
+  }
+
   stopPhaseTracking();
 
   phaseTrackingInterval = setInterval(() => {
-    if (!currentHandlers || ctx.state !== "running") return;
-
-    const currentTime = ctx.currentTime;
-    const index = findPhaseIndex(timeline, currentTime);
-
-    if (index !== lastEmittedPhaseIndex) {
-      lastEmittedPhaseIndex = index;
-      emitPhaseUpdate(timeline[index]);
+    if (
+      !currentHandlers ||
+      ctx.state !== "running" ||
+      audioContext !== ctx ||
+      phaseTimeline !== timeline
+    ) {
+      return;
     }
 
-    // Update lock screen elapsed time
-    void PlaybackNotificationManager.show({
-      elapsedTime: currentTime,
-    }).catch(() => {});
+    emitProgressUpdate(ctx);
   }, PHASE_TRACKING_INTERVAL_MS);
+};
+
+const createSourceNode = (ctx: AudioContext, offsetSeconds: number): void => {
+  if (!renderedBuffer) {
+    return;
+  }
+
+  const node = ctx.createBufferSource();
+  node.buffer = renderedBuffer;
+  node.connect(ctx.destination);
+
+  // Handle natural completion only for the currently active node.
+  // eslint-disable-next-line unicorn/prefer-add-event-listener
+  node.onEnded = () => {
+    if (sourceNode !== node) {
+      return;
+    }
+    void handlePlaybackEnded();
+  };
+
+  sourceNode = node;
+  playbackOffsetSeconds = offsetSeconds;
+  sourceStartedAtContextSeconds = ctx.currentTime;
+  node.start(0, offsetSeconds);
 };
 
 // ---------------------------------------------------------------------------
@@ -163,12 +217,13 @@ const cleanUp = async (): Promise<void> => {
   removeLockScreenListeners();
 
   if (sourceNode) {
+    const nodeToStop = sourceNode;
+    sourceNode = undefined;
     try {
-      sourceNode.stop();
+      nodeToStop.stop();
     } catch {
       // Already stopped
     }
-    sourceNode = undefined;
   }
 
   if (audioContext) {
@@ -185,6 +240,9 @@ const cleanUp = async (): Promise<void> => {
   phaseTimeline = [];
   currentHandlers = undefined;
   isPlaying = false;
+  renderedBuffer = undefined;
+  sourceStartedAtContextSeconds = 0;
+  playbackOffsetSeconds = 0;
   lastEmittedPhaseIndex = -1;
 };
 
@@ -215,7 +273,39 @@ export const resumeMemoryAudioPlayback = async (): Promise<boolean> => {
   isPlaying = true;
 
   await PlaybackNotificationManager.show({ state: "playing" }).catch(() => {});
+  emitProgressUpdate(audioContext);
   currentHandlers?.onPausedChange(false);
+  return true;
+};
+
+export const seekMemoryAudioPlayback = async (
+  positionSeconds: number
+): Promise<boolean> => {
+  if (!audioContext || !sourceNode || !renderedBuffer) {
+    return false;
+  }
+
+  const clampedPosition = Math.max(
+    0,
+    Math.min(positionSeconds, renderedBuffer.duration)
+  );
+
+  if (clampedPosition >= renderedBuffer.duration) {
+    await handlePlaybackEnded();
+    return true;
+  }
+
+  const previousNode = sourceNode;
+  sourceNode = undefined;
+
+  try {
+    previousNode.stop();
+  } catch {
+    // Already stopped
+  }
+
+  createSourceNode(audioContext, clampedPosition);
+  emitProgressUpdate(audioContext);
   return true;
 };
 
@@ -238,12 +328,12 @@ const setupLockScreenListeners = (): void => {
   ];
 };
 
-const handlePlaybackEnded = async (): Promise<void> => {
+async function handlePlaybackEnded(): Promise<void> {
   const completedHandlers = currentHandlers;
   await cleanUp();
   completedHandlers?.onPhaseChange("completed");
   completedHandlers?.onSessionCompleted();
-};
+}
 
 export const startMemoryAudioPlayback = async (args: {
   renderedSession: RenderedSession;
@@ -256,6 +346,7 @@ export const startMemoryAudioPlayback = async (args: {
 
   currentHandlers = handlers;
   phaseTimeline = renderedSession.phaseTimeline;
+  renderedBuffer = renderedSession.buffer;
 
   // Release TrackPlayer's audio session hold
   try {
@@ -269,17 +360,7 @@ export const startMemoryAudioPlayback = async (args: {
 
   // Create live AudioContext and play the rendered buffer
   audioContext = new AudioContext();
-  sourceNode = audioContext.createBufferSource();
-  sourceNode.buffer = renderedSession.buffer;
-  sourceNode.connect(audioContext.destination);
-
-  // Handle natural completion
-  // eslint-disable-next-line unicorn/prefer-add-event-listener
-  sourceNode.onEnded = () => {
-    void handlePlaybackEnded();
-  };
-
-  sourceNode.start(0);
+  createSourceNode(audioContext, 0);
   isPlaying = true;
 
   // Set up lock screen and phase tracking
@@ -287,11 +368,8 @@ export const startMemoryAudioPlayback = async (args: {
   setupLockScreenListeners();
   startPhaseTracking(phaseTimeline, audioContext);
 
-  // Emit initial phase
-  if (phaseTimeline.length > 0) {
-    emitPhaseUpdate(phaseTimeline[0]);
-    lastEmittedPhaseIndex = 0;
-  }
+  // Emit initial phase + elapsed position immediately.
+  emitProgressUpdate(audioContext);
 };
 
 export const isMemoryAudioPlaying = (): boolean => isPlaying;

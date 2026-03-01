@@ -18,6 +18,7 @@ async function deleteCollectionInBatches(collectionRef, batchSize = 100) {
   }
 }
 
+// Keep in sync with src/services/members.ts MOUNTAIN_TIME_ZONE
 const MOUNTAIN_TIME_ZONE = "America/Boise";
 const MAX_PRAYER_PARTNERS = 3;
 const PRAYER_ASSIGNMENT_RETENTION_DAYS = 7;
