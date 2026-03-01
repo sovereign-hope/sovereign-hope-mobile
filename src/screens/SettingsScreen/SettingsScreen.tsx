@@ -11,6 +11,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useAppSelector, useAppDispatch } from "src/hooks/store";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
@@ -46,6 +47,8 @@ import {
   selectAuthUser,
   signOut,
 } from "src/redux/authSlice";
+import { useMiniPlayerHeight } from "src/hooks/useMiniPlayerHeight";
+import { spacing } from "src/style/layout";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Settings">;
 
@@ -89,6 +92,8 @@ export const SettingsScreen: React.FunctionComponent<Props> = ({
   // Custom hooks
   const dispatch = useAppDispatch();
   const theme = useTheme();
+  const miniPlayerHeight = useMiniPlayerHeight();
+  const insets = useSafeAreaInsets();
   const enableNotifications = useAppSelector(selectEnableNotifications);
   const notificationTime = useAppSelector(selectNotificationTime);
   const readingPlan = useAppSelector(selectReadingPlan);
@@ -198,7 +203,8 @@ export const SettingsScreen: React.FunctionComponent<Props> = ({
   const themedStyles = styles({ theme });
   const isSignedIn = Boolean(authUser);
   const isBusy = authIsLoading || authIsSyncing;
-  const isIOS = Platform.OS === "ios";
+  const useInsetSettingsGroups =
+    Platform.OS === "ios" || Platform.OS === "android";
 
   return (
     <SafeAreaView
@@ -213,13 +219,20 @@ export const SettingsScreen: React.FunctionComponent<Props> = ({
         <ScrollView
           contentInsetAdjustmentBehavior="automatic"
           keyboardShouldPersistTaps="handled"
+          contentContainerStyle={{
+            paddingBottom: miniPlayerHeight + insets.bottom + spacing.large,
+          }}
         >
           <Text style={themedStyles.settingsSectionHeader}>Notifications</Text>
-          <View style={isIOS ? themedStyles.settingsGroup : undefined}>
+          <View
+            style={
+              useInsetSettingsGroups ? themedStyles.settingsGroup : undefined
+            }
+          >
             <View
               style={[
                 themedStyles.settingsRow,
-                isIOS && themedStyles.settingsRowGrouped,
+                useInsetSettingsGroups && themedStyles.settingsRowGrouped,
               ]}
             >
               <Text style={themedStyles.settingsRowText}>
@@ -236,8 +249,8 @@ export const SettingsScreen: React.FunctionComponent<Props> = ({
               accessibilityRole="button"
               style={({ pressed }) => [
                 themedStyles.settingsRow,
-                isIOS && themedStyles.settingsRowGrouped,
-                isIOS && themedStyles.settingsRowGroupedLast,
+                useInsetSettingsGroups && themedStyles.settingsRowGrouped,
+                useInsetSettingsGroups && themedStyles.settingsRowGroupedLast,
                 pressed && themedStyles.settingsRowPressed,
               ]}
             >
@@ -266,14 +279,18 @@ export const SettingsScreen: React.FunctionComponent<Props> = ({
           </View>
 
           <Text style={themedStyles.settingsSectionHeader}>Reading</Text>
-          <View style={isIOS ? themedStyles.settingsGroup : undefined}>
+          <View
+            style={
+              useInsetSettingsGroups ? themedStyles.settingsGroup : undefined
+            }
+          >
             {availablePlans.length > 1 && (
               <Pressable
                 onPress={showSelectReadingPlan}
                 accessibilityRole="button"
                 style={({ pressed }) => [
                   themedStyles.settingsRow,
-                  isIOS && themedStyles.settingsRowGrouped,
+                  useInsetSettingsGroups && themedStyles.settingsRowGrouped,
                   pressed && themedStyles.settingsRowPressed,
                 ]}
               >
@@ -297,8 +314,8 @@ export const SettingsScreen: React.FunctionComponent<Props> = ({
               accessibilityRole="button"
               style={({ pressed }) => [
                 themedStyles.settingsRow,
-                isIOS && themedStyles.settingsRowGrouped,
-                isIOS && themedStyles.settingsRowGroupedLast,
+                useInsetSettingsGroups && themedStyles.settingsRowGrouped,
+                useInsetSettingsGroups && themedStyles.settingsRowGroupedLast,
                 pressed && themedStyles.settingsRowPressed,
               ]}
             >

@@ -36,10 +36,19 @@ import { colors } from "src/style/colors";
 import { spacing } from "src/style/layout";
 import { ScrollView } from "react-native-gesture-handler";
 import { useMiniPlayerHeight } from "src/hooks/useMiniPlayerHeight";
+import { initializeTrackPlayer } from "src/services/trackPlayerSetup";
+import { store } from "src/app/store";
+import { stopMemoryAudioSession } from "src/redux/memoryAudioSlice";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Resources">;
 
 const playEpisode = async (episode: FeedItem) => {
+  const isTrackPlayerInitialized = await initializeTrackPlayer();
+  if (!isTrackPlayerInitialized) {
+    return;
+  }
+
+  await store.dispatch(stopMemoryAudioSession());
   await TrackPlayer.reset();
   const track: Track = {
     url: episode.enclosures[0].url,

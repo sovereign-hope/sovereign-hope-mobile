@@ -12,6 +12,8 @@ import { colors } from "src/style/colors";
 interface Style {
   // Minimized Player Styles
   minimizedPlayer: ViewStyle;
+  minimizedGlassBlur: ViewStyle;
+  minimizedGlassOverlay: ViewStyle;
   minimizedContent: ViewStyle;
   minimizedTrackInfo: ViewStyle;
   trackImageContainer: ViewStyle;
@@ -31,6 +33,8 @@ interface Style {
 
   // Maximized Player Styles
   maximizedContainer: ViewStyle;
+  maximizedGlassBlur: ViewStyle;
+  maximizedGlassOverlay: ViewStyle;
   maximizedHeader: ViewStyle;
   maximizedCloseButton: ViewStyle;
   maximizedTitle: TextStyle;
@@ -80,29 +84,45 @@ export const styles = (): Style =>
     // Minimized Player Styles
     minimizedPlayer: {
       position: "absolute",
-      left: spacing.medium,
-      right: spacing.medium,
-      backgroundColor: colors.blue,
-      borderTopLeftRadius: radius.large,
-      borderTopRightRadius: radius.large,
-      borderBottomLeftRadius: radius.large,
-      borderBottomRightRadius: radius.large,
+      left: Platform.OS === "ios" ? spacing.large : spacing.medium,
+      right: Platform.OS === "ios" ? spacing.large : spacing.medium,
+      backgroundColor: Platform.OS === "ios" ? "transparent" : colors.blue,
+      borderRadius: 28,
+      borderWidth: 0,
       shadowColor: colors.black,
       shadowOffset: {
         width: 0,
-        height: -5,
+        height: 6,
       },
-      shadowOpacity: 0.15,
-      shadowRadius: 10,
-      opacity: 0.95,
-      height: 80,
+      shadowOpacity: Platform.OS === "ios" ? 0.24 : 0.15,
+      shadowRadius: Platform.OS === "ios" ? 20 : 10,
+      opacity: 1,
+      height: 56,
+      overflow: "hidden",
+      elevation: 8,
       zIndex: 1000,
+    },
+    minimizedGlassBlur: {
+      position: "absolute",
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+    },
+    minimizedGlassOverlay: {
+      position: "absolute",
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: "rgba(8, 12, 24, 0.14)",
     },
     minimizedContent: {
       flexDirection: "row",
       alignItems: "center",
       paddingHorizontal: spacing.medium,
-      paddingVertical: spacing.medium,
+      paddingVertical: spacing.xs,
+      height: "100%",
     },
     minimizedTrackInfo: {
       flex: 1,
@@ -110,48 +130,60 @@ export const styles = (): Style =>
       alignItems: "center",
     },
     trackImageContainer: {
-      width: 48,
-      height: 48,
-      marginRight: spacing.medium,
+      width: 28,
+      height: 28,
+      marginRight: spacing.small,
     },
     trackImage: {
       width: "100%",
       height: "100%",
-      borderRadius: radius.small,
+      borderRadius: 7,
     },
     trackImagePlaceholder: {
       width: "100%",
       height: "100%",
       backgroundColor: colors.grey,
-      borderRadius: radius.small,
+      borderRadius: 7,
       justifyContent: "center",
       alignItems: "center",
     },
     trackDetails: {
       flex: 1,
+      justifyContent: "center",
     },
     trackTitle: {
       ...body,
       color: colors.white,
-      fontWeight: "600",
-      fontSize: 15,
+      fontWeight: "700",
+      fontSize: 16,
+      lineHeight: 18,
     },
     trackArtist: {
       ...body,
       color: colors.white,
-      opacity: 0.8,
-      fontSize: 14,
+      opacity: 0.9,
+      fontSize: 12,
+      lineHeight: 14,
     },
     minimizedControls: {
       flexDirection: "row",
       alignItems: "center",
+      marginLeft: spacing.medium,
     },
     minimizedPlayButton: {
-      padding: spacing.medium,
-      marginRight: spacing.small,
+      width: 38,
+      height: 38,
+      borderRadius: 19,
+      alignItems: "center",
+      justifyContent: "center",
+      marginRight: spacing.medium,
     },
     minimizedCloseButton: {
-      padding: spacing.medium,
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      alignItems: "center",
+      justifyContent: "center",
     },
     minimizedProgressBar: {
       paddingHorizontal: spacing.medium,
@@ -197,8 +229,23 @@ export const styles = (): Style =>
     // Maximized Player Styles
     maximizedContainer: {
       flex: 1,
-      backgroundColor: colors.blue,
+      backgroundColor: Platform.OS === "ios" ? "transparent" : colors.blue,
       paddingTop: 0,
+    },
+    maximizedGlassBlur: {
+      position: "absolute",
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+    },
+    maximizedGlassOverlay: {
+      position: "absolute",
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: "rgba(7, 10, 18, 0.28)",
     },
     maximizedHeader: {
       flexDirection: "row",

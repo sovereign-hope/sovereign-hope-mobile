@@ -17,6 +17,7 @@ import { AccountSignInScreen } from "../AccountSignInScreen/AccountSignInScreen"
 import { PodcastScreen } from "../PodcastScreen/PodcastScreen";
 import { SelectPlanScreen } from "../SelectPlanScreen/SelectPlanScreen";
 import { FontSizePickerScreen } from "../FontSizePickerScreen/FontSizePickerScreen";
+import { AmbientSoundPickerScreen } from "../AmbientSoundPickerScreen/AmbientSoundPickerScreen";
 import { ScheduleScreen } from "../ScheduleScreen";
 import { SundaysScreen } from "../SundaysScreen";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -155,6 +156,14 @@ const WeekStack = (): React.JSX.Element => {
         }}
       />
       <Stack.Screen name="Settings" component={SettingsScreen} />
+      <Stack.Screen
+        name="Ambient Sounds"
+        component={AmbientSoundPickerScreen}
+        options={{
+          title: "Ambient Sounds",
+          headerLargeTitle: false,
+        }}
+      />
       <Stack.Screen
         name="Account Sign In"
         component={AccountSignInScreen}

@@ -11,9 +11,9 @@ export const useMiniPlayerHeight = (): number => {
     return 0;
   }
 
-  // Mini player height is approximately 80px + some padding
-  const MINI_PLAYER_HEIGHT = 80;
-  const PADDING = 8;
+  // Keep list/footer padding aligned with the compact mini-player footprint.
+  const MINI_PLAYER_HEIGHT = 56;
+  const PADDING = 4;
 
   // If tab bar is hidden (stack screen), mini player sits at bottom with safe area
   if (tabBarHeight === 0) {

@@ -29,6 +29,7 @@ import { useTheme } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { useMiniPlayerHeight } from "src/hooks/useMiniPlayerHeight";
+import { MemoryAudioCard } from "src/components";
 import {
   getReadingPlan,
   storeReadingPlanProgressState,
@@ -86,11 +87,20 @@ import thumbnail from "../../../assets/podcast-icon.png";
 import icon from "../../../assets/icon.png";
 import { FeedItem } from "react-native-rss-parser";
 import TrackPlayer, { Track } from "react-native-track-player";
+import { initializeTrackPlayer } from "src/services/trackPlayerSetup";
+import { store } from "src/app/store";
+import { stopMemoryAudioSession } from "src/redux/memoryAudioSlice";
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore - No types for this package
 import Bar from "react-native-progress/Bar";
 
 const playEpisode = async (episode: FeedItem) => {
+  const isTrackPlayerInitialized = await initializeTrackPlayer();
+  if (!isTrackPlayerInitialized) {
+    return;
+  }
+
+  await store.dispatch(stopMemoryAudioSession());
   await TrackPlayer.reset();
   const track: Track = {
     url: episode.enclosures[0].url,
@@ -372,6 +382,16 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
   );
   const shouldShowMemoryLoadingIndicator =
     isMemoryPassageLoading || memoryPassageAcronym === undefined;
+  const memoryPassageReference = readingPlanWeek?.days[0]?.memory.passage;
+  const memoryPassage = memoryPassageReference
+    ? parsePassageString(
+        memoryPassageReference,
+        readingPlanWeek?.days[0]?.memory.heading
+      )
+    : undefined;
+  if (memoryPassage) {
+    memoryPassage.isMemory = true;
+  }
   const readingPlanCompletionPercentage = getReadingPlanProgressPercentage();
   // We can do this because we really only need en US
   const weekdayMap = [
@@ -633,52 +653,61 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
             <View style={themedStyles.headerRow}>
               <Text style={themedStyles.header}>Memory</Text>
             </View>
-            <Pressable
-              onPress={handlePracticePress}
-              accessibilityRole="button"
-              style={({ pressed }) => [
-                themedStyles.contentCard,
-                {
-                  opacity: pressed ? 0.7 : 1,
-                },
-              ]}
-            >
-              <View style={themedStyles.contentCardColumn}>
-                {weeklyMemoryDay?.memory.heading && (
-                  <Text style={themedStyles.contentCardHeader}>
-                    {weeklyMemoryDay?.memory.heading}
-                  </Text>
-                )}
-                <Text style={themedStyles.contentCardHeader}>
-                  {weeklyMemoryDay?.memory.passage}
-                </Text>
-
-                {shouldShowMemoryLoadingIndicator ? (
-                  <ActivityIndicator size="small" color={theme.colors.text} />
-                ) : (
-                  <Animated.View
-                    entering={FadeIn.duration(500)}
-                    exiting={FadeOut}
-                    layout={LinearTransition}
-                  >
-                    <Text
-                      style={{
-                        ...themedStyles.text,
-                        letterSpacing: 2,
-                      }}
-                    >
-                      {memoryPassageAcronym}
+            <View style={[themedStyles.contentCard, themedStyles.memoryCard]}>
+              <Pressable
+                onPress={handlePracticePress}
+                accessibilityRole="button"
+                style={({ pressed }) => [
+                  themedStyles.memoryPassageButton,
+                  {
+                    opacity: pressed ? 0.7 : 1,
+                  },
+                ]}
+              >
+                <View style={themedStyles.contentCardColumn}>
+                  {weeklyMemoryDay?.memory.heading && (
+                    <Text style={themedStyles.contentCardHeader}>
+                      {weeklyMemoryDay?.memory.heading}
                     </Text>
-                  </Animated.View>
-                )}
-              </View>
-              <Ionicons
-                name="chevron-forward"
-                size={24}
-                color={theme.colors.border}
-                style={themedStyles.disclosureIcon}
-              />
-            </Pressable>
+                  )}
+                  <Text style={themedStyles.contentCardHeader}>
+                    {weeklyMemoryDay?.memory.passage}
+                  </Text>
+
+                  {shouldShowMemoryLoadingIndicator ? (
+                    <ActivityIndicator size="small" color={theme.colors.text} />
+                  ) : (
+                    <Animated.View
+                      entering={FadeIn.duration(500)}
+                      exiting={FadeOut}
+                      layout={LinearTransition}
+                    >
+                      <Text
+                        style={{
+                          ...themedStyles.text,
+                          letterSpacing: 2,
+                        }}
+                      >
+                        {memoryPassageAcronym}
+                      </Text>
+                    </Animated.View>
+                  )}
+                </View>
+                <Ionicons
+                  name="chevron-forward"
+                  size={24}
+                  color={theme.colors.border}
+                  style={themedStyles.disclosureIcon}
+                />
+              </Pressable>
+              {memoryPassageReference && memoryPassage ? (
+                <MemoryAudioCard
+                  verseReference={memoryPassageReference}
+                  passage={memoryPassage}
+                  embedded
+                />
+              ) : undefined}
+            </View>
             {isMember && (
               <>
                 <View style={themedStyles.headerRow}>
