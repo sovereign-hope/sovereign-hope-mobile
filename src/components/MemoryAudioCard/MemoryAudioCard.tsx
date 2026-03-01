@@ -83,7 +83,9 @@ export const MemoryAudioCard: React.FunctionComponent<Props> = ({
       ]}
     >
       {viewModel.isLoading ? (
-        <ActivityIndicator color={theme.colors.text} />
+        <View style={themedStyles.loadingState}>
+          <ActivityIndicator color={theme.colors.text} />
+        </View>
       ) : (
         <View style={themedStyles.sessionControlRow}>
           <Pressable

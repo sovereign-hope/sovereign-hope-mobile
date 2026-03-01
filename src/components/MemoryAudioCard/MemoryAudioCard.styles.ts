@@ -11,6 +11,7 @@ type Props = {
 interface Style {
   card: ViewStyle;
   embeddedCard: ViewStyle;
+  loadingState: ViewStyle;
   sessionControlRow: ViewStyle;
   sessionActionButton: ViewStyle;
   settingsIconButton: ViewStyle;
@@ -52,10 +53,15 @@ export const styles = ({ theme }: Props): Style =>
       backgroundColor: "transparent",
       shadowOpacity: 0,
     },
+    loadingState: {
+      paddingVertical: spacing.lmedium,
+      alignItems: "center",
+      justifyContent: "center",
+    },
     sessionControlRow: {
       flexDirection: "row",
       gap: spacing.small,
-      marginTop: spacing.small,
+      marginTop: spacing.lmedium,
       marginBottom: spacing.small,
     },
     sessionActionButton: {

@@ -33,6 +33,7 @@ import { header1, header3 } from "src/style/typography";
 import { Ionicons } from "@expo/vector-icons";
 import TrackPlayer, { Track } from "react-native-track-player";
 import esvLogo from "../../../assets/esv-logo.png";
+import { initializeTrackPlayer } from "src/services/trackPlayerSetup";
 import {
   getPassageText,
   selectAudioUrl,
@@ -430,6 +431,10 @@ export const ReadScreen: React.FunctionComponent<ReadScreenProps> = ({
   // Navbar handlers
   const playAudio = useCallback(async () => {
     const esvLogoSource = esvLogo as ImageSourcePropType;
+    const isTrackPlayerInitialized = await initializeTrackPlayer();
+    if (!isTrackPlayerInitialized) {
+      return;
+    }
 
     await TrackPlayer.reset();
     const track: Track = {

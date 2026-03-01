@@ -87,11 +87,17 @@ import thumbnail from "../../../assets/podcast-icon.png";
 import icon from "../../../assets/icon.png";
 import { FeedItem } from "react-native-rss-parser";
 import TrackPlayer, { Track } from "react-native-track-player";
+import { initializeTrackPlayer } from "src/services/trackPlayerSetup";
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore - No types for this package
 import Bar from "react-native-progress/Bar";
 
 const playEpisode = async (episode: FeedItem) => {
+  const isTrackPlayerInitialized = await initializeTrackPlayer();
+  if (!isTrackPlayerInitialized) {
+    return;
+  }
+
   await TrackPlayer.reset();
   const track: Track = {
     url: episode.enclosures[0].url,

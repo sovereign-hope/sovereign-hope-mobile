@@ -315,8 +315,8 @@ export const setSelectedAmbientSound = createAsyncThunk(
 export const markMemoryAudioInstructionsSeen = createAsyncThunk(
   "memoryAudio/markInstructionsSeen",
   async (_, { dispatch }) => {
-    await AsyncStorage.setItem(HAS_SEEN_INSTRUCTIONS_KEY, JSON.stringify(true));
     dispatch(memoryAudioActions.setHasSeenInstructions(true));
+    await AsyncStorage.setItem(HAS_SEEN_INSTRUCTIONS_KEY, JSON.stringify(true));
   }
 );
 

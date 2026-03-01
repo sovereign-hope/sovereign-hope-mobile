@@ -87,6 +87,8 @@ pglite-debug.log
 
 # Local build archives
 build-*.tar.gz
+*.apk
+*.ipa
 
 # Tool configs
 .codex/

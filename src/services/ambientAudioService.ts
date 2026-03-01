@@ -206,8 +206,8 @@ export type AmbientSound = typeof AMBIENT_SOUND_OPTIONS[number]["key"];
 export type AmbientSoundOption = typeof AMBIENT_SOUND_OPTIONS[number];
 
 const AMBIENT_VOLUME = 0.3;
-const SPOKEN_DUCKED_VOLUME = 0.16;
-const SPOKEN_DUCKED_VOLUME_UPBEAT = 0.12;
+const SPOKEN_DUCKED_VOLUME = 0.09;
+const SPOKEN_DUCKED_VOLUME_UPBEAT = 0.06;
 const UPBEAT_AMBIENT_PREFIX = "upbeat-";
 
 const AMBIENT_SOURCES: Record<

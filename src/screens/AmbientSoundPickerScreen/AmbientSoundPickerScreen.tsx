@@ -36,9 +36,11 @@ export const AmbientSoundPickerScreen: React.FunctionComponent<Props> = () => {
 
   React.useEffect(() => {
     return () => {
-      void stopAmbient();
+      if (!isSessionActive) {
+        void stopAmbient();
+      }
     };
-  }, []);
+  }, [isSessionActive]);
 
   const onSelectSound = React.useCallback(
     async (sound: AmbientSound) => {

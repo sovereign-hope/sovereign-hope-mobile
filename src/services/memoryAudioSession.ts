@@ -5,6 +5,7 @@ import {
   Image,
   NativeEventSubscription,
 } from "react-native";
+import { Audio } from "expo-av";
 import TrackPlayer, {
   Event,
   PlaybackActiveTrackChangedEvent,
@@ -21,6 +22,7 @@ import {
   setAmbientSpeechMix,
   stopAmbient,
 } from "src/services/ambientAudioService";
+import { initializeTrackPlayer } from "src/services/trackPlayerSetup";
 
 export const MEMORY_AUDIO_SESSION_TRACK_ID = "memory-audio-session-track";
 const MEMORY_AUDIO_SESSION_TRACK_TITLE = "Memory Verse Practice";
@@ -34,6 +36,7 @@ const ENCODING_GAP_MS = 7000;
 const GAP_SEQUENCE = [10_000, 20_000, 30_000, 45_000];
 const FINAL_OUTRO_MIN_MS = 6000;
 const FINAL_OUTRO_FADE_MS = 4000;
+const SPOKEN_PLAYBACK_VOLUME = 1;
 
 export type MemoryAudioSessionPhase =
   | "idle"
@@ -85,6 +88,9 @@ let handlers: SessionHandlers | undefined;
 let subscriptions: Array<EmitterSubscription> = [];
 let appStateListener: NativeEventSubscription | undefined;
 let isHandlingQueueEnd = false;
+let publishedSystemDurationSeconds = 0;
+let plannedSessionDurationSeconds = 0;
+const verseDurationCacheSeconds = new Map<string, number>();
 
 const clearGapTimeout = (): void => {
   if (gapTimeout) {
@@ -151,6 +157,76 @@ const setPhase = (
   handlers?.onPhaseChange(phase, gapDuration);
 };
 
+const probeVerseDurationSeconds = async (audioUrl: string): Promise<number> => {
+  const cachedDurationSeconds = verseDurationCacheSeconds.get(audioUrl);
+  if (cachedDurationSeconds !== undefined) {
+    return cachedDurationSeconds;
+  }
+
+  let sound: Audio.Sound | undefined;
+  try {
+    const { sound: createdSound, status } = await Audio.Sound.createAsync(
+      { uri: audioUrl },
+      {
+        shouldPlay: false,
+        volume: 0,
+      }
+    );
+    sound = createdSound;
+    const durationSeconds =
+      status.isLoaded && typeof status.durationMillis === "number"
+        ? status.durationMillis / 1000
+        : 0;
+
+    if (durationSeconds > 0) {
+      verseDurationCacheSeconds.set(audioUrl, durationSeconds);
+    }
+
+    return durationSeconds;
+  } catch {
+    return 0;
+  } finally {
+    if (sound) {
+      await sound.unloadAsync().catch(() => {});
+    }
+  }
+};
+
+const syncSystemSessionDuration = async (
+  verseDurationSeconds: number
+): Promise<void> => {
+  const estimatedSessionDuration =
+    plannedSessionDurationSeconds > 0
+      ? plannedSessionDurationSeconds
+      : getEstimatedMemoryAudioSessionDurationSeconds(
+          verseDurationSeconds,
+          recallCyclesTarget
+        );
+  if (estimatedSessionDuration <= 0) {
+    return;
+  }
+  if (
+    Math.abs(estimatedSessionDuration - publishedSystemDurationSeconds) < 0.5
+  ) {
+    return;
+  }
+
+  publishedSystemDurationSeconds = estimatedSessionDuration;
+  const metadata = {
+    title: MEMORY_AUDIO_SESSION_TRACK_TITLE,
+    artist: MEMORY_AUDIO_SESSION_TRACK_ARTIST,
+    album: MEMORY_AUDIO_SESSION_TRACK_ALBUM,
+    artwork: MEMORY_AUDIO_SESSION_TRACK_ARTWORK_URI,
+    duration: estimatedSessionDuration,
+  };
+
+  const activeTrackIndex = await TrackPlayer.getActiveTrackIndex();
+  if (activeTrackIndex !== undefined) {
+    await TrackPlayer.updateMetadataForTrack(activeTrackIndex, metadata);
+  }
+  await TrackPlayer.updateNowPlayingMetadata(metadata);
+};
+
 const queueSessionTrack = async (): Promise<void> => {
   isIntentionalStop = true;
   try {
@@ -162,7 +238,11 @@ const queueSessionTrack = async (): Promise<void> => {
       artist: MEMORY_AUDIO_SESSION_TRACK_ARTIST,
       album: MEMORY_AUDIO_SESSION_TRACK_ALBUM,
       artwork: MEMORY_AUDIO_SESSION_TRACK_ARTWORK_URI,
+      ...(plannedSessionDurationSeconds > 0
+        ? { duration: plannedSessionDurationSeconds }
+        : {}),
     });
+    await TrackPlayer.skip(0);
   } finally {
     isIntentionalStop = false;
   }
@@ -235,15 +315,31 @@ async function playVerse(
       await TrackPlayer.skip(0);
     }
 
+    setPhase(phase);
     await setAmbientSpeechMix();
+    await TrackPlayer.setVolume(SPOKEN_PLAYBACK_VOLUME);
     await TrackPlayer.seekTo(0);
     await TrackPlayer.play();
+    // TrackPlayer start can steal focus and pause expo-av ambient on first play.
+    // Immediately re-assert ambient playback/mix so both layers stay active.
+    const didResumeAmbient = await resumeAmbient();
+    handlers?.onAmbientPlayingChange(didResumeAmbient);
+    if (didResumeAmbient) {
+      await setAmbientSpeechMix();
+    }
     const progress = await TrackPlayer.getProgress();
     if (progress.duration > 0) {
       spokenVerseDurationSeconds = progress.duration;
       handlers?.onSpokenDurationChange(progress.duration);
+      if (plannedSessionDurationSeconds <= 0) {
+        plannedSessionDurationSeconds =
+          getEstimatedMemoryAudioSessionDurationSeconds(
+            progress.duration,
+            recallCyclesTarget
+          );
+      }
+      await syncSystemSessionDuration(progress.duration);
     }
-    setPhase(phase);
   } catch {
     await finishSession("abandoned");
   }
@@ -300,6 +396,8 @@ async function finishSession(outcome: SessionOutcome): Promise<void> {
   recallCyclesCompleted = 0;
   encodingPlaysCompleted = 0;
   spokenVerseDurationSeconds = 0;
+  publishedSystemDurationSeconds = 0;
+  plannedSessionDurationSeconds = 0;
 }
 
 const handlePlaybackEnded = async (
@@ -311,6 +409,7 @@ const handlePlaybackEnded = async (
   if (event.position > 0) {
     spokenVerseDurationSeconds = event.position;
     handlers?.onSpokenDurationChange(event.position);
+    await syncSystemSessionDuration(event.position);
   }
 
   isHandlingQueueEnd = true;
@@ -440,9 +539,29 @@ export const startMemoryAudioSessionEngine = async (
   encodingPlaysCompleted = 0;
   recallCyclesCompleted = 0;
   spokenVerseDurationSeconds = 0;
+  publishedSystemDurationSeconds = 0;
+  plannedSessionDurationSeconds = 0;
   recallCyclesTarget = Math.max(6, args.recallCyclesTarget);
   verseAudioUrl = args.verseAudioUrl;
   setPhase("fetching");
+
+  const isTrackPlayerInitialized = await initializeTrackPlayer();
+  if (!isTrackPlayerInitialized) {
+    throw new Error("Unable to initialize TrackPlayer");
+  }
+
+  const probedVerseDurationSeconds = await probeVerseDurationSeconds(
+    args.verseAudioUrl
+  );
+  if (probedVerseDurationSeconds > 0) {
+    spokenVerseDurationSeconds = probedVerseDurationSeconds;
+    handlers.onSpokenDurationChange(probedVerseDurationSeconds);
+    plannedSessionDurationSeconds =
+      getEstimatedMemoryAudioSessionDurationSeconds(
+        probedVerseDurationSeconds,
+        recallCyclesTarget
+      );
+  }
 
   const selectedAmbient = handlers.getSelectedAmbientSound();
   const didStartAmbient = await playAmbient(selectedAmbient);
@@ -461,6 +580,9 @@ export const startMemoryAudioSessionEngine = async (
 
   appStateListener = AppState.addEventListener("change", onAppStateChanged);
   await queueSessionTrack();
+  if (spokenVerseDurationSeconds > 0) {
+    await syncSystemSessionDuration(spokenVerseDurationSeconds);
+  }
   await playVerse("encoding_playing");
 };
 
@@ -475,7 +597,7 @@ export const stopMemoryAudioSessionEngine = async (
 
 export const isMemoryAudioSessionRunning = (): boolean => isSessionActive;
 
-export const handleMemoryAudioRemotePlay = async (): Promise<boolean> => {
+export async function handleMemoryAudioRemotePlay(): Promise<boolean> {
   if (!isSessionActive) {
     return false;
   }
@@ -493,6 +615,7 @@ export const handleMemoryAudioRemotePlay = async (): Promise<boolean> => {
       }
     }
     if (currentPhase.endsWith("_playing")) {
+      await TrackPlayer.setVolume(SPOKEN_PLAYBACK_VOLUME);
       await TrackPlayer.play();
     } else if (
       currentPhase.endsWith("_gap") &&
@@ -510,9 +633,9 @@ export const handleMemoryAudioRemotePlay = async (): Promise<boolean> => {
     }
   }
   return true;
-};
+}
 
-export const handleMemoryAudioRemotePause = async (): Promise<boolean> => {
+export async function handleMemoryAudioRemotePause(): Promise<boolean> {
   if (!isSessionActive) {
     return false;
   }
@@ -520,17 +643,16 @@ export const handleMemoryAudioRemotePause = async (): Promise<boolean> => {
   handlers?.onSessionPausedChange(true);
   await pauseAmbient();
   handlers?.onAmbientPlayingChange(false);
+  await TrackPlayer.pause();
 
-  if (currentPhase.endsWith("_playing")) {
-    await TrackPlayer.pause();
-  } else if (currentPhase.endsWith("_gap") && currentGapStartedAt) {
+  if (currentPhase.endsWith("_gap") && currentGapStartedAt) {
     const elapsedGap = Date.now() - currentGapStartedAt;
     currentGapDuration = Math.max(0, currentGapDuration - elapsedGap);
     clearGapTimeout();
   }
 
   return true;
-};
+}
 
 export const pauseMemoryAudioSessionEngine = async (): Promise<boolean> =>
   handleMemoryAudioRemotePause();
@@ -538,10 +660,10 @@ export const pauseMemoryAudioSessionEngine = async (): Promise<boolean> =>
 export const resumeMemoryAudioSessionEngine = async (): Promise<boolean> =>
   handleMemoryAudioRemotePlay();
 
-export const handleMemoryAudioRemoteStop = async (): Promise<boolean> => {
+export async function handleMemoryAudioRemoteStop(): Promise<boolean> {
   if (!isSessionActive) {
     return false;
   }
   await finishSession("abandoned");
   return true;
-};
+}

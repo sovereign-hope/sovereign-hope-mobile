@@ -120,6 +120,9 @@ export const MediaPlayer: React.FunctionComponent<Props> = () => {
   const [seekTarget, setSeekTarget] = useState<number | undefined>();
   const visualPositionRef = useRef<number>(0);
   const isDraggingRef = useRef<boolean>(false);
+  const pausedAtMsRef = useRef<number>(Number.NaN);
+  const totalPausedMsRef = useRef<number>(0);
+  const lastSessionStartedAtRef = useRef<number>(Number.NaN);
 
   const isMemorySessionTrack = track?.id === MEMORY_AUDIO_SESSION_TRACK_ID;
   const isMemorySessionActiveTrack =
@@ -178,12 +181,37 @@ export const MediaPlayer: React.FunctionComponent<Props> = () => {
       !sessionStartedAt ||
       !memoryAudioState.isMemorySessionActive
     ) {
+      pausedAtMsRef.current = Number.NaN;
+      totalPausedMsRef.current = 0;
+      lastSessionStartedAtRef.current = Number.NaN;
       setSessionElapsedSeconds(0);
       return;
     }
 
+    if (lastSessionStartedAtRef.current !== sessionStartedAt) {
+      lastSessionStartedAtRef.current = sessionStartedAt;
+      pausedAtMsRef.current = Number.NaN;
+      totalPausedMsRef.current = 0;
+    }
+
+    if (memoryAudioState.isSessionPaused) {
+      if (Number.isNaN(pausedAtMsRef.current)) {
+        pausedAtMsRef.current = Date.now();
+      }
+    } else if (!Number.isNaN(pausedAtMsRef.current)) {
+      totalPausedMsRef.current += Date.now() - pausedAtMsRef.current;
+      pausedAtMsRef.current = Number.NaN;
+    }
+
     const updateElapsed = () => {
-      setSessionElapsedSeconds((Date.now() - sessionStartedAt) / 1000);
+      const now = Date.now();
+      const pausedAtMs = pausedAtMsRef.current;
+      const currentPauseMs = Number.isNaN(pausedAtMs) ? 0 : now - pausedAtMs;
+      const elapsedMs = Math.max(
+        0,
+        now - sessionStartedAt - totalPausedMsRef.current - currentPauseMs
+      );
+      setSessionElapsedSeconds(elapsedMs / 1000);
     };
 
     updateElapsed();
@@ -196,6 +224,7 @@ export const MediaPlayer: React.FunctionComponent<Props> = () => {
     isMemorySessionActiveTrack,
     memoryAudioState.sessionStartedAt,
     memoryAudioState.isMemorySessionActive,
+    memoryAudioState.isSessionPaused,
   ]);
 
   // Update visual position when not dragging and no seek target
