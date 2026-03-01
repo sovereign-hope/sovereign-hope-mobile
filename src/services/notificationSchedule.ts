@@ -1,12 +1,32 @@
 import * as Notifications from "expo-notifications";
 import { SchedulableTriggerInputTypes } from "expo-notifications";
 
+const DEFAULT_NOTIFICATION_HOUR = 8;
+const DEFAULT_NOTIFICATION_MINUTE = 0;
+
 const parseNotificationTime = (
   time: string
 ): { hour: number; minute: number } => {
-  let hour = Number.parseInt(time.split(":")[0] ?? "8", 10);
-  const minute = Number.parseInt(time.split(":")[1]?.split(" ")[0] ?? "0", 10);
-  const ampm = time.split(":")[1]?.split(" ")[1] ?? "AM";
+  const match = time.trim().match(/^(\d{1,2}):(\d{1,2})\s*(AM|PM)$/iu);
+  if (!match) {
+    return {
+      hour: DEFAULT_NOTIFICATION_HOUR,
+      minute: DEFAULT_NOTIFICATION_MINUTE,
+    };
+  }
+
+  let hour = Number.parseInt(match[1], 10);
+  const minute = Number.parseInt(match[2], 10);
+  const ampm = match[3].toUpperCase();
+
+  const isHourOutOfBounds = hour < 1 || hour > 12;
+  const isMinuteOutOfBounds = minute < 0 || minute > 59;
+  if (isHourOutOfBounds || isMinuteOutOfBounds) {
+    return {
+      hour: DEFAULT_NOTIFICATION_HOUR,
+      minute: DEFAULT_NOTIFICATION_MINUTE,
+    };
+  }
 
   if (ampm === "PM" && hour !== 12) {
     hour += 12;
