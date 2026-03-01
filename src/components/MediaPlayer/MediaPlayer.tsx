@@ -40,9 +40,12 @@ import {
   stopMemoryAudioSession,
 } from "src/redux/memoryAudioSlice";
 import {
-  MEMORY_AUDIO_SESSION_TRACK_ID,
+  MEMORY_AUDIO_SESSION_TRACK_TITLE,
+  MEMORY_AUDIO_SESSION_TRACK_ARTIST,
+  MEMORY_AUDIO_SESSION_TRACK_ALBUM,
+  MEMORY_AUDIO_SESSION_TRACK_ARTWORK_URI,
   getEstimatedMemoryAudioSessionDurationSeconds,
-} from "src/services/memoryAudioSession";
+} from "src/services/memoryAudioConstants";
 
 interface Props {
   id: string;
@@ -124,9 +127,7 @@ export const MediaPlayer: React.FunctionComponent<Props> = () => {
   const totalPausedMsRef = useRef<number>(0);
   const lastSessionStartedAtRef = useRef<number>(Number.NaN);
 
-  const isMemorySessionTrack = track?.id === MEMORY_AUDIO_SESSION_TRACK_ID;
-  const isMemorySessionActiveTrack =
-    isMemorySessionTrack && memoryAudioState.isMemorySessionActive;
+  const isMemorySessionActiveTrack = memoryAudioState.isMemorySessionActive;
   const isMemorySessionPlaying = isMemorySessionActiveTrack
     ? !memoryAudioState.isSessionPaused
     : playbackState.state === PlayerState.Playing;
@@ -143,7 +144,9 @@ export const MediaPlayer: React.FunctionComponent<Props> = () => {
     [memoryVerseDurationSeconds, memoryAudioState.recallCyclesTarget]
   );
   const effectiveDuration =
-    isMemorySessionActiveTrack && estimatedSessionDuration > 0
+    isMemorySessionActiveTrack && memoryAudioState.sessionDurationSeconds > 0
+      ? memoryAudioState.sessionDurationSeconds
+      : isMemorySessionActiveTrack && estimatedSessionDuration > 0
       ? estimatedSessionDuration
       : duration;
   const effectivePosition = isMemorySessionActiveTrack
@@ -164,10 +167,12 @@ export const MediaPlayer: React.FunctionComponent<Props> = () => {
     return Math.min(100, (visualPosition / effectiveDuration) * 100);
   }, [effectiveDuration, visualPosition]);
 
-  // Update visibility state when track changes
+  const shouldShowPlayer = track !== undefined || isMemorySessionActiveTrack;
+
+  // Update visibility state when track or memory session changes
   React.useEffect(() => {
-    setIsVisible(track !== undefined);
-  }, [track, setIsVisible]);
+    setIsVisible(shouldShowPlayer);
+  }, [shouldShowPlayer, setIsVisible]);
 
   React.useEffect(() => {
     isDraggingRef.current = isDragging;
@@ -291,9 +296,9 @@ export const MediaPlayer: React.FunctionComponent<Props> = () => {
       useNativeDriver: true,
     });
 
-    // Only animate when track changes from undefined to a track (or vice versa)
-    if (track === undefined && !isPlayerOffscreen) {
-      // Track was removed, animate out
+    // Only animate when player should show/hide
+    if (!shouldShowPlayer && !isPlayerOffscreen) {
+      // Player should hide, animate out
       mountTiming.stop();
       unmountTiming.start(({ finished }) => {
         if (finished) {
@@ -301,15 +306,15 @@ export const MediaPlayer: React.FunctionComponent<Props> = () => {
           setIsModalVisible(false);
         }
       });
-    } else if (track !== undefined && isPlayerOffscreen) {
-      // Track was added, animate in from off-screen
+    } else if (shouldShowPlayer && isPlayerOffscreen) {
+      // Player should show, animate in from off-screen
       setIsPlayerOffscreen(false);
       unmountTiming.stop();
       // Always start from off-screen position
       mountAnimation.setValue(slideDistance);
       mountTiming.start();
     }
-  }, [track, isPlayerOffscreen, mountAnimation]);
+  }, [shouldShowPlayer, isPlayerOffscreen, mountAnimation]);
 
   // Animate bottom position when tab bar height changes
   useLayoutEffect(() => {
@@ -699,9 +704,21 @@ export const MediaPlayer: React.FunctionComponent<Props> = () => {
             accessibilityHint="Tap to open the full media player"
           >
             <View style={themedStyles.trackImageContainer}>
-              {getImageSource(track?.artwork) ? (
+              {getImageSource(
+                track?.artwork ??
+                  (isMemorySessionActiveTrack
+                    ? MEMORY_AUDIO_SESSION_TRACK_ARTWORK_URI
+                    : undefined)
+              ) ? (
                 <Image
-                  source={getImageSource(track?.artwork) as { uri: string }}
+                  source={
+                    getImageSource(
+                      track?.artwork ??
+                        (isMemorySessionActiveTrack
+                          ? MEMORY_AUDIO_SESSION_TRACK_ARTWORK_URI
+                          : undefined)
+                    ) as { uri: string }
+                  }
                   style={themedStyles.trackImage}
                   accessibilityIgnoresInvertColors
                 />
@@ -717,10 +734,16 @@ export const MediaPlayer: React.FunctionComponent<Props> = () => {
             </View>
             <View style={themedStyles.trackDetails}>
               <Text style={themedStyles.trackTitle} numberOfLines={1}>
-                {track?.title || "Unknown Track"}
+                {track?.title ??
+                  (isMemorySessionActiveTrack
+                    ? MEMORY_AUDIO_SESSION_TRACK_TITLE
+                    : "Unknown Track")}
               </Text>
               <Text style={themedStyles.trackArtist} numberOfLines={1}>
-                {track?.artist || "Unknown Artist"}
+                {track?.artist ??
+                  (isMemorySessionActiveTrack
+                    ? MEMORY_AUDIO_SESSION_TRACK_ARTIST
+                    : "Unknown Artist")}
               </Text>
             </View>
           </Pressable>
@@ -840,9 +863,21 @@ export const MediaPlayer: React.FunctionComponent<Props> = () => {
           <View style={themedStyles.maximizedContent}>
             <View style={themedStyles.maximizedTrackSection}>
               <View style={themedStyles.maximizedTrackImageContainer}>
-                {getImageSource(track?.artwork) ? (
+                {getImageSource(
+                  track?.artwork ??
+                    (isMemorySessionActiveTrack
+                      ? MEMORY_AUDIO_SESSION_TRACK_ARTWORK_URI
+                      : undefined)
+                ) ? (
                   <Image
-                    source={getImageSource(track?.artwork) as { uri: string }}
+                    source={
+                      getImageSource(
+                        track?.artwork ??
+                          (isMemorySessionActiveTrack
+                            ? MEMORY_AUDIO_SESSION_TRACK_ARTWORK_URI
+                            : undefined)
+                      ) as { uri: string }
+                    }
                     style={themedStyles.maximizedTrackImage}
                     resizeMode="contain"
                     accessibilityIgnoresInvertColors
@@ -860,13 +895,22 @@ export const MediaPlayer: React.FunctionComponent<Props> = () => {
 
               <View style={themedStyles.maximizedTrackInfo}>
                 <Text style={themedStyles.maximizedTrackTitle}>
-                  {track?.title || "Unknown Track"}
+                  {track?.title ??
+                    (isMemorySessionActiveTrack
+                      ? MEMORY_AUDIO_SESSION_TRACK_TITLE
+                      : "Unknown Track")}
                 </Text>
                 <Text style={themedStyles.maximizedTrackArtist}>
-                  {track?.artist || "Unknown Artist"}
+                  {track?.artist ??
+                    (isMemorySessionActiveTrack
+                      ? MEMORY_AUDIO_SESSION_TRACK_ARTIST
+                      : "Unknown Artist")}
                 </Text>
                 <Text style={themedStyles.maximizedTrackAlbum}>
-                  {track?.album || "Unknown Album"}
+                  {track?.album ??
+                    (isMemorySessionActiveTrack
+                      ? MEMORY_AUDIO_SESSION_TRACK_ALBUM
+                      : "Unknown Album")}
                 </Text>
               </View>
             </View>

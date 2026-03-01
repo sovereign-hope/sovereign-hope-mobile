@@ -92,6 +92,7 @@ export interface MemoryAudioState {
   hasError: boolean;
   errorMessage?: string;
   hasSeenInstructions: boolean;
+  sessionDurationSeconds: number;
   isMemorySessionActive: boolean;
   isSessionPaused: boolean;
   backgroundedAt?: number;
@@ -118,6 +119,7 @@ const initialState: MemoryAudioState = {
   hasError: false,
   errorMessage: undefined,
   hasSeenInstructions: false,
+  sessionDurationSeconds: 0,
   isMemorySessionActive: false,
   isSessionPaused: false,
   backgroundedAt: undefined,
@@ -183,6 +185,9 @@ const memoryAudioSlice = createSlice({
     setCurrentVerseReference: (state, action: PayloadAction<string>) => {
       state.currentVerseReference = action.payload;
     },
+    setSessionDurationSeconds: (state, action: PayloadAction<number>) => {
+      state.sessionDurationSeconds = action.payload;
+    },
     setMemorySessionActive: (state, action: PayloadAction<boolean>) => {
       state.isMemorySessionActive = action.payload;
     },
@@ -239,6 +244,7 @@ const memoryAudioSlice = createSlice({
       state.currentGapDuration = 0;
       state.sessionStartedAt = undefined;
       state.spokenDurationSeconds = 0;
+      state.sessionDurationSeconds = 0;
       state.isLoading = false;
       state.ambientIsPlaying = false;
       state.isMemorySessionActive = false;
@@ -403,7 +409,10 @@ export const startMemoryAudioSession = createAsyncThunk(
           .recallCyclesTarget,
         getSelectedAmbientSound: () =>
           (getState() as RootState).memoryAudio.selectedAmbientSound,
-        onSessionStarted: () => {
+        onSessionStarted: (sessionDurationSeconds) => {
+          dispatch(
+            memoryAudioActions.setSessionDurationSeconds(sessionDurationSeconds)
+          );
           dispatch(memoryAudioActions.setMemorySessionActive(true));
           dispatch(memoryAudioActions.setSessionPaused(false));
           dispatch(memoryAudioActions.setLoading(false));
@@ -473,7 +482,7 @@ export const startMemoryAudioSession = createAsyncThunk(
 export const stopMemoryAudioSession = createAsyncThunk(
   "memoryAudio/stopMemoryAudioSession",
   async () => {
-    await stopMemoryAudioSessionEngine("abandoned");
+    await stopMemoryAudioSessionEngine();
   }
 );
 

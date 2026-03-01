@@ -1,4 +1,6 @@
-import { Audio, AVPlaybackSource } from "expo-av";
+import { AudioContext, AudioBufferSourceNode } from "react-native-audio-api";
+import { Asset } from "expo-asset";
+import { AMBIENT_VOLUME } from "src/services/memoryAudioConstants";
 import altPianoV1 from "assets/audio/ambient/alt-piano-v1.mp3";
 import altPianoV2 from "assets/audio/ambient/alt-piano-v2.mp3";
 import breathePadV1 from "assets/audio/ambient/breathe-pad-v1.mp3";
@@ -205,15 +207,8 @@ export const AMBIENT_SOUND_OPTIONS = [
 export type AmbientSound = typeof AMBIENT_SOUND_OPTIONS[number]["key"];
 export type AmbientSoundOption = typeof AMBIENT_SOUND_OPTIONS[number];
 
-const AMBIENT_VOLUME = 0.3;
-const SPOKEN_DUCKED_VOLUME = 0.09;
-const SPOKEN_DUCKED_VOLUME_UPBEAT = 0.06;
-const UPBEAT_AMBIENT_PREFIX = "upbeat-";
-
-const AMBIENT_SOURCES: Record<
-  Exclude<AmbientSound, "none">,
-  AVPlaybackSource
-> = {
+// Asset module IDs for each ambient sound. Used by the renderer for decoding.
+export const AMBIENT_SOURCES: Record<Exclude<AmbientSound, "none">, number> = {
   "rain-pad-v1": rainPadV1,
   "rain-pad-v2": rainPadV2,
   "breathe-pad-v1": breathePadV1,
@@ -256,149 +251,77 @@ const AMBIENT_SOUND_KEYS = new Set(
 export const isAmbientSound = (value: string): value is AmbientSound =>
   AMBIENT_SOUND_KEYS.has(value as AmbientSound);
 
-let currentSound: Audio.Sound | undefined;
-let currentAmbient: AmbientSound = "none";
+// ---------------------------------------------------------------------------
+// Preview playback (used by AmbientSoundPickerScreen)
+// ---------------------------------------------------------------------------
 
-const configureAudioMode = async (): Promise<void> => {
-  await Audio.setAudioModeAsync({
-    allowsRecordingIOS: false,
-    staysActiveInBackground: true,
-    playsInSilentModeIOS: true,
-    shouldDuckAndroid: true,
-    playThroughEarpieceAndroid: false,
-  });
-};
+let previewContext: AudioContext | undefined;
+let previewSource: AudioBufferSourceNode | undefined;
+let currentAmbient: AmbientSound = "none";
 
 export const getCurrentAmbientSound = (): AmbientSound => currentAmbient;
 
 export const stopAmbient = async (): Promise<void> => {
-  if (!currentSound) {
-    return;
-  }
-  await currentSound.stopAsync();
-  await currentSound.unloadAsync();
-  currentSound = undefined;
-};
-
-export const pauseAmbient = async (): Promise<boolean> => {
-  if (!currentSound) {
-    return false;
+  if (previewSource) {
+    try {
+      previewSource.stop();
+    } catch {
+      // Already stopped
+    }
+    previewSource = undefined;
   }
 
-  await currentSound.pauseAsync();
-  return true;
-};
-
-export const resumeAmbient = async (): Promise<boolean> => {
-  if (!currentSound) {
-    return false;
+  if (previewContext) {
+    try {
+      await previewContext.close();
+    } catch {
+      // Already closed
+    }
+    previewContext = undefined;
   }
-
-  await currentSound.playAsync();
-  return true;
-};
-
-const startAmbientLoop = async (
-  ambient: Exclude<AmbientSound, "none">
-): Promise<boolean> => {
-  const source = AMBIENT_SOURCES[ambient];
-  if (!source) {
-    await stopAmbient();
-    return false;
-  }
-
-  await configureAudioMode();
-  await stopAmbient();
-
-  const { sound } = await Audio.Sound.createAsync(source, {
-    isLooping: true,
-    volume: AMBIENT_VOLUME,
-    shouldPlay: true,
-  });
-  currentSound = sound;
-  return true;
-};
-
-export const playAmbient = async (ambient: AmbientSound): Promise<boolean> => {
-  currentAmbient = ambient;
-  if (ambient === "none") {
-    await stopAmbient();
-    return false;
-  }
-
-  return startAmbientLoop(ambient);
 };
 
 export const playAmbientPreview = async (
   ambient: AmbientSound
 ): Promise<boolean> => {
+  currentAmbient = ambient;
+
   if (ambient === "none") {
     await stopAmbient();
     return false;
   }
 
-  return startAmbientLoop(ambient);
-};
-
-export const setAmbientVolume = async (volume: number): Promise<void> => {
-  if (!currentSound) {
-    return;
-  }
-  await currentSound.setVolumeAsync(volume);
-};
-
-const getSpokenMixVolume = (): number =>
-  currentAmbient.startsWith(UPBEAT_AMBIENT_PREFIX)
-    ? SPOKEN_DUCKED_VOLUME_UPBEAT
-    : SPOKEN_DUCKED_VOLUME;
-
-export const setAmbientSpeechMix = async (): Promise<void> => {
-  if (!currentSound || currentAmbient === "none") {
-    return;
-  }
-  await currentSound.setVolumeAsync(getSpokenMixVolume());
-};
-
-export const setAmbientGapMix = async (): Promise<void> => {
-  if (!currentSound || currentAmbient === "none") {
-    return;
-  }
-  await currentSound.setVolumeAsync(AMBIENT_VOLUME);
-};
-
-export const fadeOutAmbient = async (
-  durationMs: number,
-  steps = 12
-): Promise<boolean> => {
-  if (!currentSound) {
+  const moduleId = AMBIENT_SOURCES[ambient];
+  if (moduleId === undefined) {
+    await stopAmbient();
     return false;
   }
 
-  if (durationMs <= 0 || steps <= 0) {
-    await stopAmbient();
-    return true;
-  }
-
-  const fadeSteps = Math.max(1, steps);
-  const stepDuration = Math.max(16, Math.floor(durationMs / fadeSteps));
+  await stopAmbient();
 
   try {
-    const status = await currentSound.getStatusAsync();
-    const currentVolume =
-      status.isLoaded && typeof status.volume === "number"
-        ? status.volume
-        : AMBIENT_VOLUME;
-    for (let step = fadeSteps - 1; step >= 0; step -= 1) {
-      const nextVolume = (step / fadeSteps) * currentVolume;
-      await currentSound.setVolumeAsync(nextVolume);
-      // eslint-disable-next-line no-await-in-loop
-      await new Promise((resolve) => {
-        setTimeout(resolve, stepDuration);
-      });
-    }
-    await stopAmbient();
+    const asset = await Asset.fromModule(moduleId).downloadAsync();
+    if (!asset.localUri) return false;
+
+    const response = await fetch(asset.localUri);
+    const arrayBuffer = await response.arrayBuffer();
+
+    previewContext = new AudioContext();
+    const audioBuffer = await previewContext.decodeAudioData(arrayBuffer);
+
+    previewSource = previewContext.createBufferSource();
+    previewSource.buffer = audioBuffer;
+    previewSource.loop = true;
+
+    const gainNode = previewContext.createGain();
+    gainNode.gain.setValueAtTime(AMBIENT_VOLUME, previewContext.currentTime);
+    previewSource.connect(gainNode);
+    gainNode.connect(previewContext.destination);
+
+    previewSource.start(0);
     return true;
   } catch {
+    await stopAmbient();
     return false;
   }
 };

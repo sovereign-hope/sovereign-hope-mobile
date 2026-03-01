@@ -173,7 +173,6 @@ const App = (): React.JSX.Element => {
   const [cachedHeight, setCachedHeight] = useState<number>(0);
   const [isCached, setIsCached] = useState<boolean>(false);
   const [isTabBarVisible, setIsTabBarVisible] = useState<boolean>(true);
-  const [isTrackPlayerReady, setIsTrackPlayerReady] = useState(false);
 
   useEffect(() => {
     async function prepare() {
@@ -199,24 +198,7 @@ const App = (): React.JSX.Element => {
   }, [colorScheme]);
 
   useEffect(() => {
-    let isCancelled = false;
-
-    async function setupPlayer() {
-      const isTrackPlayerInitialized = await initializeTrackPlayer();
-      if (!isTrackPlayerInitialized) {
-        return;
-      }
-
-      if (!isCancelled) {
-        setIsTrackPlayerReady(true);
-      }
-    }
-
-    void setupPlayer();
-
-    return () => {
-      isCancelled = true;
-    };
+    void initializeTrackPlayer();
   }, []);
 
   const onLayoutRootView = useCallback(async () => {
@@ -271,7 +253,7 @@ const App = (): React.JSX.Element => {
             >
               <AppLifecycleSyncEffects />
               <RootScreen />
-              {isTrackPlayerReady && <MediaPlayer id="sov-hope-media-player" />}
+              <MediaPlayer id="sov-hope-media-player" />
             </GestureHandlerRootView>
           </MediaPlayerContext.Provider>
         </TabBarHeightContext.Provider>
