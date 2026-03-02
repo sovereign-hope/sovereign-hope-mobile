@@ -24,6 +24,14 @@
         "image": "latest"
       }
     },
+    "development:simulator": {
+      "extends": "development",
+      "ios": {
+        "simulator": true,
+        "resourceClass": "m-medium",
+        "image": "latest"
+      }
+    },
     "preview": {
       "android": {
         "distribution": "internal"

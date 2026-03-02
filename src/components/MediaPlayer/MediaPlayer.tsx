@@ -24,6 +24,7 @@ import {
   isLiquidGlassAvailable,
 } from "expo-glass-effect";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useTabletLayout } from "src/hooks/useTabletLayout";
 import { styles } from "./MediaPlayer.styles";
 import TrackPlayer, {
   Event,
@@ -54,6 +55,7 @@ import {
   MEMORY_AUDIO_SESSION_TRACK_ARTWORK_URI,
   getEstimatedMemoryAudioSessionDurationSeconds,
 } from "src/services/memoryAudioConstants";
+import { spacing } from "src/style/layout";
 
 interface Props {
   id: string;
@@ -61,6 +63,8 @@ interface Props {
 
 type PlayerMode = "minimized" | "maximized";
 type RepeatMode = "off" | "track" | "queue";
+
+const MAX_MINI_PLAYER_WIDTH = 720;
 
 // Media Player Component
 export const MediaPlayer: React.FunctionComponent<Props> = () => {
@@ -77,10 +81,24 @@ export const MediaPlayer: React.FunctionComponent<Props> = () => {
   const { setIsVisible } = React.useContext(MediaPlayerContext);
   const playbackState = usePlaybackState();
   const memoryAudioState = useAppSelector(selectMemoryAudioState);
+  const { width: viewportWidth, isTablet } = useTabletLayout();
+
+  const useExpandedPlayerSheet = isTablet;
+  const minimizedBaseInset =
+    Platform.OS === "ios" ? spacing.large : spacing.medium;
+  const minimizedHorizontalInset = React.useMemo(() => {
+    const maxInset = Math.max(
+      minimizedBaseInset,
+      (viewportWidth - MAX_MINI_PLAYER_WIDTH) / 2
+    );
+
+    return Math.round(maxInset);
+  }, [minimizedBaseInset, viewportWidth]);
 
   // Calculate dynamic bottom offset for Android
   const getBottomOffset = useCallback(() => {
     const desiredGap = 6; // pixels of visible gap between player and tab bar
+    const isIPad = Platform.OS === "ios" && Platform.isPad;
 
     // Use visibility state for immediate positioning
     if (!isTabBarVisible) {
@@ -93,7 +111,11 @@ export const MediaPlayer: React.FunctionComponent<Props> = () => {
       ? cachedHeight
       : tabBarHeight || measuredHeight;
 
-    // When the tab bar is visible, keep a small gap above it
+    // On iPad, tabs are presented at the top, so there is no bottom tab bar
+    // to clear and we should only respect bottom safe area.
+    if (isIPad) {
+      return insets.bottom + desiredGap;
+    }
 
     if (Platform.OS === "android") {
       return effectiveTabBarHeight + desiredGap;
@@ -193,6 +215,9 @@ export const MediaPlayer: React.FunctionComponent<Props> = () => {
           dark: "rgba(255, 255, 255, 0.86)",
         })
       : colors.white;
+  const maximizedHeaderTopInset = useExpandedPlayerSheet
+    ? spacing.medium
+    : insets.top;
 
   // Update visibility state when track or memory session changes
   React.useEffect(() => {
@@ -653,6 +678,10 @@ export const MediaPlayer: React.FunctionComponent<Props> = () => {
         style={[
           themedStyles.minimizedPlayer,
           {
+            left: minimizedHorizontalInset,
+            right: minimizedHorizontalInset,
+          },
+          {
             bottom: 0, // Always at bottom, use translateY for positioning
             transform: [
               {
@@ -786,363 +815,386 @@ export const MediaPlayer: React.FunctionComponent<Props> = () => {
 
       <Modal
         visible={isModalVisible}
-        animationType="slide"
-        presentationStyle="fullScreen"
+        animationType={useExpandedPlayerSheet ? "fade" : "slide"}
+        presentationStyle={
+          useExpandedPlayerSheet ? "overFullScreen" : "fullScreen"
+        }
+        transparent={useExpandedPlayerSheet}
         onRequestClose={() => setIsModalVisible(false)}
         statusBarTranslucent
         navigationBarTranslucent
       >
         <View
           style={[
-            themedStyles.maximizedContainer,
-            { paddingBottom: insets.bottom },
+            themedStyles.maximizedModalRoot,
+            useExpandedPlayerSheet && themedStyles.maximizedSheetBackdrop,
           ]}
         >
-          {Platform.OS === "ios" ? (
-            <>
-              {shouldUseLiquidGlass ? (
-                <GlassView
-                  style={themedStyles.maximizedGlassBlur}
-                  glassEffectStyle="regular"
-                  colorScheme="dark"
-                  isInteractive={false}
-                  pointerEvents="none"
-                />
-              ) : (
-                <BlurView
-                  style={themedStyles.maximizedGlassBlur}
-                  tint="systemMaterialDark"
-                  intensity={100}
-                  pointerEvents="none"
-                />
-              )}
-              <View
-                style={themedStyles.maximizedGlassOverlay}
-                pointerEvents="none"
-              />
-            </>
-          ) : undefined}
-          <View
-            style={[themedStyles.maximizedHeader, { paddingTop: insets.top }]}
-          >
+          {useExpandedPlayerSheet && (
             <Pressable
-              onPress={togglePlayerMode}
-              style={themedStyles.maximizedCloseButton}
               accessibilityRole="button"
               accessibilityLabel="Close player"
-              accessibilityHint="Tap to minimize the player"
-            >
-              <Ionicons name="chevron-down" size={28} color={colors.white} />
-            </Pressable>
-            <Text style={themedStyles.maximizedTitle}>Now Playing</Text>
-            <Pressable
-              onPress={() => void stopPlayback()}
-              style={themedStyles.maximizedStopButton}
-              accessibilityRole="button"
-              accessibilityLabel="Stop playback"
-              accessibilityHint="Tap to stop the current track"
-            >
-              <Ionicons name="stop" size={24} color={colors.white} />
-            </Pressable>
-          </View>
-
-          <View style={themedStyles.maximizedContent}>
-            <View style={themedStyles.maximizedTrackSection}>
-              <View style={themedStyles.maximizedTrackImageContainer}>
-                {getImageSource(
-                  track?.artwork ??
-                    (isMemorySessionActiveTrack
-                      ? MEMORY_AUDIO_SESSION_TRACK_ARTWORK_URI
-                      : undefined)
-                ) ? (
-                  <Image
-                    source={
-                      getImageSource(
-                        track?.artwork ??
-                          (isMemorySessionActiveTrack
-                            ? MEMORY_AUDIO_SESSION_TRACK_ARTWORK_URI
-                            : undefined)
-                      ) as { uri: string }
-                    }
-                    style={themedStyles.maximizedTrackImage}
-                    resizeMode="contain"
-                    accessibilityIgnoresInvertColors
+              accessibilityHint="Dismisses the expanded media player."
+              onPress={togglePlayerMode}
+              style={themedStyles.maximizedSheetBackdropPressable}
+            />
+          )}
+          <View
+            style={[
+              themedStyles.maximizedContainer,
+              useExpandedPlayerSheet && themedStyles.maximizedContainerSheet,
+              { paddingBottom: insets.bottom },
+            ]}
+          >
+            {Platform.OS === "ios" ? (
+              <>
+                {shouldUseLiquidGlass ? (
+                  <GlassView
+                    style={themedStyles.maximizedGlassBlur}
+                    glassEffectStyle="regular"
+                    colorScheme="dark"
+                    isInteractive={false}
+                    pointerEvents="none"
                   />
                 ) : (
-                  <View style={themedStyles.maximizedTrackImagePlaceholder}>
-                    <Ionicons
-                      name="musical-notes"
-                      size={60}
-                      color={colors.white}
-                    />
-                  </View>
+                  <BlurView
+                    style={themedStyles.maximizedGlassBlur}
+                    tint="systemMaterialDark"
+                    intensity={100}
+                    pointerEvents="none"
+                  />
                 )}
-              </View>
-
-              <View style={themedStyles.maximizedTrackInfo}>
-                <Text style={themedStyles.maximizedTrackTitle}>
-                  {track?.title ??
-                    (isMemorySessionActiveTrack
-                      ? MEMORY_AUDIO_SESSION_TRACK_TITLE
-                      : "Unknown Track")}
-                </Text>
-                <Text style={themedStyles.maximizedTrackArtist}>
-                  {track?.artist ??
-                    (isMemorySessionActiveTrack
-                      ? MEMORY_AUDIO_SESSION_TRACK_ARTIST
-                      : "Unknown Artist")}
-                </Text>
-                <Text style={themedStyles.maximizedTrackAlbum}>
-                  {track?.album ??
-                    (isMemorySessionActiveTrack
-                      ? MEMORY_AUDIO_SESSION_TRACK_ALBUM
-                      : "Unknown Album")}
-                </Text>
-              </View>
+                <View
+                  style={themedStyles.maximizedGlassOverlay}
+                  pointerEvents="none"
+                />
+              </>
+            ) : undefined}
+            <View
+              style={[
+                themedStyles.maximizedHeader,
+                { paddingTop: maximizedHeaderTopInset },
+              ]}
+            >
+              <Pressable
+                onPress={togglePlayerMode}
+                style={themedStyles.maximizedCloseButton}
+                accessibilityRole="button"
+                accessibilityLabel="Close player"
+                accessibilityHint="Tap to minimize the player"
+              >
+                <Ionicons name="chevron-down" size={28} color={colors.white} />
+              </Pressable>
+              <Text style={themedStyles.maximizedTitle}>Now Playing</Text>
+              <Pressable
+                onPress={() => void stopPlayback()}
+                style={themedStyles.maximizedStopButton}
+                accessibilityRole="button"
+                accessibilityLabel="Stop playback"
+                accessibilityHint="Tap to stop the current track"
+              >
+                <Ionicons name="stop" size={24} color={colors.white} />
+              </Pressable>
             </View>
 
-            <View style={themedStyles.maximizedProgressSection}>
-              <View style={themedStyles.maximizedProgressBar}>
-                <View
-                  style={themedStyles.maximizedProgressBarContainer}
-                  onLayout={(event) => {
-                    const { width } = event.nativeEvent.layout;
-                    setMaxScrubberWidth(width);
-                  }}
-                >
-                  {Platform.OS === "ios" ? (
-                    <Pressable
-                      onPress={handleScrubberPress}
-                      style={themedStyles.maximizedScrubberTrack}
-                      hitSlop={{ top: 20, bottom: 20, left: 0, right: 0 }}
-                      accessibilityRole="button"
-                      accessibilityLabel="Progress bar"
-                      accessibilityHint="Tap to seek to a position in the track"
-                    >
-                      <PanGestureHandler
-                        onHandlerStateChange={handleScrubberGesture}
-                        onGestureEvent={handleScrubberGestureEvent}
-                        activeOffsetX={[-5, 5]}
-                        failOffsetY={[-30, 30]}
-                        shouldCancelWhenOutside={false}
-                        minDist={0}
-                        enableTrackpadTwoFingerGesture={false}
-                        avgTouches={true}
-                        hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }}
-                      >
-                        <View style={themedStyles.maximizedScrubberTrack}>
-                          <View
-                            style={[
-                              themedStyles.maximizedScrubberProgress,
-                              {
-                                width: `${scrubberProgressPercent}%`,
-                              },
-                            ]}
-                          />
-                          <View
-                            style={[
-                              themedStyles.maximizedScrubberHandle,
-                              {
-                                left: `${scrubberProgressPercent}%`,
-                              },
-                            ]}
-                          />
-                        </View>
-                      </PanGestureHandler>
-                    </Pressable>
+            <View style={themedStyles.maximizedContent}>
+              <View style={themedStyles.maximizedTrackSection}>
+                <View style={themedStyles.maximizedTrackImageContainer}>
+                  {getImageSource(
+                    track?.artwork ??
+                      (isMemorySessionActiveTrack
+                        ? MEMORY_AUDIO_SESSION_TRACK_ARTWORK_URI
+                        : undefined)
+                  ) ? (
+                    <Image
+                      source={
+                        getImageSource(
+                          track?.artwork ??
+                            (isMemorySessionActiveTrack
+                              ? MEMORY_AUDIO_SESSION_TRACK_ARTWORK_URI
+                              : undefined)
+                        ) as { uri: string }
+                      }
+                      style={themedStyles.maximizedTrackImage}
+                      resizeMode="contain"
+                      accessibilityIgnoresInvertColors
+                    />
                   ) : (
-                    <View
-                      style={themedStyles.maximizedScrubberTrack}
-                      onStartShouldSetResponder={() => true}
-                      onMoveShouldSetResponder={() => true}
-                      onTouchStart={handleTouchStart}
-                      onTouchMove={handleTouchMove}
-                      onTouchEnd={handleTouchEnd}
-                      accessibilityRole="button"
-                      accessibilityLabel="Progress bar"
-                      accessibilityHint="Tap to seek to a position in the track"
-                    >
-                      <View
-                        style={[
-                          themedStyles.maximizedScrubberProgress,
-                          {
-                            width: `${scrubberProgressPercent}%`,
-                          },
-                        ]}
-                      />
-                      <View
-                        style={[
-                          themedStyles.maximizedScrubberHandle,
-                          {
-                            left: `${scrubberProgressPercent}%`,
-                          },
-                        ]}
+                    <View style={themedStyles.maximizedTrackImagePlaceholder}>
+                      <Ionicons
+                        name="musical-notes"
+                        size={60}
+                        color={colors.white}
                       />
                     </View>
                   )}
                 </View>
+
+                <View style={themedStyles.maximizedTrackInfo}>
+                  <Text style={themedStyles.maximizedTrackTitle}>
+                    {track?.title ??
+                      (isMemorySessionActiveTrack
+                        ? MEMORY_AUDIO_SESSION_TRACK_TITLE
+                        : "Unknown Track")}
+                  </Text>
+                  <Text style={themedStyles.maximizedTrackArtist}>
+                    {track?.artist ??
+                      (isMemorySessionActiveTrack
+                        ? MEMORY_AUDIO_SESSION_TRACK_ARTIST
+                        : "Unknown Artist")}
+                  </Text>
+                  <Text style={themedStyles.maximizedTrackAlbum}>
+                    {track?.album ??
+                      (isMemorySessionActiveTrack
+                        ? MEMORY_AUDIO_SESSION_TRACK_ALBUM
+                        : "Unknown Album")}
+                  </Text>
+                </View>
+              </View>
+
+              <View style={themedStyles.maximizedProgressSection}>
+                <View style={themedStyles.maximizedProgressBar}>
+                  <View
+                    style={themedStyles.maximizedProgressBarContainer}
+                    onLayout={(event) => {
+                      const { width } = event.nativeEvent.layout;
+                      setMaxScrubberWidth(width);
+                    }}
+                  >
+                    {Platform.OS === "ios" ? (
+                      <Pressable
+                        onPress={handleScrubberPress}
+                        style={themedStyles.maximizedScrubberTrack}
+                        hitSlop={{ top: 20, bottom: 20, left: 0, right: 0 }}
+                        accessibilityRole="button"
+                        accessibilityLabel="Progress bar"
+                        accessibilityHint="Tap to seek to a position in the track"
+                      >
+                        <PanGestureHandler
+                          onHandlerStateChange={handleScrubberGesture}
+                          onGestureEvent={handleScrubberGestureEvent}
+                          activeOffsetX={[-5, 5]}
+                          failOffsetY={[-30, 30]}
+                          shouldCancelWhenOutside={false}
+                          minDist={0}
+                          enableTrackpadTwoFingerGesture={false}
+                          avgTouches={true}
+                          hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }}
+                        >
+                          <View style={themedStyles.maximizedScrubberTrack}>
+                            <View
+                              style={[
+                                themedStyles.maximizedScrubberProgress,
+                                {
+                                  width: `${scrubberProgressPercent}%`,
+                                },
+                              ]}
+                            />
+                            <View
+                              style={[
+                                themedStyles.maximizedScrubberHandle,
+                                {
+                                  left: `${scrubberProgressPercent}%`,
+                                },
+                              ]}
+                            />
+                          </View>
+                        </PanGestureHandler>
+                      </Pressable>
+                    ) : (
+                      <View
+                        style={themedStyles.maximizedScrubberTrack}
+                        onStartShouldSetResponder={() => true}
+                        onMoveShouldSetResponder={() => true}
+                        onTouchStart={handleTouchStart}
+                        onTouchMove={handleTouchMove}
+                        onTouchEnd={handleTouchEnd}
+                        accessibilityRole="button"
+                        accessibilityLabel="Progress bar"
+                        accessibilityHint="Tap to seek to a position in the track"
+                      >
+                        <View
+                          style={[
+                            themedStyles.maximizedScrubberProgress,
+                            {
+                              width: `${scrubberProgressPercent}%`,
+                            },
+                          ]}
+                        />
+                        <View
+                          style={[
+                            themedStyles.maximizedScrubberHandle,
+                            {
+                              left: `${scrubberProgressPercent}%`,
+                            },
+                          ]}
+                        />
+                      </View>
+                    )}
+                  </View>
+                </View>
+              </View>
+              <View style={themedStyles.maximizedTimeContainer}>
+                <Text style={themedStyles.maximizedTimeText}>
+                  {formattedPosition}
+                </Text>
+                <Text style={themedStyles.maximizedTimeText}>
+                  {formattedDuration}
+                </Text>
               </View>
             </View>
-            <View style={themedStyles.maximizedTimeContainer}>
-              <Text style={themedStyles.maximizedTimeText}>
-                {formattedPosition}
-              </Text>
-              <Text style={themedStyles.maximizedTimeText}>
-                {formattedDuration}
-              </Text>
-            </View>
-          </View>
 
-          <View style={themedStyles.maximizedControls}>
-            <View style={themedStyles.maximizedSecondaryControls}>
-              {/* Removed shuffle */}
-              <Pressable
-                onPress={() => void skipToPrevious()}
-                style={themedStyles.maximizedSecondaryButton}
-                accessibilityRole="button"
-                accessibilityLabel="Skip back 1 minute"
-                accessibilityHint="Tap to skip back 1 minute in the track"
-              >
-                <View style={themedStyles.maximizedButtonWithLabel}>
-                  <Ionicons
-                    name="return-down-back"
-                    size={24}
-                    color={colors.white}
-                  />
-                  <Text style={themedStyles.maximizedButtonLabel}>-1m</Text>
-                </View>
-              </Pressable>
-
-              <Pressable
-                onPress={() => void jumpBack()}
-                style={themedStyles.maximizedSecondaryButton}
-                accessibilityRole="button"
-                accessibilityLabel="Jump back 15 seconds"
-                accessibilityHint="Tap to jump back 15 seconds in the track"
-              >
-                <View style={themedStyles.maximizedButtonWithLabel}>
-                  <Ionicons name="play-back" size={24} color={colors.white} />
-                  <Text style={themedStyles.maximizedButtonLabel}>-15s</Text>
-                </View>
-              </Pressable>
-            </View>
-
-            <View style={themedStyles.maximizedMainControls}>
-              <Pressable
-                onPress={() => {
-                  void togglePlayPause();
-                }}
-                style={themedStyles.maximizedPlayButton}
-                accessibilityRole="button"
-                accessibilityLabel={isMemorySessionPlaying ? "Pause" : "Play"}
-                accessibilityHint="Tap to play or pause the current track"
-              >
-                <Ionicons
-                  name={isMemorySessionPlaying ? "pause" : "play"}
-                  size={48}
-                  color={colors.white}
-                />
-              </Pressable>
-            </View>
-
-            <View style={themedStyles.maximizedSecondaryControls}>
-              <Pressable
-                onPress={() => void jumpForward()}
-                style={themedStyles.maximizedSecondaryButton}
-                accessibilityRole="button"
-                accessibilityLabel="Jump forward 15 seconds"
-                accessibilityHint="Tap to jump forward 15 seconds in the track"
-              >
-                <View style={themedStyles.maximizedButtonWithLabel}>
-                  <Ionicons
-                    name="play-forward"
-                    size={24}
-                    color={colors.white}
-                  />
-                  <Text style={themedStyles.maximizedButtonLabel}>+15s</Text>
-                </View>
-              </Pressable>
-
-              <Pressable
-                onPress={() => void skipToNext()}
-                style={themedStyles.maximizedSecondaryButton}
-                accessibilityRole="button"
-                accessibilityLabel="Skip forward 1 minute"
-                accessibilityHint="Tap to skip forward 1 minute in the track"
-              >
-                <View style={themedStyles.maximizedButtonWithLabel}>
-                  <Ionicons
-                    name="return-down-forward"
-                    size={24}
-                    color={colors.white}
-                  />
-                  <Text style={themedStyles.maximizedButtonLabel}>+1m</Text>
-                </View>
-              </Pressable>
-            </View>
-          </View>
-
-          <View style={themedStyles.maximizedPlaybackRateSection}>
-            <Text style={themedStyles.maximizedSectionTitle}>
-              Playback Speed
-            </Text>
-            <View style={themedStyles.maximizedPlaybackRateButtons}>
-              {[0.5, 0.75, 1, 1.25, 1.5, 2].map((rate) => (
+            <View style={themedStyles.maximizedControls}>
+              <View style={themedStyles.maximizedSecondaryControls}>
+                {/* Removed shuffle */}
                 <Pressable
-                  key={rate}
-                  onPress={() => void changePlaybackRate(rate)}
+                  onPress={() => void skipToPrevious()}
+                  style={themedStyles.maximizedSecondaryButton}
+                  accessibilityRole="button"
+                  accessibilityLabel="Skip back 1 minute"
+                  accessibilityHint="Tap to skip back 1 minute in the track"
+                >
+                  <View style={themedStyles.maximizedButtonWithLabel}>
+                    <Ionicons
+                      name="return-down-back"
+                      size={24}
+                      color={colors.white}
+                    />
+                    <Text style={themedStyles.maximizedButtonLabel}>-1m</Text>
+                  </View>
+                </Pressable>
+
+                <Pressable
+                  onPress={() => void jumpBack()}
+                  style={themedStyles.maximizedSecondaryButton}
+                  accessibilityRole="button"
+                  accessibilityLabel="Jump back 15 seconds"
+                  accessibilityHint="Tap to jump back 15 seconds in the track"
+                >
+                  <View style={themedStyles.maximizedButtonWithLabel}>
+                    <Ionicons name="play-back" size={24} color={colors.white} />
+                    <Text style={themedStyles.maximizedButtonLabel}>-15s</Text>
+                  </View>
+                </Pressable>
+              </View>
+
+              <View style={themedStyles.maximizedMainControls}>
+                <Pressable
+                  onPress={() => {
+                    void togglePlayPause();
+                  }}
+                  style={themedStyles.maximizedPlayButton}
+                  accessibilityRole="button"
+                  accessibilityLabel={isMemorySessionPlaying ? "Pause" : "Play"}
+                  accessibilityHint="Tap to play or pause the current track"
+                >
+                  <Ionicons
+                    name={isMemorySessionPlaying ? "pause" : "play"}
+                    size={48}
+                    color={colors.white}
+                  />
+                </Pressable>
+              </View>
+
+              <View style={themedStyles.maximizedSecondaryControls}>
+                <Pressable
+                  onPress={() => void jumpForward()}
+                  style={themedStyles.maximizedSecondaryButton}
+                  accessibilityRole="button"
+                  accessibilityLabel="Jump forward 15 seconds"
+                  accessibilityHint="Tap to jump forward 15 seconds in the track"
+                >
+                  <View style={themedStyles.maximizedButtonWithLabel}>
+                    <Ionicons
+                      name="play-forward"
+                      size={24}
+                      color={colors.white}
+                    />
+                    <Text style={themedStyles.maximizedButtonLabel}>+15s</Text>
+                  </View>
+                </Pressable>
+
+                <Pressable
+                  onPress={() => void skipToNext()}
+                  style={themedStyles.maximizedSecondaryButton}
+                  accessibilityRole="button"
+                  accessibilityLabel="Skip forward 1 minute"
+                  accessibilityHint="Tap to skip forward 1 minute in the track"
+                >
+                  <View style={themedStyles.maximizedButtonWithLabel}>
+                    <Ionicons
+                      name="return-down-forward"
+                      size={24}
+                      color={colors.white}
+                    />
+                    <Text style={themedStyles.maximizedButtonLabel}>+1m</Text>
+                  </View>
+                </Pressable>
+              </View>
+            </View>
+
+            <View style={themedStyles.maximizedPlaybackRateSection}>
+              <Text style={themedStyles.maximizedSectionTitle}>
+                Playback Speed
+              </Text>
+              <View style={themedStyles.maximizedPlaybackRateButtons}>
+                {[0.5, 0.75, 1, 1.25, 1.5, 2].map((rate) => (
+                  <Pressable
+                    key={rate}
+                    onPress={() => void changePlaybackRate(rate)}
+                    style={[
+                      themedStyles.maximizedPlaybackRateButton,
+                      playbackRate === rate &&
+                        themedStyles.maximizedPlaybackRateButtonActive,
+                    ]}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Playback rate ${rate}x`}
+                    accessibilityHint="Tap to change playback speed"
+                  >
+                    <Text
+                      style={[
+                        themedStyles.maximizedPlaybackRateText,
+                        playbackRate === rate &&
+                          themedStyles.maximizedPlaybackRateTextActive,
+                      ]}
+                    >
+                      {rate}x
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+            </View>
+
+            <View style={themedStyles.maximizedPlaybackOptionsSection}>
+              <Text style={themedStyles.maximizedSectionTitle}>
+                Playback Options
+              </Text>
+              <View style={themedStyles.maximizedPlaybackOptionsButtons}>
+                <Pressable
+                  onPress={() => void toggleRepeatMode()}
+                  disabled={isMemorySessionActiveTrack}
                   style={[
-                    themedStyles.maximizedPlaybackRateButton,
-                    playbackRate === rate &&
-                      themedStyles.maximizedPlaybackRateButtonActive,
+                    themedStyles.maximizedPlaybackOptionButton,
+                    repeatMode !== "off" &&
+                      themedStyles.maximizedPlaybackOptionButtonActive,
+                    isMemorySessionActiveTrack && { opacity: 0.5 },
                   ]}
                   accessibilityRole="button"
-                  accessibilityLabel={`Playback rate ${rate}x`}
-                  accessibilityHint="Tap to change playback speed"
+                  accessibilityLabel={
+                    repeatMode === "track" ? "Repeat track on" : "Repeat off"
+                  }
+                  accessibilityHint="Tap to toggle repeat mode"
                 >
-                  <Text
-                    style={[
-                      themedStyles.maximizedPlaybackRateText,
-                      playbackRate === rate &&
-                        themedStyles.maximizedPlaybackRateTextActive,
-                    ]}
-                  >
-                    {rate}x
+                  <Ionicons
+                    name={repeatMode === "track" ? "repeat" : "repeat-outline"}
+                    size={20}
+                    color={colors.white}
+                  />
+                  <Text style={themedStyles.maximizedPlaybackOptionLabel}>
+                    {repeatMode === "track" ? "Repeat Track" : "Repeat Off"}
                   </Text>
                 </Pressable>
-              ))}
-            </View>
-          </View>
-
-          <View style={themedStyles.maximizedPlaybackOptionsSection}>
-            <Text style={themedStyles.maximizedSectionTitle}>
-              Playback Options
-            </Text>
-            <View style={themedStyles.maximizedPlaybackOptionsButtons}>
-              <Pressable
-                onPress={() => void toggleRepeatMode()}
-                disabled={isMemorySessionActiveTrack}
-                style={[
-                  themedStyles.maximizedPlaybackOptionButton,
-                  repeatMode !== "off" &&
-                    themedStyles.maximizedPlaybackOptionButtonActive,
-                  isMemorySessionActiveTrack && { opacity: 0.5 },
-                ]}
-                accessibilityRole="button"
-                accessibilityLabel={
-                  repeatMode === "track" ? "Repeat track on" : "Repeat off"
-                }
-                accessibilityHint="Tap to toggle repeat mode"
-              >
-                <Ionicons
-                  name={repeatMode === "track" ? "repeat" : "repeat-outline"}
-                  size={20}
-                  color={colors.white}
-                />
-                <Text style={themedStyles.maximizedPlaybackOptionLabel}>
-                  {repeatMode === "track" ? "Repeat Track" : "Repeat Off"}
-                </Text>
-              </Pressable>
+              </View>
             </View>
           </View>
         </View>

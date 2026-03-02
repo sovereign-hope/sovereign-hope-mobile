@@ -53,6 +53,21 @@ interface Style {
   prayerStateText: TextStyle;
   prayerActionButton: ViewStyle;
   prayerActionButtonText: TextStyle;
+  dashboardGrid: ViewStyle;
+  dashboardColumn: ViewStyle;
+  contentCardTablet: ViewStyle;
+  splitView: ViewStyle;
+  splitViewSingle: ViewStyle;
+  splitViewDetail: ViewStyle;
+  splitViewDetailHeader: ViewStyle;
+  splitViewDetailHeaderRow: ViewStyle;
+  splitViewDetailHeaderActions: ViewStyle;
+  splitViewDetailHeaderButton: ViewStyle;
+  splitViewDetailHeaderButtonLiquidGlass: ViewStyle;
+  splitViewDetailHeaderButtonGlass: ViewStyle;
+  splitViewDetailCloseButton: ViewStyle;
+  splitViewDetailCloseButtonLiquidGlass: ViewStyle;
+  splitViewDetailHeaderButtonText: TextStyle;
 }
 
 export const styles = ({ theme }: Props): Style =>
@@ -266,6 +281,92 @@ export const styles = ({ theme }: Props): Style =>
       alignSelf: "flex-start",
     },
     prayerActionButtonText: {
+      color: colors.accent,
+      fontWeight: "600",
+    },
+    dashboardGrid: {
+      flexDirection: "row",
+      gap: spacing.large,
+      paddingHorizontal: spacing.large,
+    },
+    dashboardColumn: {
+      flex: 1,
+    },
+    contentCardTablet: {
+      marginHorizontal: 0,
+    },
+    splitView: {
+      flex: 1,
+      flexDirection: "row",
+    },
+    splitViewSingle: {
+      flex: 1,
+    },
+    splitViewDetail: {
+      flex: 1,
+      borderLeftWidth: StyleSheet.hairlineWidth,
+      borderLeftColor: theme.colors.border,
+      backgroundColor: theme.colors.background,
+    },
+    splitViewDetailHeader: {
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderBottomColor: theme.colors.border,
+      paddingHorizontal: spacing.large,
+      paddingBottom: spacing.small,
+      backgroundColor: theme.colors.background,
+    },
+    splitViewDetailHeaderRow: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      gap: spacing.medium,
+    },
+    splitViewDetailHeaderActions: {
+      flexDirection: "row",
+      gap: spacing.medium,
+      alignItems: "center",
+      flex: 1,
+    },
+    splitViewDetailHeaderButton: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.small,
+      paddingVertical: spacing.small,
+      paddingHorizontal: spacing.medium,
+      borderRadius: radius.medium,
+      borderWidth: 1,
+      borderColor: colors.accent,
+      backgroundColor: theme.colors.card,
+      overflow: "hidden",
+    },
+    splitViewDetailHeaderButtonLiquidGlass: {
+      borderColor: "rgba(255,255,255,0.18)",
+      backgroundColor: "transparent",
+    },
+    splitViewDetailHeaderButtonGlass: {
+      position: "absolute",
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+    },
+    splitViewDetailCloseButton: {
+      width: 40,
+      height: 40,
+      borderRadius: radius.medium,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      backgroundColor: theme.colors.card,
+      alignItems: "center",
+      justifyContent: "center",
+      overflow: "hidden",
+    },
+    splitViewDetailCloseButtonLiquidGlass: {
+      borderColor: "rgba(255,255,255,0.18)",
+      backgroundColor: "transparent",
+    },
+    splitViewDetailHeaderButtonText: {
+      ...body,
       color: colors.accent,
       fontWeight: "600",
     },

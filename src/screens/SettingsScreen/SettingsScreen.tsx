@@ -50,7 +50,10 @@ import {
 import { useMiniPlayerHeight } from "src/hooks/useMiniPlayerHeight";
 import { spacing } from "src/style/layout";
 
-type Props = NativeStackScreenProps<RootStackParamList, "Settings">;
+type Props = NativeStackScreenProps<
+  RootStackParamList,
+  "Settings" | "SettingsView"
+>;
 
 // Create a Date object from a notification time string
 const getDateFromTimeString = (timeString: string): Date => {
@@ -205,6 +208,8 @@ export const SettingsScreen: React.FunctionComponent<Props> = ({
   const isBusy = authIsLoading || authIsSyncing;
   const useInsetSettingsGroups =
     Platform.OS === "ios" || Platform.OS === "android";
+  const settingsBottomPadding =
+    miniPlayerHeight + insets.bottom + spacing.large;
 
   return (
     <SafeAreaView
@@ -217,10 +222,13 @@ export const SettingsScreen: React.FunctionComponent<Props> = ({
         keyboardVerticalOffset={16}
       >
         <ScrollView
+          style={{ flex: 1 }}
           contentInsetAdjustmentBehavior="automatic"
           keyboardShouldPersistTaps="handled"
+          scrollIndicatorInsets={{ bottom: settingsBottomPadding }}
           contentContainerStyle={{
-            paddingBottom: miniPlayerHeight + insets.bottom + spacing.large,
+            flexGrow: 1,
+            paddingBottom: settingsBottomPadding,
           }}
         >
           <Text style={themedStyles.settingsSectionHeader}>Notifications</Text>

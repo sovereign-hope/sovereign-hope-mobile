@@ -24,3 +24,5 @@ export const elevation = {
   small: 2,
   medium: 4,
 };
+
+export const TABLET_BREAKPOINT = 768;

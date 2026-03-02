@@ -32,6 +32,10 @@ interface Style {
   minimizedScrubberHandle: ViewStyle;
 
   // Maximized Player Styles
+  maximizedModalRoot: ViewStyle;
+  maximizedSheetBackdrop: ViewStyle;
+  maximizedSheetBackdropPressable: ViewStyle;
+  maximizedContainerSheet: ViewStyle;
   maximizedContainer: ViewStyle;
   maximizedGlassBlur: ViewStyle;
   maximizedGlassOverlay: ViewStyle;
@@ -227,10 +231,37 @@ export const styles = (): Style =>
     },
 
     // Maximized Player Styles
+    maximizedModalRoot: {
+      flex: 1,
+    },
+    maximizedSheetBackdrop: {
+      flex: 1,
+      alignItems: "center",
+      justifyContent: "center",
+      padding: spacing.large,
+      backgroundColor: "rgba(0,0,0,0.45)",
+    },
+    maximizedSheetBackdropPressable: {
+      position: "absolute",
+      top: 0,
+      right: 0,
+      bottom: 0,
+      left: 0,
+    },
     maximizedContainer: {
       flex: 1,
       backgroundColor: Platform.OS === "ios" ? "transparent" : colors.blue,
       paddingTop: 0,
+    },
+    maximizedContainerSheet: {
+      width: "100%",
+      maxWidth: 760,
+      maxHeight: "92%",
+      borderRadius: 22,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: "rgba(255, 255, 255, 0.18)",
+      overflow: "hidden",
+      alignSelf: "center",
     },
     maximizedGlassBlur: {
       position: "absolute",

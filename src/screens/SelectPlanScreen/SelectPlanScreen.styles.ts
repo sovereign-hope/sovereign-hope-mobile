@@ -10,10 +10,15 @@ type Props = {
 
 interface Style {
   screen: ViewStyle;
+  scrollContent: ViewStyle;
+  contentContainer: ViewStyle;
+  contentContainerTablet: ViewStyle;
   title: TextStyle;
   subtitle: TextStyle;
   cardContainerView: ViewStyle;
   cardView: ViewStyle;
+  cardViewTablet: ViewStyle;
+  cardViewAndroidTablet: ViewStyle;
   banner: ImageStyle;
   cardTitle: TextStyle;
   cardSubtitle: TextStyle;
@@ -25,6 +30,17 @@ export const styles = ({ theme }: Props): Style =>
       flex: 1,
       paddingTop: 0,
       backgroundColor: theme.colors.card,
+    },
+    scrollContent: {
+      flexGrow: 1,
+      alignItems: "center",
+      paddingBottom: spacing.large,
+    },
+    contentContainer: {
+      width: "100%",
+    },
+    contentContainerTablet: {
+      maxWidth: 720,
     },
     title: {
       ...header2,
@@ -45,6 +61,16 @@ export const styles = ({ theme }: Props): Style =>
       borderWidth: 2,
       borderColor: colors.grey2,
       overflow: "hidden",
+    },
+    cardViewTablet: {
+      width: "100%",
+      height: undefined,
+      aspectRatio: 2.35,
+    },
+    cardViewAndroidTablet: {
+      width: "100%",
+      height: undefined,
+      aspectRatio: 1.8,
     },
     banner: {
       height: "100%",
