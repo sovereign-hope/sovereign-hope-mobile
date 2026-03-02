@@ -47,10 +47,7 @@ export const FontSizePickerScreen: React.FunctionComponent<Props> = ({
   const fontSizes = [13, 16, 20, 24, 30, 36];
 
   return (
-    <SafeAreaView
-      edges={["left", "right", "bottom"]}
-      style={themedStyles.screen}
-    >
+    <SafeAreaView edges={["left", "right"]} style={themedStyles.screen}>
       <ScrollView contentInsetAdjustmentBehavior="automatic">
         {/* <Text style={themedStyles.settingsSectionHeader}>Reading Plan</Text> */}
 

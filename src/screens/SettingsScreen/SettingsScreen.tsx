@@ -284,10 +284,7 @@ export const SettingsScreen: React.FunctionComponent<Props> = ({
     miniPlayerHeight + insets.bottom + spacing.large;
 
   return (
-    <SafeAreaView
-      edges={["left", "right", "bottom"]}
-      style={themedStyles.screen}
-    >
+    <SafeAreaView edges={["left", "right"]} style={themedStyles.screen}>
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : undefined}

@@ -61,6 +61,11 @@ export const AccountSignInScreen: React.FunctionComponent<Props> = ({
   const [pendingPrimaryAction, setPendingPrimaryAction] =
     // eslint-disable-next-line unicorn/no-useless-undefined
     useState<PendingAction | undefined>(undefined);
+  const scrollViewRef = React.useRef<ScrollView>(null);
+  // eslint-disable-next-line unicorn/no-null
+  const keyboardScrollTimeoutRef = React.useRef<ReturnType<
+    typeof setTimeout
+  > | null>(null);
 
   const isBusy = authIsLoading || authIsSyncing;
 
@@ -188,6 +193,30 @@ export const AccountSignInScreen: React.FunctionComponent<Props> = ({
     );
   };
 
+  const scrollInputsIntoView = React.useCallback(() => {
+    if (Platform.OS !== "android") {
+      return;
+    }
+
+    if (keyboardScrollTimeoutRef.current) {
+      clearTimeout(keyboardScrollTimeoutRef.current);
+    }
+
+    keyboardScrollTimeoutRef.current = setTimeout(() => {
+      scrollViewRef.current?.scrollToEnd({ animated: true });
+      // eslint-disable-next-line unicorn/no-null
+      keyboardScrollTimeoutRef.current = null;
+    }, 120);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (keyboardScrollTimeoutRef.current) {
+        clearTimeout(keyboardScrollTimeoutRef.current);
+      }
+    };
+  }, []);
+
   // eslint-disable-next-line @typescript-eslint/no-use-before-define
   const screenStyles = styles({ dark: theme.dark, colors: theme.colors });
   const isCreateMode = authMode === "create";
@@ -197,16 +226,14 @@ export const AccountSignInScreen: React.FunctionComponent<Props> = ({
   const shouldShowGoogleSpinner = isBusy && pendingPrimaryAction === "google";
 
   return (
-    <SafeAreaView
-      edges={["left", "right", "bottom"]}
-      style={screenStyles.screen}
-    >
+    <SafeAreaView edges={["left", "right"]} style={screenStyles.screen}>
       <KeyboardAvoidingView
         style={screenStyles.flex}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-        keyboardVerticalOffset={Platform.OS === "ios" ? headerHeight : 0}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={headerHeight}
       >
         <ScrollView
+          ref={scrollViewRef}
           contentInsetAdjustmentBehavior="automatic"
           contentContainerStyle={screenStyles.content}
           keyboardShouldPersistTaps="handled"
@@ -410,6 +437,8 @@ export const AccountSignInScreen: React.FunctionComponent<Props> = ({
                 placeholderMessage="Email"
                 value={email}
                 style={screenStyles.authInput}
+                autoFocus={false}
+                onFocus={scrollInputsIntoView}
                 onChangeText={(value) => {
                   setEmail(value);
                   if (authErrorMessage) {
@@ -421,6 +450,7 @@ export const AccountSignInScreen: React.FunctionComponent<Props> = ({
                 placeholderMessage="Password"
                 value={password}
                 style={screenStyles.authInput}
+                onFocus={scrollInputsIntoView}
                 onChangeText={(value) => {
                   setPassword(value);
                   if (authErrorMessage) {

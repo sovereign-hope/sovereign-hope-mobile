@@ -20,10 +20,7 @@ export const ChurchScreen: React.FunctionComponent = () => {
   const miniPlayerHeight = useMiniPlayerHeight();
 
   return (
-    <SafeAreaView
-      edges={["top", "bottom", "left", "right"]}
-      style={styles.fullScreen}
-    >
+    <SafeAreaView edges={["top", "left", "right"]} style={styles.fullScreen}>
       <WebView
         source={{ uri: "https://sovhope.churchcenter.com/home" }}
         startInLoadingState
