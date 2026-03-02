@@ -6,6 +6,7 @@ import { colors } from "src/style/colors";
 
 type Props = {
   theme: Theme;
+  isEinkMode?: boolean;
 };
 
 interface Style {
@@ -23,7 +24,7 @@ interface Style {
   dayLabel: TextStyle;
 }
 
-export const styles = ({ theme }: Props): Style =>
+export const styles = ({ theme, isEinkMode = false }: Props): Style =>
   StyleSheet.create({
     screen: {
       flex: 1,
@@ -76,8 +77,7 @@ export const styles = ({ theme }: Props): Style =>
     },
     dayLabel: {
       ...header3,
-      color: colors.accent,
-      // backgroundColor: colors.accent,
+      color: isEinkMode ? theme.colors.primary : colors.accent,
       marginHorizontal: spacing.medium,
       marginTop: spacing.small,
       borderRadius: radius.large,

@@ -28,6 +28,24 @@ import {
   selectEnableChurchCenterDeepLink,
   storeEnableChurchCenterDeepLink,
   getEnableChurchCenterDeepLink,
+  getEnableEinkMode,
+  selectEnableEinkMode,
+  storeEnableEinkMode,
+  getOverrideSystemTheme,
+  selectOverrideSystemTheme,
+  storeOverrideSystemTheme,
+  getDarkModeEnabled,
+  selectDarkModeEnabled,
+  storeDarkModeEnabled,
+  getDarkModeScheduleEnabled,
+  selectDarkModeScheduleEnabled,
+  storeDarkModeScheduleEnabled,
+  getDarkModeScheduleStartMinutes,
+  selectDarkModeScheduleStartMinutes,
+  storeDarkModeScheduleStartMinutes,
+  getDarkModeScheduleEndMinutes,
+  selectDarkModeScheduleEndMinutes,
+  storeDarkModeScheduleEndMinutes,
 } from "src/redux/settingsSlice";
 import { styles } from "./SettingsScreen.styles";
 import { ScrollView } from "react-native-gesture-handler";
@@ -49,6 +67,13 @@ import {
 } from "src/redux/authSlice";
 import { useMiniPlayerHeight } from "src/hooks/useMiniPlayerHeight";
 import { spacing } from "src/style/layout";
+import { getPressFeedbackStyle } from "src/style/eink";
+import { useUiPreferences } from "src/hooks/useUiPreferences";
+import {
+  dateToMinutesOfDay,
+  formatMinutesOfDay,
+  minutesOfDayToDate,
+} from "src/style/themeMode";
 
 type Props = NativeStackScreenProps<
   RootStackParamList,
@@ -104,16 +129,31 @@ export const SettingsScreen: React.FunctionComponent<Props> = ({
   const enableChurchCenterDeepLink = useAppSelector(
     selectEnableChurchCenterDeepLink
   );
+  const enableEinkMode = useAppSelector(selectEnableEinkMode);
+  const overrideSystemTheme = useAppSelector(selectOverrideSystemTheme);
+  const darkModeEnabled = useAppSelector(selectDarkModeEnabled);
+  const darkModeScheduleEnabled = useAppSelector(selectDarkModeScheduleEnabled);
+  const darkModeScheduleStartMinutes = useAppSelector(
+    selectDarkModeScheduleStartMinutes
+  );
+  const darkModeScheduleEndMinutes = useAppSelector(
+    selectDarkModeScheduleEndMinutes
+  );
   const authUser = useAppSelector(selectAuthUser);
   const authIsInitialized = useAppSelector(selectAuthIsInitialized);
   const authIsLoading = useAppSelector(selectAuthIsLoading);
   const authIsSyncing = useAppSelector(selectAuthIsSyncing);
   const authErrorMessage = useAppSelector(selectAuthErrorMessage);
+  const uiPreferences = useUiPreferences();
 
   // Ref Hooks
 
   // State hooks
   const [isDatePickerVisible, setIsDatePickerVisible] = useState(false);
+  const [isDarkModeStartPickerVisible, setIsDarkModeStartPickerVisible] =
+    useState(false);
+  const [isDarkModeEndPickerVisible, setIsDarkModeEndPickerVisible] =
+    useState(false);
   const [deletePassword, setDeletePassword] = useState("");
   const [isDeletePasswordPromptVisible, setIsDeletePasswordPromptVisible] =
     useState(false);
@@ -126,6 +166,12 @@ export const SettingsScreen: React.FunctionComponent<Props> = ({
     void dispatch(getNotificationTime());
     void dispatch(getShowChildrensPlan());
     void dispatch(getEnableChurchCenterDeepLink());
+    void dispatch(getEnableEinkMode());
+    void dispatch(getOverrideSystemTheme());
+    void dispatch(getDarkModeEnabled());
+    void dispatch(getDarkModeScheduleEnabled());
+    void dispatch(getDarkModeScheduleStartMinutes());
+    void dispatch(getDarkModeScheduleEndMinutes());
   }, [dispatch]);
 
   // Event handlers
@@ -140,6 +186,32 @@ export const SettingsScreen: React.FunctionComponent<Props> = ({
   const handleSetNotificationTime = (value: Date) => {
     void dispatch(storeNotificationTime(value));
     setIsDatePickerVisible(false);
+  };
+
+  const handleToggleEinkMode = (value: boolean) => {
+    void dispatch(storeEnableEinkMode(value));
+  };
+
+  const handleToggleOverrideSystemTheme = (value: boolean) => {
+    void dispatch(storeOverrideSystemTheme(value));
+  };
+
+  const handleToggleDarkModeEnabled = (value: boolean) => {
+    void dispatch(storeDarkModeEnabled(value));
+  };
+
+  const handleToggleDarkModeScheduleEnabled = (value: boolean) => {
+    void dispatch(storeDarkModeScheduleEnabled(value));
+  };
+
+  const handleSetDarkModeScheduleStart = (value: Date) => {
+    void dispatch(storeDarkModeScheduleStartMinutes(dateToMinutesOfDay(value)));
+    setIsDarkModeStartPickerVisible(false);
+  };
+
+  const handleSetDarkModeScheduleEnd = (value: Date) => {
+    void dispatch(storeDarkModeScheduleEndMinutes(dateToMinutesOfDay(value)));
+    setIsDarkModeEndPickerVisible(false);
   };
 
   const showSelectReadingPlan = () => {
@@ -203,7 +275,7 @@ export const SettingsScreen: React.FunctionComponent<Props> = ({
   };
 
   // Constants
-  const themedStyles = styles({ theme });
+  const themedStyles = styles({ theme, isEinkMode: uiPreferences.isEinkMode });
   const isSignedIn = Boolean(authUser);
   const isBusy = authIsLoading || authIsSyncing;
   const useInsetSettingsGroups =
@@ -341,6 +413,157 @@ export const SettingsScreen: React.FunctionComponent<Props> = ({
             </Pressable>
           </View>
 
+          <Text style={themedStyles.settingsSectionHeader}>Display</Text>
+          <View
+            style={
+              useInsetSettingsGroups ? themedStyles.settingsGroup : undefined
+            }
+          >
+            <View
+              style={[
+                themedStyles.settingsRow,
+                useInsetSettingsGroups && themedStyles.settingsRowGrouped,
+              ]}
+            >
+              <View style={themedStyles.settingsRowTextContainer}>
+                <Text style={themedStyles.settingsRowText}>
+                  Override System Theme
+                </Text>
+                <Text style={themedStyles.settingsRowSubtext}>
+                  Apply app light/dark mode settings instead of following your
+                  device theme.
+                </Text>
+              </View>
+              <Switch
+                onValueChange={handleToggleOverrideSystemTheme}
+                value={overrideSystemTheme}
+              />
+            </View>
+
+            {overrideSystemTheme && (
+              <View
+                style={[
+                  themedStyles.settingsRow,
+                  useInsetSettingsGroups && themedStyles.settingsRowGrouped,
+                ]}
+              >
+                <View style={themedStyles.settingsRowTextContainer}>
+                  <Text style={themedStyles.settingsRowText}>
+                    Dark Schedule
+                  </Text>
+                  <Text style={themedStyles.settingsRowSubtext}>
+                    Automatically enable dark mode between selected hours.
+                  </Text>
+                </View>
+                <Switch
+                  onValueChange={handleToggleDarkModeScheduleEnabled}
+                  value={darkModeScheduleEnabled}
+                />
+              </View>
+            )}
+
+            {overrideSystemTheme && !darkModeScheduleEnabled && (
+              <View
+                style={[
+                  themedStyles.settingsRow,
+                  useInsetSettingsGroups && themedStyles.settingsRowGrouped,
+                ]}
+              >
+                <Text style={themedStyles.settingsRowText}>Dark Mode</Text>
+                <Switch
+                  onValueChange={handleToggleDarkModeEnabled}
+                  value={darkModeEnabled}
+                />
+              </View>
+            )}
+
+            {overrideSystemTheme && darkModeScheduleEnabled && (
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => setIsDarkModeStartPickerVisible(true)}
+                style={({ pressed }) => [
+                  themedStyles.settingsRow,
+                  useInsetSettingsGroups && themedStyles.settingsRowGrouped,
+                  pressed && themedStyles.settingsRowPressed,
+                ]}
+              >
+                <Text style={themedStyles.settingsRowText}>
+                  Dark Mode Starts
+                </Text>
+                <View style={themedStyles.settingsRowValueContainer}>
+                  <Text style={themedStyles.settingsRowText}>
+                    {formatMinutesOfDay(darkModeScheduleStartMinutes)}
+                  </Text>
+                  <Ionicons
+                    name="chevron-forward"
+                    size={24}
+                    color={theme.colors.border}
+                    style={themedStyles.disclosureIcon}
+                  />
+                </View>
+              </Pressable>
+            )}
+
+            {overrideSystemTheme && darkModeScheduleEnabled && (
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => setIsDarkModeEndPickerVisible(true)}
+                style={({ pressed }) => [
+                  themedStyles.settingsRow,
+                  useInsetSettingsGroups && themedStyles.settingsRowGrouped,
+                  pressed && themedStyles.settingsRowPressed,
+                ]}
+              >
+                <Text style={themedStyles.settingsRowText}>Dark Mode Ends</Text>
+                <View style={themedStyles.settingsRowValueContainer}>
+                  <Text style={themedStyles.settingsRowText}>
+                    {formatMinutesOfDay(darkModeScheduleEndMinutes)}
+                  </Text>
+                  <Ionicons
+                    name="chevron-forward"
+                    size={24}
+                    color={theme.colors.border}
+                    style={themedStyles.disclosureIcon}
+                  />
+                </View>
+              </Pressable>
+            )}
+
+            <View
+              style={[
+                themedStyles.settingsRow,
+                useInsetSettingsGroups && themedStyles.settingsRowGrouped,
+                useInsetSettingsGroups && themedStyles.settingsRowGroupedLast,
+              ]}
+            >
+              <View style={themedStyles.settingsRowTextContainer}>
+                <Text style={themedStyles.settingsRowText}>E-Ink Mode</Text>
+                <Text style={themedStyles.settingsRowSubtext}>
+                  Disable animations and transparency, increase contrast, and
+                  draw strong outlines for readability.
+                </Text>
+              </View>
+              <Switch
+                onValueChange={handleToggleEinkMode}
+                value={enableEinkMode}
+              />
+            </View>
+          </View>
+          <DateTimePickerModal
+            isVisible={isDarkModeStartPickerVisible}
+            mode="time"
+            date={minutesOfDayToDate(darkModeScheduleStartMinutes)}
+            onConfirm={handleSetDarkModeScheduleStart}
+            onCancel={() => setIsDarkModeStartPickerVisible(false)}
+          />
+          <DateTimePickerModal
+            isVisible={isDarkModeEndPickerVisible}
+            mode="time"
+            date={minutesOfDayToDate(darkModeScheduleEndMinutes)}
+            onConfirm={handleSetDarkModeScheduleEnd}
+            onCancel={() => setIsDarkModeEndPickerVisible(false)}
+          />
+
           {Platform.OS === "ios" && (
             <>
               <Text style={themedStyles.settingsSectionHeader}>Church</Text>
@@ -402,7 +625,14 @@ export const SettingsScreen: React.FunctionComponent<Props> = ({
                   style={({ pressed }) => [
                     themedStyles.accountButton,
                     { marginVertical: 12 },
-                    (pressed || isBusy) && { opacity: 0.7 },
+                    getPressFeedbackStyle(
+                      pressed || isBusy,
+                      uiPreferences.isEinkMode,
+                      {
+                        pressedOpacity: 0.7,
+                        isDarkMode: theme.dark,
+                      }
+                    ),
                   ]}
                 >
                   <Text style={themedStyles.accountButtonText}>Sign Out</Text>
@@ -414,7 +644,14 @@ export const SettingsScreen: React.FunctionComponent<Props> = ({
                   onPress={handleDeleteAccount}
                   style={({ pressed }) => [
                     themedStyles.accountTextAction,
-                    (pressed || isBusy) && { opacity: 0.7 },
+                    getPressFeedbackStyle(
+                      pressed || isBusy,
+                      uiPreferences.isEinkMode,
+                      {
+                        pressedOpacity: 0.7,
+                        isDarkMode: theme.dark,
+                      }
+                    ),
                   ]}
                 >
                   <Text style={themedStyles.accountTextActionDanger}>
@@ -436,7 +673,14 @@ export const SettingsScreen: React.FunctionComponent<Props> = ({
                     themedStyles.accountButton,
                     themedStyles.accountButtonPrimary,
                     { marginTop: 12 },
-                    (pressed || isBusy) && { opacity: 0.7 },
+                    getPressFeedbackStyle(
+                      pressed || isBusy,
+                      uiPreferences.isEinkMode,
+                      {
+                        pressedOpacity: 0.7,
+                        isDarkMode: theme.dark,
+                      }
+                    ),
                   ]}
                 >
                   <Text
@@ -464,7 +708,7 @@ export const SettingsScreen: React.FunctionComponent<Props> = ({
         </ScrollView>
 
         <Modal
-          animationType="fade"
+          animationType={uiPreferences.disableAnimations ? "none" : "fade"}
           transparent
           visible={isDeletePasswordPromptVisible}
           onRequestClose={() => {
@@ -510,7 +754,14 @@ export const SettingsScreen: React.FunctionComponent<Props> = ({
                   }}
                   style={({ pressed }) => [
                     themedStyles.accountButton,
-                    (pressed || isBusy) && { opacity: 0.7 },
+                    getPressFeedbackStyle(
+                      pressed || isBusy,
+                      uiPreferences.isEinkMode,
+                      {
+                        pressedOpacity: 0.7,
+                        isDarkMode: theme.dark,
+                      }
+                    ),
                   ]}
                 >
                   <Text style={themedStyles.accountButtonText}>Cancel</Text>
@@ -534,7 +785,14 @@ export const SettingsScreen: React.FunctionComponent<Props> = ({
                   style={({ pressed }) => [
                     themedStyles.accountButton,
                     themedStyles.accountButtonDanger,
-                    (pressed || isBusy) && { opacity: 0.7 },
+                    getPressFeedbackStyle(
+                      pressed || isBusy,
+                      uiPreferences.isEinkMode,
+                      {
+                        pressedOpacity: 0.7,
+                        isDarkMode: theme.dark,
+                      }
+                    ),
                   ]}
                 >
                   <Text

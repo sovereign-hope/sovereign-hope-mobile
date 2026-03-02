@@ -21,6 +21,8 @@ import {
 import { AMBIENT_SOUND_OPTIONS } from "src/services/ambientAudioService";
 import { colors } from "src/style/colors";
 import { styles } from "./MemoryAudioCard.styles";
+import { useUiPreferences } from "src/hooks/useUiPreferences";
+import { getPressFeedbackStyle } from "src/style/eink";
 
 type Props = {
   verseReference?: string;
@@ -37,7 +39,8 @@ export const MemoryAudioCard: React.FunctionComponent<Props> = ({
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const dispatch = useAppDispatch();
   const theme = useTheme();
-  const themedStyles = styles({ theme });
+  const uiPreferences = useUiPreferences();
+  const themedStyles = styles({ theme, isEinkMode: uiPreferences.isEinkMode });
   const viewModel = useAppSelector(selectMemoryAudioViewModel);
   const [showInstructions, setShowInstructions] = React.useState(false);
   const [showSessionDetails, setShowSessionDetails] = React.useState(false);
@@ -96,6 +99,64 @@ export const MemoryAudioCard: React.FunctionComponent<Props> = ({
   }
 
   const isActive = viewModel.isSessionActive;
+  const sessionDetailsBody = (
+    <>
+      <Text style={themedStyles.modalTitle}>Daily Listening</Text>
+      <Text style={themedStyles.modalBody}>
+        A guided memory practice that alternates between listening and silence
+        so you can recite from memory during the gaps.
+      </Text>
+
+      <View style={themedStyles.metricsRow}>
+        <Text style={themedStyles.metricLabel}>Completed</Text>
+        <Text style={themedStyles.metricValue}>
+          {viewModel.completionLabel}
+        </Text>
+      </View>
+
+      <View style={themedStyles.metricsRow}>
+        <Text style={themedStyles.metricLabel}>Ambient Sound</Text>
+        <Text style={themedStyles.metricValue}>{selectedAmbientLabel}</Text>
+      </View>
+
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Choose ambient sound"
+        accessibilityHint="Opens ambient sound previews and selection."
+        onPress={() => {
+          void Haptics.selectionAsync();
+          setShouldOpenAmbientPicker(true);
+          setShowSessionDetails(false);
+        }}
+        style={({ pressed }) => [
+          themedStyles.actionButton,
+          getPressFeedbackStyle(pressed, uiPreferences.isEinkMode, {
+            pressedOpacity: 0.8,
+          }),
+        ]}
+      >
+        <Text style={themedStyles.actionButtonLabel}>Choose Sound</Text>
+      </Pressable>
+
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Close details"
+        accessibilityHint="Closes daily listening details."
+        onPress={() => {
+          void Haptics.selectionAsync();
+          setShowSessionDetails(false);
+        }}
+        style={({ pressed }) => [
+          themedStyles.secondaryButton,
+          getPressFeedbackStyle(pressed, uiPreferences.isEinkMode, {
+            pressedOpacity: 0.8,
+          }),
+        ]}
+      >
+        <Text style={themedStyles.secondaryButtonLabel}>Done</Text>
+      </Pressable>
+    </>
+  );
 
   return (
     <View
@@ -121,7 +182,7 @@ export const MemoryAudioCard: React.FunctionComponent<Props> = ({
             borderWidth={0}
             animationType="timing"
             animationConfig={{
-              duration: 250,
+              duration: uiPreferences.disableAnimations ? 0 : 250,
             }}
             indeterminate={viewModel.loadingProgress <= 0}
             style={themedStyles.loadingProgressTrack}
@@ -152,9 +213,9 @@ export const MemoryAudioCard: React.FunctionComponent<Props> = ({
             style={({ pressed }) => [
               themedStyles.sessionActionButton,
               isActive ? themedStyles.stopButton : undefined,
-              {
-                opacity: pressed ? 0.8 : 1,
-              },
+              getPressFeedbackStyle(pressed, uiPreferences.isEinkMode, {
+                pressedOpacity: 0.8,
+              }),
             ]}
           >
             <Text style={themedStyles.actionButtonLabel}>
@@ -172,9 +233,9 @@ export const MemoryAudioCard: React.FunctionComponent<Props> = ({
             }}
             style={({ pressed }) => [
               themedStyles.settingsIconButton,
-              {
-                opacity: pressed ? 0.8 : 1,
-              },
+              getPressFeedbackStyle(pressed, uiPreferences.isEinkMode, {
+                pressedOpacity: 0.8,
+              }),
             ]}
           >
             <Ionicons
@@ -186,7 +247,11 @@ export const MemoryAudioCard: React.FunctionComponent<Props> = ({
         </View>
       )}
 
-      <Modal transparent visible={showInstructions} animationType="fade">
+      <Modal
+        transparent
+        visible={showInstructions}
+        animationType={uiPreferences.disableAnimations ? "none" : "fade"}
+      >
         <View style={themedStyles.modalBackdrop}>
           <View style={themedStyles.modalCard}>
             <Text style={themedStyles.modalTitle}>How To Practice</Text>
@@ -205,9 +270,9 @@ export const MemoryAudioCard: React.FunctionComponent<Props> = ({
               }}
               style={({ pressed }) => [
                 themedStyles.actionButton,
-                {
-                  opacity: pressed ? 0.8 : 1,
-                },
+                getPressFeedbackStyle(pressed, uiPreferences.isEinkMode, {
+                  pressedOpacity: 0.8,
+                }),
               ]}
             >
               <Text style={themedStyles.actionButtonLabel}>Got It</Text>
@@ -219,73 +284,36 @@ export const MemoryAudioCard: React.FunctionComponent<Props> = ({
       <Modal
         transparent
         visible={showSessionDetails}
-        animationType="fade"
+        animationType={uiPreferences.disableAnimations ? "none" : "fade"}
+        onRequestClose={() => {
+          setShowSessionDetails(false);
+        }}
         onDismiss={() => {
           if (shouldOpenAmbientPicker) {
             openAmbientPicker();
           }
         }}
       >
-        <View style={themedStyles.modalBackdrop}>
-          <View style={themedStyles.modalCard}>
-            <Text style={themedStyles.modalTitle}>Daily Listening</Text>
-            <Text style={themedStyles.modalBody}>
-              A guided memory practice that alternates between listening and
-              silence so you can recite from memory during the gaps.
-            </Text>
-
-            <View style={themedStyles.metricsRow}>
-              <Text style={themedStyles.metricLabel}>Completed</Text>
-              <Text style={themedStyles.metricValue}>
-                {viewModel.completionLabel}
-              </Text>
-            </View>
-
-            <View style={themedStyles.metricsRow}>
-              <Text style={themedStyles.metricLabel}>Ambient Sound</Text>
-              <Text style={themedStyles.metricValue}>
-                {selectedAmbientLabel}
-              </Text>
-            </View>
-
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Choose ambient sound"
-              accessibilityHint="Opens ambient sound previews and selection."
-              onPress={() => {
-                void Haptics.selectionAsync();
-                setShouldOpenAmbientPicker(true);
-                setShowSessionDetails(false);
-              }}
-              style={({ pressed }) => [
-                themedStyles.actionButton,
-                {
-                  opacity: pressed ? 0.8 : 1,
-                },
-              ]}
-            >
-              <Text style={themedStyles.actionButtonLabel}>Choose Sound</Text>
-            </Pressable>
-
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Close details"
-              accessibilityHint="Closes daily listening details."
-              onPress={() => {
-                void Haptics.selectionAsync();
-                setShowSessionDetails(false);
-              }}
-              style={({ pressed }) => [
-                themedStyles.secondaryButton,
-                {
-                  opacity: pressed ? 0.8 : 1,
-                },
-              ]}
-            >
-              <Text style={themedStyles.secondaryButtonLabel}>Done</Text>
-            </Pressable>
-          </View>
-        </View>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Close daily listening details"
+          accessibilityHint="Dismisses daily listening details."
+          style={themedStyles.modalBackdrop}
+          onPress={() => {
+            void Haptics.selectionAsync();
+            setShowSessionDetails(false);
+          }}
+        >
+          <Pressable
+            accessibilityRole="none"
+            style={themedStyles.modalCard}
+            onPress={(event) => {
+              event.stopPropagation();
+            }}
+          >
+            {sessionDetailsBody}
+          </Pressable>
+        </Pressable>
       </Modal>
     </View>
   );

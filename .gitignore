@@ -78,16 +78,14 @@ web-build/
 
 # @end expo-cli
 
-# Google/Firebase service credentials
-google/GoogleService-Info*.plist
-google/google-services*.json
-
 # Debug logs
 pglite-debug.log
 
 # Local build archives
 build-*.tar.gz
+build-*.aab
 *.apk
+*.aab
 *.ipa
 
 # Tool configs

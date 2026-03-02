@@ -22,6 +22,7 @@ export interface SyncSettingsShape {
   readingBackgroundColor: string | null;
   showChildrensPlan: boolean;
   enableChurchCenterDeepLink: boolean;
+  enableEinkMode: boolean;
   subscribedPlans: Array<string>;
 }
 
@@ -93,8 +94,17 @@ const SETTINGS_STORAGE_KEYS: Record<SyncSettingsField, string> = {
   readingBackgroundColor: "@settings/readingBackgroundColor",
   showChildrensPlan: "@settings/showChildrensPlan",
   enableChurchCenterDeepLink: "@settings/enableChurchCenterDeepLink",
+  enableEinkMode: "@settings/enableEinkMode",
   subscribedPlans: "@settings/subscribedPlans",
 };
+
+const LOCAL_ONLY_SETTINGS_KEYS = [
+  "@settings/overrideSystemTheme",
+  "@settings/darkModeEnabled",
+  "@settings/darkModeScheduleEnabled",
+  "@settings/darkModeScheduleStartMinutes",
+  "@settings/darkModeScheduleEndMinutes",
+] as const;
 
 const DEFAULT_SETTINGS: SyncSettingsShape = {
   enableNotifications: true,
@@ -103,6 +113,7 @@ const DEFAULT_SETTINGS: SyncSettingsShape = {
   readingBackgroundColor: null,
   showChildrensPlan: true,
   enableChurchCenterDeepLink: false,
+  enableEinkMode: false,
   subscribedPlans: [],
 };
 
@@ -290,6 +301,7 @@ export const clearLocalSyncedData = async (): Promise<void> => {
   );
   const keysToClear = [
     ...Object.values(SETTINGS_STORAGE_KEYS),
+    ...LOCAL_ONLY_SETTINGS_KEYS,
     "@dismissedNotifications",
     STORAGE_KEYS.settingsMeta,
     STORAGE_KEYS.dismissedNotificationsUpdatedAt,
@@ -602,6 +614,7 @@ const readLocalSnapshot = async (): Promise<LocalSnapshot> => {
       showChildrensPlan: settingsMetaRaw.showChildrensPlan ?? 0,
       enableChurchCenterDeepLink:
         settingsMetaRaw.enableChurchCenterDeepLink ?? 0,
+      enableEinkMode: settingsMetaRaw.enableEinkMode ?? 0,
       subscribedPlans: settingsMetaRaw.subscribedPlans ?? 0,
     },
     dismissedNotificationIDs: dedupeStrings(dismissedNotificationIDs ?? []),
@@ -622,6 +635,7 @@ const readLocalSettings = async (): Promise<SyncSettingsShape> => {
     readingBackgroundColor,
     showChildrensPlan,
     enableChurchCenterDeepLink,
+    enableEinkMode,
     subscribedPlans,
   ] = await AsyncStorage.multiGet([
     SETTINGS_STORAGE_KEYS.enableNotifications,
@@ -630,6 +644,7 @@ const readLocalSettings = async (): Promise<SyncSettingsShape> => {
     SETTINGS_STORAGE_KEYS.readingBackgroundColor,
     SETTINGS_STORAGE_KEYS.showChildrensPlan,
     SETTINGS_STORAGE_KEYS.enableChurchCenterDeepLink,
+    SETTINGS_STORAGE_KEYS.enableEinkMode,
     SETTINGS_STORAGE_KEYS.subscribedPlans,
   ]);
 
@@ -653,6 +668,10 @@ const readLocalSettings = async (): Promise<SyncSettingsShape> => {
     enableChurchCenterDeepLink[1],
     DEFAULT_SETTINGS.enableChurchCenterDeepLink
   );
+  const enableEinkModeValue = parseBoolean(
+    enableEinkMode[1],
+    DEFAULT_SETTINGS.enableEinkMode
+  );
 
   return {
     enableNotifications: enableNotificationsValue,
@@ -666,6 +685,7 @@ const readLocalSettings = async (): Promise<SyncSettingsShape> => {
         : null,
     showChildrensPlan: showChildrensPlanValue,
     enableChurchCenterDeepLink: enableChurchCenterDeepLinkValue,
+    enableEinkMode: enableEinkModeValue,
     subscribedPlans: parseSubscribedPlans(subscribedPlans[1]),
   };
 };

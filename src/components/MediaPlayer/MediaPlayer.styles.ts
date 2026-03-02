@@ -83,27 +83,41 @@ interface Style {
   maximizedPlaybackRateTextActive: TextStyle;
 }
 
-export const styles = (): Style =>
-  StyleSheet.create({
+type Props = {
+  isEinkMode?: boolean;
+};
+
+export const styles = ({ isEinkMode = false }: Props = {}): Style => {
+  const foregroundColor = isEinkMode ? colors.black : colors.white;
+  const panelBackgroundColor = isEinkMode ? colors.white : colors.blue;
+  const overlayColor = isEinkMode
+    ? "rgba(255,255,255,0.98)"
+    : "rgba(7, 10, 18, 0.28)";
+
+  return StyleSheet.create({
     // Minimized Player Styles
     minimizedPlayer: {
       position: "absolute",
       left: Platform.OS === "ios" ? spacing.large : spacing.medium,
       right: Platform.OS === "ios" ? spacing.large : spacing.medium,
-      backgroundColor: Platform.OS === "ios" ? "transparent" : colors.blue,
+      backgroundColor:
+        Platform.OS === "ios" && !isEinkMode
+          ? "transparent"
+          : panelBackgroundColor,
       borderRadius: 28,
-      borderWidth: 0,
+      borderWidth: isEinkMode ? 1 : 0,
+      borderColor: isEinkMode ? colors.black : "transparent",
       shadowColor: colors.black,
       shadowOffset: {
         width: 0,
         height: 6,
       },
-      shadowOpacity: Platform.OS === "ios" ? 0.24 : 0.15,
-      shadowRadius: Platform.OS === "ios" ? 20 : 10,
+      shadowOpacity: isEinkMode ? 0 : Platform.OS === "ios" ? 0.24 : 0.15,
+      shadowRadius: isEinkMode ? 0 : Platform.OS === "ios" ? 20 : 10,
       opacity: 1,
       height: 56,
       overflow: "hidden",
-      elevation: 8,
+      elevation: isEinkMode ? 0 : 8,
       zIndex: 1000,
     },
     minimizedGlassBlur: {
@@ -119,7 +133,7 @@ export const styles = (): Style =>
       left: 0,
       right: 0,
       bottom: 0,
-      backgroundColor: "rgba(8, 12, 24, 0.14)",
+      backgroundColor: isEinkMode ? colors.white : "rgba(8, 12, 24, 0.14)",
     },
     minimizedContent: {
       flexDirection: "row",
@@ -157,15 +171,15 @@ export const styles = (): Style =>
     },
     trackTitle: {
       ...body,
-      color: colors.white,
+      color: foregroundColor,
       fontWeight: "700",
       fontSize: 16,
       lineHeight: 18,
     },
     trackArtist: {
       ...body,
-      color: colors.white,
-      opacity: 0.9,
+      color: foregroundColor,
+      opacity: isEinkMode ? 1 : 0.9,
       fontSize: 12,
       lineHeight: 14,
     },
@@ -239,7 +253,7 @@ export const styles = (): Style =>
       alignItems: "center",
       justifyContent: "center",
       padding: spacing.large,
-      backgroundColor: "rgba(0,0,0,0.45)",
+      backgroundColor: isEinkMode ? colors.white : "rgba(0,0,0,0.45)",
     },
     maximizedSheetBackdropPressable: {
       position: "absolute",
@@ -250,7 +264,10 @@ export const styles = (): Style =>
     },
     maximizedContainer: {
       flex: 1,
-      backgroundColor: Platform.OS === "ios" ? "transparent" : colors.blue,
+      backgroundColor:
+        Platform.OS === "ios" && !isEinkMode
+          ? "transparent"
+          : panelBackgroundColor,
       paddingTop: 0,
     },
     maximizedContainerSheet: {
@@ -259,7 +276,7 @@ export const styles = (): Style =>
       maxHeight: "92%",
       borderRadius: 22,
       borderWidth: StyleSheet.hairlineWidth,
-      borderColor: "rgba(255, 255, 255, 0.18)",
+      borderColor: isEinkMode ? colors.black : "rgba(255, 255, 255, 0.18)",
       overflow: "hidden",
       alignSelf: "center",
     },
@@ -276,7 +293,7 @@ export const styles = (): Style =>
       left: 0,
       right: 0,
       bottom: 0,
-      backgroundColor: "rgba(7, 10, 18, 0.28)",
+      backgroundColor: overlayColor,
     },
     maximizedHeader: {
       flexDirection: "row",
@@ -285,14 +302,14 @@ export const styles = (): Style =>
       paddingHorizontal: spacing.large,
       paddingVertical: spacing.small,
       borderBottomWidth: 1,
-      borderBottomColor: "rgba(255, 255, 255, 0.1)",
+      borderBottomColor: isEinkMode ? colors.black : "rgba(255, 255, 255, 0.1)",
     },
     maximizedCloseButton: {
       padding: spacing.small,
     },
     maximizedTitle: {
       ...header3,
-      color: colors.white,
+      color: foregroundColor,
       fontWeight: "600",
     },
     maximizedStopButton: {
@@ -320,7 +337,9 @@ export const styles = (): Style =>
       },
       shadowOpacity: 0.3,
       shadowRadius: 16,
-      elevation: 8,
+      elevation: isEinkMode ? 0 : 8,
+      borderWidth: isEinkMode ? 1 : 0,
+      borderColor: isEinkMode ? colors.black : "transparent",
       alignSelf: "center",
     },
     maximizedTrackImage: {
@@ -341,22 +360,22 @@ export const styles = (): Style =>
     },
     maximizedTrackTitle: {
       ...header3,
-      color: colors.white,
+      color: foregroundColor,
       fontWeight: "700",
       textAlign: "center",
       marginBottom: spacing.small,
     },
     maximizedTrackArtist: {
       ...body,
-      color: colors.white,
-      opacity: 0.9,
+      color: foregroundColor,
+      opacity: isEinkMode ? 1 : 0.9,
       textAlign: "center",
       marginBottom: spacing.small,
     },
     maximizedTrackAlbum: {
       ...body,
-      color: colors.white,
-      opacity: 0.7,
+      color: foregroundColor,
+      opacity: isEinkMode ? 1 : 0.7,
       textAlign: "center",
       fontSize: 13,
     },
@@ -373,13 +392,13 @@ export const styles = (): Style =>
     },
     maximizedScrubberTrack: {
       height: 6,
-      backgroundColor: "rgba(255, 255, 255, 0.3)",
+      backgroundColor: isEinkMode ? colors.grey : "rgba(255, 255, 255, 0.3)",
       borderRadius: 3,
       position: "relative",
     },
     maximizedScrubberProgress: {
       height: 6,
-      backgroundColor: colors.white,
+      backgroundColor: foregroundColor,
       borderRadius: 3,
       position: "absolute",
       top: 0,
@@ -388,7 +407,7 @@ export const styles = (): Style =>
     maximizedScrubberHandle: {
       width: 20,
       height: 20,
-      backgroundColor: colors.white,
+      backgroundColor: foregroundColor,
       borderRadius: 10,
       position: "absolute",
       top: -7,
@@ -398,9 +417,9 @@ export const styles = (): Style =>
         width: 0,
         height: 2,
       },
-      shadowOpacity: 0.25,
-      shadowRadius: 4,
-      elevation: 4,
+      shadowOpacity: isEinkMode ? 0 : 0.25,
+      shadowRadius: isEinkMode ? 0 : 4,
+      elevation: isEinkMode ? 0 : 4,
     },
     maximizedTimeContainer: {
       flexDirection: "row",
@@ -408,8 +427,8 @@ export const styles = (): Style =>
     },
     maximizedTimeText: {
       ...body,
-      color: colors.white,
-      opacity: 0.8,
+      color: foregroundColor,
+      opacity: isEinkMode ? 1 : 0.8,
       fontSize: 13,
     },
     maximizedControls: {
@@ -430,6 +449,8 @@ export const styles = (): Style =>
       padding: spacing.medium,
       marginHorizontal: spacing.small,
       borderRadius: radius.medium,
+      borderWidth: isEinkMode ? 1 : 0,
+      borderColor: isEinkMode ? colors.black : "transparent",
     },
     maximizedSecondaryButtonActive: {
       backgroundColor: "rgba(255, 255, 255, 0.1)",
@@ -440,7 +461,7 @@ export const styles = (): Style =>
     },
     maximizedButtonLabel: {
       ...body,
-      color: colors.white,
+      color: foregroundColor,
       fontSize: 10,
       fontWeight: "500",
       marginTop: 2,
@@ -453,7 +474,9 @@ export const styles = (): Style =>
       width: 80,
       height: 80,
       borderRadius: 40,
-      backgroundColor: "rgba(255, 255, 255, 0.2)",
+      backgroundColor: isEinkMode ? colors.white : "rgba(255, 255, 255, 0.2)",
+      borderWidth: isEinkMode ? 1 : 0,
+      borderColor: isEinkMode ? colors.black : "transparent",
       justifyContent: "center",
       alignItems: "center",
       marginHorizontal: spacing.medium,
@@ -470,7 +493,7 @@ export const styles = (): Style =>
     },
     maximizedSectionTitle: {
       ...body,
-      color: colors.white,
+      color: foregroundColor,
       fontWeight: "600",
       textAlign: "center",
       marginBottom: spacing.medium,
@@ -491,15 +514,19 @@ export const styles = (): Style =>
       paddingVertical: spacing.small,
       margin: spacing.small,
       borderRadius: radius.medium,
-      backgroundColor: "rgba(255, 255, 255, 0.1)",
+      backgroundColor: isEinkMode ? colors.white : "rgba(255, 255, 255, 0.1)",
+      borderWidth: isEinkMode ? 1 : 0,
+      borderColor: isEinkMode ? colors.black : "transparent",
       minWidth: 120,
     },
     maximizedPlaybackOptionButtonActive: {
-      backgroundColor: colors.green,
+      backgroundColor: isEinkMode ? colors.white : colors.green,
+      borderWidth: isEinkMode ? 2 : 0,
+      borderColor: isEinkMode ? colors.black : "transparent",
     },
     maximizedPlaybackOptionLabel: {
       ...body,
-      color: colors.white,
+      color: foregroundColor,
       fontWeight: "500",
       fontSize: 13,
       marginTop: spacing.xs,
@@ -516,21 +543,26 @@ export const styles = (): Style =>
       paddingVertical: spacing.small,
       margin: spacing.small,
       borderRadius: radius.medium,
-      backgroundColor: "rgba(255, 255, 255, 0.1)",
+      backgroundColor: isEinkMode ? colors.white : "rgba(255, 255, 255, 0.1)",
+      borderWidth: isEinkMode ? 1 : 0,
+      borderColor: isEinkMode ? colors.black : "transparent",
       minWidth: 50,
       alignItems: "center",
     },
     maximizedPlaybackRateButtonActive: {
-      backgroundColor: colors.green,
+      backgroundColor: isEinkMode ? colors.white : colors.green,
+      borderWidth: isEinkMode ? 2 : 0,
+      borderColor: isEinkMode ? colors.black : "transparent",
     },
     maximizedPlaybackRateText: {
       ...body,
-      color: colors.white,
+      color: foregroundColor,
       fontWeight: "500",
       fontSize: 13,
     },
     maximizedPlaybackRateTextActive: {
-      color: colors.white,
+      color: foregroundColor,
       fontWeight: "700",
     },
   });
+};
