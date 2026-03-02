@@ -5,6 +5,7 @@ import * as Notifications from "expo-notifications";
 import { body } from "src/style/typography";
 import { applyNotificationSchedule } from "src/services/notificationSchedule";
 import { writeThroughSettingsField } from "src/services/syncWriteThrough";
+import { normalizeMinutes } from "src/style/themeMode";
 
 export interface SettingsState {
   enableNotifications: boolean;
@@ -28,11 +29,6 @@ export interface SettingsState {
 const defaultTimeString = "8:00 AM";
 const defaultDarkModeScheduleStartMinutes = 21 * 60;
 const defaultDarkModeScheduleEndMinutes = 7 * 60;
-
-const normalizeMinutes = (minutes: number): number => {
-  const normalized = Math.floor(minutes) % (24 * 60);
-  return normalized < 0 ? normalized + 24 * 60 : normalized;
-};
 
 const initialState: SettingsState = {
   enableNotifications: true,

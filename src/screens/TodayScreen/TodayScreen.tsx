@@ -907,11 +907,9 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
                     key={notification.id}
                     style={({ pressed }) => [
                       themedStyles.notificationBox,
-                      getPressFeedbackStyle(
-                        pressed,
-                        uiPreferences.isEinkMode,
-                        0.5
-                      ),
+                      getPressFeedbackStyle(pressed, uiPreferences.isEinkMode, {
+                        pressedOpacity: 0.5,
+                      }),
                     ]}
                   >
                     <View style={themedStyles.notificationInfo}>
@@ -1130,7 +1128,9 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
                         getPressFeedbackStyle(
                           pressed,
                           uiPreferences.isEinkMode,
-                          0.65
+                          {
+                            pressedOpacity: 0.65,
+                          }
                         ),
                       ]}
                     >
@@ -1167,7 +1167,9 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
                           getPressFeedbackStyle(
                             pressed,
                             uiPreferences.isEinkMode,
-                            0.65
+                            {
+                              pressedOpacity: 0.65,
+                            }
                           ),
                         ]}
                       >
@@ -1204,11 +1206,9 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
                       themedStyles.splitViewDetailCloseButton,
                       shouldUseLiquidGlassButtons &&
                         themedStyles.splitViewDetailCloseButtonLiquidGlass,
-                      getPressFeedbackStyle(
-                        pressed,
-                        uiPreferences.isEinkMode,
-                        0.65
-                      ),
+                      getPressFeedbackStyle(pressed, uiPreferences.isEinkMode, {
+                        pressedOpacity: 0.65,
+                      }),
                     ]}
                   >
                     {shouldUseLiquidGlassButtons && (

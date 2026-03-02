@@ -35,9 +35,12 @@ export const FlatButton: React.FunctionComponent<ButtonProps> = ({
       style={({ pressed }) => ({
         ...themedStyles.button,
         ...style,
-        opacity: isEinkMode ? 1 : pressed || disabled ? 0.6 : 1,
-        ...getPressFeedbackStyle(pressed, isEinkMode, 0.6),
-        ...getDisabledFeedbackStyle(Boolean(disabled), isEinkMode, 0.6),
+        ...getPressFeedbackStyle(pressed, isEinkMode, {
+          pressedOpacity: 0.6,
+        }),
+        ...getDisabledFeedbackStyle(Boolean(disabled), isEinkMode, {
+          disabledOpacity: 0.6,
+        }),
       })}
       accessibilityRole="button"
       onPress={onPress}

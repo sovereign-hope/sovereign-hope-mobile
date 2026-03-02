@@ -628,8 +628,10 @@ export const SettingsScreen: React.FunctionComponent<Props> = ({
                     getPressFeedbackStyle(
                       pressed || isBusy,
                       uiPreferences.isEinkMode,
-                      0.7,
-                      theme.dark
+                      {
+                        pressedOpacity: 0.7,
+                        isDarkMode: theme.dark,
+                      }
                     ),
                   ]}
                 >
@@ -645,8 +647,10 @@ export const SettingsScreen: React.FunctionComponent<Props> = ({
                     getPressFeedbackStyle(
                       pressed || isBusy,
                       uiPreferences.isEinkMode,
-                      0.7,
-                      theme.dark
+                      {
+                        pressedOpacity: 0.7,
+                        isDarkMode: theme.dark,
+                      }
                     ),
                   ]}
                 >
@@ -672,8 +676,10 @@ export const SettingsScreen: React.FunctionComponent<Props> = ({
                     getPressFeedbackStyle(
                       pressed || isBusy,
                       uiPreferences.isEinkMode,
-                      0.7,
-                      theme.dark
+                      {
+                        pressedOpacity: 0.7,
+                        isDarkMode: theme.dark,
+                      }
                     ),
                   ]}
                 >
@@ -751,8 +757,10 @@ export const SettingsScreen: React.FunctionComponent<Props> = ({
                     getPressFeedbackStyle(
                       pressed || isBusy,
                       uiPreferences.isEinkMode,
-                      0.7,
-                      theme.dark
+                      {
+                        pressedOpacity: 0.7,
+                        isDarkMode: theme.dark,
+                      }
                     ),
                   ]}
                 >
@@ -780,8 +788,10 @@ export const SettingsScreen: React.FunctionComponent<Props> = ({
                     getPressFeedbackStyle(
                       pressed || isBusy,
                       uiPreferences.isEinkMode,
-                      0.7,
-                      theme.dark
+                      {
+                        pressedOpacity: 0.7,
+                        isDarkMode: theme.dark,
+                      }
                     ),
                   ]}
                 >

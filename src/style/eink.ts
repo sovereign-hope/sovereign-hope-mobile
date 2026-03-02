@@ -1,15 +1,21 @@
 import { ViewStyle } from "react-native";
 import { colors } from "src/style/colors";
 
+interface PressFeedbackOptions {
+  pressedOpacity?: number;
+  isDarkMode?: boolean;
+}
+
 export const getPressFeedbackStyle = (
   pressed: boolean,
   isEinkMode: boolean,
-  pressedOpacity = 0.7,
-  isDarkMode = false
+  options?: PressFeedbackOptions
 ): ViewStyle | undefined => {
   if (!pressed) {
     return;
   }
+
+  const { pressedOpacity = 0.7, isDarkMode = false } = options ?? {};
 
   if (isEinkMode) {
     return {
@@ -21,15 +27,21 @@ export const getPressFeedbackStyle = (
   return { opacity: pressedOpacity };
 };
 
+interface DisabledFeedbackOptions {
+  disabledOpacity?: number;
+  isDarkMode?: boolean;
+}
+
 export const getDisabledFeedbackStyle = (
   disabled: boolean,
   isEinkMode: boolean,
-  disabledOpacity = 0.4,
-  isDarkMode = false
+  options?: DisabledFeedbackOptions
 ): ViewStyle | undefined => {
   if (!disabled) {
     return;
   }
+
+  const { disabledOpacity = 0.4, isDarkMode = false } = options ?? {};
 
   if (isEinkMode) {
     return {

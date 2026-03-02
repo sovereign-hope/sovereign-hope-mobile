@@ -89,7 +89,6 @@ type Props = {
 
 export const styles = ({ isEinkMode = false }: Props = {}): Style => {
   const foregroundColor = isEinkMode ? colors.black : colors.white;
-  const secondaryForegroundColor = isEinkMode ? colors.black : colors.white;
   const panelBackgroundColor = isEinkMode ? colors.white : colors.blue;
   const overlayColor = isEinkMode
     ? "rgba(255,255,255,0.98)"
@@ -179,7 +178,7 @@ export const styles = ({ isEinkMode = false }: Props = {}): Style => {
     },
     trackArtist: {
       ...body,
-      color: secondaryForegroundColor,
+      color: foregroundColor,
       opacity: isEinkMode ? 1 : 0.9,
       fontSize: 12,
       lineHeight: 14,
@@ -368,14 +367,14 @@ export const styles = ({ isEinkMode = false }: Props = {}): Style => {
     },
     maximizedTrackArtist: {
       ...body,
-      color: secondaryForegroundColor,
+      color: foregroundColor,
       opacity: isEinkMode ? 1 : 0.9,
       textAlign: "center",
       marginBottom: spacing.small,
     },
     maximizedTrackAlbum: {
       ...body,
-      color: secondaryForegroundColor,
+      color: foregroundColor,
       opacity: isEinkMode ? 1 : 0.7,
       textAlign: "center",
       fontSize: 13,
@@ -428,7 +427,7 @@ export const styles = ({ isEinkMode = false }: Props = {}): Style => {
     },
     maximizedTimeText: {
       ...body,
-      color: secondaryForegroundColor,
+      color: foregroundColor,
       opacity: isEinkMode ? 1 : 0.8,
       fontSize: 13,
     },

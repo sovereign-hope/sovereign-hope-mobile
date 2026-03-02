@@ -100,10 +100,14 @@ const getActionColor = (
 
 const getDoneButtonOptions = (
   onPress: () => void,
-  isEinkMode: boolean,
-  actionColor: string,
-  colorScheme: "light" | "dark"
+  options: {
+    isEinkMode: boolean;
+    actionColor: string;
+    colorScheme: "light" | "dark";
+  }
 ): Record<string, unknown> => {
+  const { isEinkMode, actionColor, colorScheme } = options;
+
   if (isIOS26OrNewer()) {
     return {
       unstable_headerRightItems: () => [
@@ -125,12 +129,10 @@ const getDoneButtonOptions = (
         onPress={onPress}
         style={({ pressed }) => [
           { paddingHorizontal: 4 },
-          getPressFeedbackStyle(
-            pressed,
-            isEinkMode,
-            0.65,
-            colorScheme === "dark"
-          ),
+          getPressFeedbackStyle(pressed, isEinkMode, {
+            pressedOpacity: 0.65,
+            isDarkMode: colorScheme === "dark",
+          }),
         ]}
       >
         <Text style={{ color: actionColor, fontWeight: "600" }}>Done</Text>
@@ -259,12 +261,11 @@ const SettingsFlowStackScreen: React.FunctionComponent<SettingsFlowStackScreenPr
             title: "Settings",
             headerBackVisible: false,
             ...(Platform.OS === "android" ? { headerLeft: () => <></> } : {}),
-            ...getDoneButtonOptions(
-              dismissSettingsFlow,
-              uiPreferences.isEinkMode,
+            ...getDoneButtonOptions(dismissSettingsFlow, {
+              isEinkMode: uiPreferences.isEinkMode,
               actionColor,
-              colorScheme
-            ),
+              colorScheme,
+            }),
           })}
         />
         <SettingsFlowStack.Screen
@@ -431,12 +432,10 @@ const WeekStack = (): React.JSX.Element => {
                 accessibilityRole="button"
                 hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}
                 style={({ pressed }) =>
-                  getPressFeedbackStyle(
-                    pressed,
-                    uiPreferences.isEinkMode,
-                    0.6,
-                    colorScheme === "dark"
-                  )
+                  getPressFeedbackStyle(pressed, uiPreferences.isEinkMode, {
+                    pressedOpacity: 0.6,
+                    isDarkMode: colorScheme === "dark",
+                  })
                 }
               >
                 <Ionicons name="cog" size={24} color={actionColor} />
@@ -477,9 +476,11 @@ const WeekStack = (): React.JSX.Element => {
 
               navigation.navigate("This Week");
             },
-            uiPreferences.isEinkMode,
-            actionColor,
-            colorScheme
+            {
+              isEinkMode: uiPreferences.isEinkMode,
+              actionColor,
+              colorScheme,
+            }
           ),
         })}
       />
@@ -502,9 +503,11 @@ const WeekStack = (): React.JSX.Element => {
 
               navigation.navigate("This Week");
             },
-            uiPreferences.isEinkMode,
-            actionColor,
-            colorScheme
+            {
+              isEinkMode: uiPreferences.isEinkMode,
+              actionColor,
+              colorScheme,
+            }
           ),
         })}
       />
@@ -658,12 +661,10 @@ const MemberStack = (): React.JSX.Element => {
                     accessibilityRole="button"
                     onPress={() => navigation.navigate("Daily Prayer")}
                     style={({ pressed }) =>
-                      getPressFeedbackStyle(
-                        pressed,
-                        uiPreferences.isEinkMode,
-                        0.65,
-                        colorScheme === "dark"
-                      )
+                      getPressFeedbackStyle(pressed, uiPreferences.isEinkMode, {
+                        pressedOpacity: 0.65,
+                        isDarkMode: colorScheme === "dark",
+                      })
                     }
                   >
                     <Text style={{ color: actionColor, fontWeight: "600" }}>

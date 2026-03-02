@@ -130,7 +130,9 @@ export const MemoryAudioCard: React.FunctionComponent<Props> = ({
         }}
         style={({ pressed }) => [
           themedStyles.actionButton,
-          getPressFeedbackStyle(pressed, uiPreferences.isEinkMode, 0.8),
+          getPressFeedbackStyle(pressed, uiPreferences.isEinkMode, {
+            pressedOpacity: 0.8,
+          }),
         ]}
       >
         <Text style={themedStyles.actionButtonLabel}>Choose Sound</Text>
@@ -146,7 +148,9 @@ export const MemoryAudioCard: React.FunctionComponent<Props> = ({
         }}
         style={({ pressed }) => [
           themedStyles.secondaryButton,
-          getPressFeedbackStyle(pressed, uiPreferences.isEinkMode, 0.8),
+          getPressFeedbackStyle(pressed, uiPreferences.isEinkMode, {
+            pressedOpacity: 0.8,
+          }),
         ]}
       >
         <Text style={themedStyles.secondaryButtonLabel}>Done</Text>
@@ -209,7 +213,9 @@ export const MemoryAudioCard: React.FunctionComponent<Props> = ({
             style={({ pressed }) => [
               themedStyles.sessionActionButton,
               isActive ? themedStyles.stopButton : undefined,
-              getPressFeedbackStyle(pressed, uiPreferences.isEinkMode, 0.8),
+              getPressFeedbackStyle(pressed, uiPreferences.isEinkMode, {
+                pressedOpacity: 0.8,
+              }),
             ]}
           >
             <Text style={themedStyles.actionButtonLabel}>
@@ -227,7 +233,9 @@ export const MemoryAudioCard: React.FunctionComponent<Props> = ({
             }}
             style={({ pressed }) => [
               themedStyles.settingsIconButton,
-              getPressFeedbackStyle(pressed, uiPreferences.isEinkMode, 0.8),
+              getPressFeedbackStyle(pressed, uiPreferences.isEinkMode, {
+                pressedOpacity: 0.8,
+              }),
             ]}
           >
             <Ionicons
@@ -262,7 +270,9 @@ export const MemoryAudioCard: React.FunctionComponent<Props> = ({
               }}
               style={({ pressed }) => [
                 themedStyles.actionButton,
-                getPressFeedbackStyle(pressed, uiPreferences.isEinkMode, 0.8),
+                getPressFeedbackStyle(pressed, uiPreferences.isEinkMode, {
+                  pressedOpacity: 0.8,
+                }),
               ]}
             >
               <Text style={themedStyles.actionButtonLabel}>Got It</Text>
