@@ -1,17 +1,23 @@
 # Documentation Index
 
-This directory contains internal planning and operational docs for Sovereign Hope Mobile.
+This directory contains project-specific operational notes, plans, and brainstorm artifacts.
 
 ## Runbooks
 
-- [Member Access Runbook](./member-access-runbook.md): Seeding and linking member data with Planning Center and Firebase.
+- [`member-access-runbook.md`](./member-access-runbook.md): End-to-end member seeding, linking, and access-management operations.
 
-## Planning Docs
+## Plans
 
-- [Plans](./plans/): Implementation plans for features and technical work.
-- [Brainstorms](./brainstorms/): Early ideation docs and design notes.
+- [`plans/2026-02-24-all-feat-cross-device-sync-plan.md`](./plans/2026-02-24-all-feat-cross-device-sync-plan.md)
+- [`plans/2026-02-26-both-feat-read-screen-previous-button-plan.md`](./plans/2026-02-26-both-feat-read-screen-previous-button-plan.md)
+- [`plans/2026-02-26-feat-android-edge-to-edge-ios-liquid-glass-plan.md`](./plans/2026-02-26-feat-android-edge-to-edge-ios-liquid-glass-plan.md)
+- [`plans/2026-02-26-feat-member-only-features-plan.md`](./plans/2026-02-26-feat-member-only-features-plan.md)
 
-## Related Top-Level Docs
+## Brainstorms
 
-- [Main Project README](../README.md): Onboarding, local development, and release workflow.
-- [PR Template](../PULL_REQUEST_TEMPLATE.md): Pull request checklist and release impact prompts.
+- [`brainstorms/2026-02-26-member-only-features-brainstorm.md`](./brainstorms/2026-02-26-member-only-features-brainstorm.md)
+
+## Notes
+
+- `docs/plans/**` and `docs/brainstorms/**` are historical planning artifacts and may not represent the current implementation.
+- Operational behavior should be treated as source-of-truth in code and runbooks.

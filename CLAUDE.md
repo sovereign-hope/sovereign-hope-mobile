@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ```bash
 # Start Expo dev server
-npm start  # or expo start
+npm start  # or npx expo start
 
 # Run on specific platform
 npm run ios       # expo run:ios
@@ -16,8 +16,8 @@ npm run android   # expo run:android
 npm run lint
 
 # Testing
-npm test                    # Run all tests with coverage
-npm run testChanged         # Watch mode for changed files since main
+npm test                    # Run all tests
+npm run testChanged         # Watch mode for changed files since origin/main
 npm run testDebugCurrent    # Watch mode for modified files only
 npm run updateSnapshots     # Update Jest snapshots
 
@@ -32,7 +32,7 @@ npm run buildDevelopment:android
 
 ### App Structure
 
-- **Expo SDK 54** with React Native 0.81, using EAS for builds and OTA updates
+- **Expo SDK 54** with React Native **0.81** and React **19**
 - **Redux Toolkit** for state management with typed hooks (`useAppSelector`, `useAppDispatch` from `src/hooks/store.ts`)
 - **React Navigation 7** with bottom tabs + native stack navigators
 - Dark mode support via `useColorScheme` hook and themes in `src/style/themes.ts`
@@ -44,41 +44,36 @@ src/
 ├── app/           # Redux store config (store.ts) and utilities (utils.ts)
 ├── components/    # Reusable UI components with barrel export (index.ts)
 ├── hooks/         # Custom hooks (store.ts for Redux, useColorScheme.ts)
-├── navigation/    # Type definitions (RootNavigator.ts) and contexts
-├── redux/         # Feature slices: esv, readingPlan, settings, podcast, memory, notifications, commentary
+├── navigation/    # Navigation context and route typing
+├── redux/         # Feature slices and route constants
 ├── screens/       # Screen components organized in folders with styles
 └── style/         # colors.ts, themes.ts, typography.ts, layout.ts
 ```
 
-### Navigation Structure
-
-`RootScreen.tsx` defines:
-
-- **Root Stack**: Home, Read, Available Plans, Font Size, Schedule, Sundays
-- **Tab Navigator** (inside Home): This Week, Reading Plan, Church, Resources
-- Each tab has its own stack navigator for nested screens
-
 ### State Management
 
-Redux slices handle domain-specific state:
+Redux slices currently wired in `src/app/store.ts`:
 
+- `authSlice` - authentication/session state
 - `esvSlice` - ESV Bible API data
-- `readingPlanSlice` - Reading plan progress and data
-- `settingsSlice` - App preferences (largest slice)
-- `podcastSlice` - Podcast/resources content
-- `memorySlice` - Scripture memory features
-- `commentarySlice` - Bible commentary data
+- `readingPlanSlice` - reading plan progress and data
+- `settingsSlice` - app preferences
+- `podcastSlice` - podcast/resources content
+- `memorySlice` - scripture memory features
+- `notificationsSlice` - local notification state
+- `commentarySlice` - commentary content
+- `memberSlice` - membership and access state
 
 ### Key Patterns
 
 - Path aliases configured: `src/*` and `assets/*` (tsconfig.json)
 - Named exports preferred over defaults (`import/no-default-export` ESLint rule)
 - Component styles colocated in `*.styles.ts` files
-- `Passage` type (in `src/app/utils.ts`) is the core data structure for Bible references
+- `Passage` type (in `src/app/utils.ts`) is a core data structure for Bible references
 
 ### External Services
 
-- Firebase (Firestore)
+- Firebase (Firestore/Auth/functions integrations)
 - Sentry for error tracking
 - ESV API for Bible text
 - react-native-track-player for audio playback
