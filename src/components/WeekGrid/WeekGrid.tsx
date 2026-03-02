@@ -6,6 +6,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { colors } from "src/style/colors";
 import { ReadingPlanDay } from "src/redux/readingPlanSlice";
 import { styles } from "./WeekGrid.styles";
+import { useUiPreferences } from "src/hooks/useUiPreferences";
+import { getPressFeedbackStyle } from "src/style/eink";
 
 const WEEKDAY_MAP = [
   "Monday",
@@ -42,7 +44,11 @@ export const WeekGrid: React.FunctionComponent<WeekGridProps> = ({
   compact = false,
 }: WeekGridProps) => {
   const theme = useTheme();
-  const themedStyles = styles({ theme });
+  const uiPreferences = useUiPreferences();
+  const themedStyles = styles({
+    theme,
+    isEinkMode: uiPreferences.isEinkMode,
+  });
 
   if (compact) {
     return (
@@ -65,23 +71,39 @@ export const WeekGrid: React.FunctionComponent<WeekGridProps> = ({
                 themedStyles.dayCardCompact,
                 isToday && themedStyles.dayCardToday,
                 isSelected && themedStyles.dayCardSelected,
-                { opacity: pressed ? 0.7 : 1 },
+                getPressFeedbackStyle(pressed, uiPreferences.isEinkMode),
               ]}
             >
               <Pressable
                 onPress={() => onToggleComplete(!day.isComplete, index)}
                 accessibilityRole="checkbox"
                 accessibilityState={{ checked: day.isComplete }}
-                style={({ pressed }) => ({
-                  opacity: pressed ? 0.7 : 1,
-                })}
+                style={({ pressed }) =>
+                  getPressFeedbackStyle(pressed, uiPreferences.isEinkMode)
+                }
               >
                 {day.isComplete ? (
                   <Animated.View
-                    entering={FadeIn.duration(250)}
-                    exiting={FadeOut.duration(250)}
+                    entering={
+                      uiPreferences.disableAnimations
+                        ? undefined
+                        : FadeIn.duration(250)
+                    }
+                    exiting={
+                      uiPreferences.disableAnimations
+                        ? undefined
+                        : FadeOut.duration(250)
+                    }
                   >
-                    <Ionicons name="checkbox" size={28} color={colors.green} />
+                    <Ionicons
+                      name="checkbox"
+                      size={28}
+                      color={
+                        uiPreferences.isEinkMode
+                          ? theme.colors.primary
+                          : colors.green
+                      }
+                    />
                   </Animated.View>
                 ) : (
                   <Ionicons
@@ -140,7 +162,7 @@ export const WeekGrid: React.FunctionComponent<WeekGridProps> = ({
             style={({ pressed }) => [
               themedStyles.dayCard,
               isToday && themedStyles.dayCardToday,
-              { opacity: pressed ? 0.7 : 1 },
+              getPressFeedbackStyle(pressed, uiPreferences.isEinkMode),
             ]}
           >
             <View style={themedStyles.cardRow}>
@@ -148,16 +170,32 @@ export const WeekGrid: React.FunctionComponent<WeekGridProps> = ({
                 onPress={() => onToggleComplete(!day.isComplete, index)}
                 accessibilityRole="checkbox"
                 accessibilityState={{ checked: day.isComplete }}
-                style={({ pressed }) => ({
-                  opacity: pressed ? 0.7 : 1,
-                })}
+                style={({ pressed }) =>
+                  getPressFeedbackStyle(pressed, uiPreferences.isEinkMode)
+                }
               >
                 {day.isComplete ? (
                   <Animated.View
-                    entering={FadeIn.duration(250)}
-                    exiting={FadeOut.duration(250)}
+                    entering={
+                      uiPreferences.disableAnimations
+                        ? undefined
+                        : FadeIn.duration(250)
+                    }
+                    exiting={
+                      uiPreferences.disableAnimations
+                        ? undefined
+                        : FadeOut.duration(250)
+                    }
                   >
-                    <Ionicons name="checkbox" size={28} color={colors.green} />
+                    <Ionicons
+                      name="checkbox"
+                      size={28}
+                      color={
+                        uiPreferences.isEinkMode
+                          ? theme.colors.primary
+                          : colors.green
+                      }
+                    />
                   </Animated.View>
                 ) : (
                   <Ionicons
