@@ -55,6 +55,7 @@ import {
   MEMORY_AUDIO_SESSION_TRACK_ARTWORK_URI,
   getEstimatedMemoryAudioSessionDurationSeconds,
 } from "src/services/memoryAudioConstants";
+import { canUseLiquidGlass } from "src/services/liquidGlassSupport";
 import { spacing } from "src/style/layout";
 import { useUiPreferences } from "src/hooks/useUiPreferences";
 import { getPressFeedbackStyle } from "src/style/eink";
@@ -200,32 +201,27 @@ export const MediaPlayer: React.FunctionComponent<Props> = () => {
   }, [effectiveDuration, visualPosition]);
 
   const shouldShowPlayer = track !== undefined || isMemorySessionActiveTrack;
-  const shouldUseLiquidGlass =
-    Platform.OS === "ios" &&
-    !uiPreferences.disableTransparency &&
-    isGlassEffectAPIAvailable() &&
-    isLiquidGlassAvailable();
+  const shouldUseLiquidGlass = canUseLiquidGlass(Platform.OS, {
+    isGlassEffectCheck: isGlassEffectAPIAvailable,
+    isLiquidGlassCheck: isLiquidGlassAvailable,
+  });
   const shouldRenderGlassLayer =
     Platform.OS === "ios" && !uiPreferences.disableTransparency;
-  const miniPrimaryForeground = uiPreferences.isEinkMode
-    ? colors.black
-    : Platform.OS === "ios"
-    ? DynamicColorIOS({
-        light: "#111319",
-        dark: "#FFFFFF",
-      })
-    : colors.white;
-  const miniSecondaryForeground = uiPreferences.isEinkMode
-    ? colors.darkGrey
-    : Platform.OS === "ios"
-    ? DynamicColorIOS({
-        light: "rgba(17, 19, 25, 0.72)",
-        dark: "rgba(255, 255, 255, 0.86)",
-      })
-    : colors.white;
-  const controlIconColor = uiPreferences.isEinkMode
-    ? colors.black
-    : colors.white;
+  const miniPrimaryForeground =
+    Platform.OS === "ios"
+      ? DynamicColorIOS({
+          light: "#111319",
+          dark: "#FFFFFF",
+        })
+      : colors.white;
+  const miniSecondaryForeground =
+    Platform.OS === "ios"
+      ? DynamicColorIOS({
+          light: "rgba(17, 19, 25, 0.72)",
+          dark: "rgba(255, 255, 255, 0.86)",
+        })
+      : colors.white;
+  const controlIconColor = uiPreferences.isEinkMode ? colors.black : colors.white;
   const maximizedHeaderTopInset = useExpandedPlayerSheet
     ? spacing.medium
     : insets.top;
