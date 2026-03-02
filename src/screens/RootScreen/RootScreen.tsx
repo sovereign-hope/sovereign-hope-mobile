@@ -460,10 +460,28 @@ const WeekStack = (): React.JSX.Element => {
       <Stack.Screen
         name="Ambient Sounds"
         component={AmbientSoundPickerScreen}
-        options={{
+        options={({ navigation }) => ({
+          ...(Platform.OS === "ios" && Platform.isPad
+            ? { presentation: "formSheet" as const }
+            : { presentation: "modal" as const }),
           title: "Ambient Sounds",
           headerLargeTitle: false,
-        }}
+          headerBackVisible: false,
+          ...(Platform.OS === "android" ? { headerLeft: () => <></> } : {}),
+          ...getDoneButtonOptions(
+            () => {
+              if (navigation.canGoBack()) {
+                navigation.goBack();
+                return;
+              }
+
+              navigation.navigate("This Week");
+            },
+            uiPreferences.isEinkMode,
+            actionColor,
+            colorScheme
+          ),
+        })}
       />
       <Stack.Screen
         name="Font Size"
