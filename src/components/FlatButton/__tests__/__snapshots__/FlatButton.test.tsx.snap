@@ -42,7 +42,6 @@ exports[`FlatButton should render 1`] = `
       "flexDirection": "row",
       "justifyContent": "center",
       "minHeight": 44,
-      "opacity": 1,
       "paddingHorizontal": 16,
       "paddingVertical": 8,
     }
@@ -104,7 +103,6 @@ exports[`FlatButton should render an icon 1`] = `
       "flexDirection": "row",
       "justifyContent": "center",
       "minHeight": 44,
-      "opacity": 1,
       "paddingHorizontal": 16,
       "paddingVertical": 8,
     }
