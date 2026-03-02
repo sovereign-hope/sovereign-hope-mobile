@@ -736,9 +736,11 @@ const HomeScreen = (): React.JSX.Element => {
       void dispatch(getDarkModeScheduleStartMinutes());
       void dispatch(getDarkModeScheduleEndMinutes());
 
-      const shouldAutoEnableEinkMode = await maybeAutoEnableEinkMode();
-      if (shouldAutoEnableEinkMode) {
+      const autoDetectionResolution = await maybeAutoEnableEinkMode();
+      if (autoDetectionResolution === "enable") {
         void dispatch(storeEnableEinkMode(true));
+      } else if (autoDetectionResolution === "disable") {
+        void dispatch(storeEnableEinkMode(false));
       }
     };
 
