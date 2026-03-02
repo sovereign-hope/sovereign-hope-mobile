@@ -47,15 +47,18 @@ export type ReadingPlanListItemData = ReadingPlanDay & {
 
 export const ReadingPlanListItem: React.FunctionComponent<{
   item: ReadingPlanListItemData;
+  isEinkMode: boolean;
   handleRowPress: (
     item: ReadingPlanDay,
     onCompleteDay: (isComplete: boolean) => void
   ) => void;
 }> = ({
   item,
+  isEinkMode,
   handleRowPress,
 }: {
   item: ReadingPlanListItemData;
+  isEinkMode: boolean;
   handleRowPress: (
     item: ReadingPlanDay,
     onCompleteDay: (isComplete: boolean) => void
@@ -65,7 +68,6 @@ export const ReadingPlanListItem: React.FunctionComponent<{
   const theme = useTheme();
   const dispatch = useAppDispatch();
   const readingPlanProgress = useAppSelector(selectReadingPlanProgressState);
-  const uiPreferences = useUiPreferences();
 
   // Compute isComplete from Redux state in the item itself
   // This allows only the affected item to re-render when progress changes
@@ -76,7 +78,7 @@ export const ReadingPlanListItem: React.FunctionComponent<{
   // Constants
   const themedStyles = styles({
     theme,
-    isEinkMode: uiPreferences.isEinkMode,
+    isEinkMode,
   });
 
   // Event handlers
@@ -108,7 +110,7 @@ export const ReadingPlanListItem: React.FunctionComponent<{
       accessibilityRole="button"
       style={({ pressed }) => [
         { backgroundColor: theme.colors.card },
-        getPressFeedbackStyle(pressed, uiPreferences.isEinkMode),
+        getPressFeedbackStyle(pressed, isEinkMode),
       ]}
     >
       <View style={themedStyles.planItem}>
@@ -116,9 +118,7 @@ export const ReadingPlanListItem: React.FunctionComponent<{
           <Ionicons
             name="checkmark-circle"
             size={36}
-            color={
-              uiPreferences.isEinkMode ? theme.colors.primary : colors.green
-            }
+            color={isEinkMode ? theme.colors.primary : colors.green}
             style={themedStyles.planItemCheckbox}
             onPress={() => handleCompleteDay(false)}
           />
@@ -381,7 +381,11 @@ export const ReadingPlanScreen: React.FunctionComponent<ReadingPlanProps> = ({
           `day-${item.displayDayNumber}-week-${item.weekIndex}`
         }
         renderItem={({ item }) => (
-          <ReadingPlanListItem item={item} handleRowPress={handleRowPress} />
+          <ReadingPlanListItem
+            item={item}
+            isEinkMode={uiPreferences.isEinkMode}
+            handleRowPress={handleRowPress}
+          />
         )}
         renderSectionHeader={({ section: { title } }) => (
           <View style={themedStyles.sectionHeaderContainer}>
