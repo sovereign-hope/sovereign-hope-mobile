@@ -2,7 +2,6 @@ import { StyleSheet, ViewStyle, TextStyle, ImageStyle } from "react-native";
 import { spacing } from "src/style/layout";
 import { header2 } from "src/style/typography";
 import { Theme } from "@react-navigation/native";
-import { colors } from "src/style/colors";
 
 type Props = {
   theme: Theme;
@@ -32,10 +31,10 @@ export const styles = ({ theme }: Props): Style =>
   StyleSheet.create({
     screen: {
       flex: 1,
-      backgroundColor: theme.dark ? colors.darkGrey : colors.grey0,
+      backgroundColor: theme.colors.background,
     },
     scrollView: {
-      backgroundColor: theme.dark ? colors.darkGrey : colors.grey0,
+      backgroundColor: theme.colors.background,
     },
     loadingContainer: {
       flexGrow: 1,
@@ -43,7 +42,7 @@ export const styles = ({ theme }: Props): Style =>
     },
     header: {
       flexDirection: "row",
-      backgroundColor: theme.dark ? colors.darkGrey : colors.grey0,
+      backgroundColor: theme.colors.background,
     },
     headerIcon: {
       fontSize: 24,
@@ -53,8 +52,8 @@ export const styles = ({ theme }: Props): Style =>
     title: {
       ...header2,
       padding: spacing.large,
-      color: theme.dark ? colors.white : colors.darkGrey,
-      backgroundColor: theme.dark ? colors.darkGrey : colors.grey0,
+      color: theme.colors.text,
+      backgroundColor: theme.colors.background,
     },
     content: {
       flex: 1,
@@ -62,7 +61,7 @@ export const styles = ({ theme }: Props): Style =>
       marginBottom: spacing.large,
     },
     bodyText: {
-      color: theme.dark ? colors.white : colors.darkGrey,
+      color: theme.colors.text,
       padding: spacing.large,
     },
     memoryQuestionHeader: {
@@ -82,7 +81,7 @@ export const styles = ({ theme }: Props): Style =>
       color: theme.colors.text,
     },
     memoryText: {
-      color: colors.white,
+      color: theme.colors.text,
     },
     footer: {
       padding: spacing.medium,
@@ -98,7 +97,7 @@ export const styles = ({ theme }: Props): Style =>
       marginBottom: spacing.medium,
     },
     whiteText: {
-      color: colors.white,
+      color: theme.colors.text,
     },
     spacer: {
       flex: 1,

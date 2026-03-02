@@ -19,6 +19,7 @@ export type RootStackParamList = {
   Resources: undefined;
   PodcastView: undefined;
   "Font Size": undefined;
+  "Ambient Sounds": undefined;
   Schedule: undefined;
   Signups: undefined;
   Sundays: undefined;

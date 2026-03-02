@@ -66,7 +66,12 @@ const getGoogleServicesJsonMetadata = (relativeFilePath, packageName) => {
 };
 
 export default ({ config }) => {
-  const isProductionBuild = process.env.EAS_BUILD_PROFILE === "production";
+  const resolvedAppVariant =
+    process.env.APP_VARIANT ??
+    (process.env.EAS_BUILD_PROFILE === "production"
+      ? "production"
+      : "development");
+  const isProductionBuild = resolvedAppVariant === "production";
   const developmentAndroidPackage = "com.sovereign_hope.sovereign_hope_dev";
   const developmentScheme = "sovereign-hope-dev";
   const targetAndroidPackage = isProductionBuild
@@ -102,6 +107,7 @@ export default ({ config }) => {
     },
     extra: {
       ...(config.extra ?? {}),
+      appVariant: resolvedAppVariant,
       googleAuth: {
         ...((config.extra && config.extra.googleAuth) || {}),
         iosClientId: googleServiceInfo.clientId,

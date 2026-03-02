@@ -1,6 +1,9 @@
 {
   "build": {
     "production": {
+      "env": {
+        "APP_VARIANT": "production"
+      },
       "ios": {
         "resourceClass": "m-medium",
         "image": "latest"
@@ -9,6 +12,9 @@
       "autoIncrement": true
     },
     "staging": {
+      "env": {
+        "APP_VARIANT": "development"
+      },
       "channel": "staging",
       "ios": {
         "resourceClass": "m-medium",
@@ -16,6 +22,9 @@
       }
     },
     "development": {
+      "env": {
+        "APP_VARIANT": "development"
+      },
       "channel": "development",
       "distribution": "internal",
       "developmentClient": true,
@@ -24,7 +33,18 @@
         "image": "latest"
       }
     },
+    "development:simulator": {
+      "extends": "development",
+      "ios": {
+        "simulator": true,
+        "resourceClass": "m-medium",
+        "image": "latest"
+      }
+    },
     "preview": {
+      "env": {
+        "APP_VARIANT": "development"
+      },
       "android": {
         "distribution": "internal"
       },

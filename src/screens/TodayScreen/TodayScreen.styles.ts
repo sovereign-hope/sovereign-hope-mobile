@@ -6,6 +6,7 @@ import { colors } from "src/style/colors";
 
 type Props = {
   theme: Theme;
+  isEinkMode?: boolean;
 };
 
 interface Style {
@@ -20,6 +21,8 @@ interface Style {
   subHeader: TextStyle;
   textButton: TextStyle;
   contentCard: ViewStyle;
+  memoryCard: ViewStyle;
+  memoryPassageButton: ViewStyle;
   contentCardColumn: ViewStyle;
   contentCardHeader: TextStyle;
   scrollRow: ViewStyle;
@@ -51,9 +54,24 @@ interface Style {
   prayerStateText: TextStyle;
   prayerActionButton: ViewStyle;
   prayerActionButtonText: TextStyle;
+  dashboardGrid: ViewStyle;
+  dashboardColumn: ViewStyle;
+  contentCardTablet: ViewStyle;
+  splitView: ViewStyle;
+  splitViewSingle: ViewStyle;
+  splitViewDetail: ViewStyle;
+  splitViewDetailHeader: ViewStyle;
+  splitViewDetailHeaderRow: ViewStyle;
+  splitViewDetailHeaderActions: ViewStyle;
+  splitViewDetailHeaderButton: ViewStyle;
+  splitViewDetailHeaderButtonLiquidGlass: ViewStyle;
+  splitViewDetailHeaderButtonGlass: ViewStyle;
+  splitViewDetailCloseButton: ViewStyle;
+  splitViewDetailCloseButtonLiquidGlass: ViewStyle;
+  splitViewDetailHeaderButtonText: TextStyle;
 }
 
-export const styles = ({ theme }: Props): Style =>
+export const styles = ({ theme, isEinkMode = false }: Props): Style =>
   StyleSheet.create({
     screen: {
       flex: 1,
@@ -69,7 +87,7 @@ export const styles = ({ theme }: Props): Style =>
     title: {
       ...header1,
       padding: spacing.large,
-      color: theme.dark ? colors.white : colors.darkGrey,
+      color: theme.colors.text,
     },
     content: {
       backgroundColor: theme.colors.background,
@@ -91,13 +109,13 @@ export const styles = ({ theme }: Props): Style =>
     },
     subHeader: {
       ...header3,
-      color: theme.dark ? colors.grey0 : colors.grey2,
+      color: theme.colors.text,
       marginLeft: spacing.large,
       marginBottom: spacing.medium,
     },
     textButton: {
       ...body,
-      color: colors.accent,
+      color: isEinkMode ? theme.colors.primary : colors.accent,
       marginRight: spacing.large,
     },
     contentCard: {
@@ -110,21 +128,32 @@ export const styles = ({ theme }: Props): Style =>
       padding: spacing.lmedium,
       borderRadius: radius.large,
       backgroundColor: theme.colors.card,
+      borderWidth: isEinkMode ? 1 : 0,
+      borderColor: theme.colors.border,
       shadowColor: colors.black,
       shadowOffset: {
         width: 0,
         height: 2,
       },
-      shadowOpacity: 0.1,
+      shadowOpacity: isEinkMode ? 0 : 0.1,
+    },
+    memoryCard: {
+      flexDirection: "column",
+      justifyContent: "flex-start",
+      alignItems: "stretch",
+    },
+    memoryPassageButton: {
+      flexDirection: "row",
+      alignItems: "center",
     },
     contentCardColumn: {
       flex: 1,
       flexDirection: "column",
-      color: theme.dark ? colors.white : colors.darkGrey,
+      color: theme.colors.text,
     },
     contentCardHeader: {
       ...header3,
-      color: theme.dark ? colors.white : colors.darkGrey,
+      color: theme.colors.text,
       marginBottom: spacing.medium,
     },
     dayReadingColumnSecondary: {
@@ -132,7 +161,7 @@ export const styles = ({ theme }: Props): Style =>
       flexDirection: "row",
       paddingVertical: spacing.large,
       paddingRight: spacing.large,
-      backgroundColor: colors.darkGrey,
+      backgroundColor: isEinkMode ? theme.colors.card : colors.darkGrey,
     },
     header: {
       ...header2,
@@ -147,7 +176,9 @@ export const styles = ({ theme }: Props): Style =>
       flexDirection: "row",
       alignItems: "center",
       borderRadius: radius.large,
-      backgroundColor: colors.accent,
+      backgroundColor: isEinkMode ? theme.colors.card : colors.accent,
+      borderWidth: isEinkMode ? 1 : 0,
+      borderColor: isEinkMode ? theme.colors.primary : colors.black,
       padding: spacing.medium,
       paddingStart: spacing.large,
     },
@@ -156,16 +187,16 @@ export const styles = ({ theme }: Props): Style =>
     },
     notificationTitle: {
       ...header3,
-      color: colors.white,
+      color: isEinkMode ? theme.colors.primary : colors.white,
     },
     notificationDetails: {
-      color: colors.white,
+      color: isEinkMode ? theme.colors.primary : colors.white,
     },
     disclosureIcon: {
       marginLeft: spacing.medium,
     },
     whiteText: {
-      color: colors.white,
+      color: isEinkMode ? theme.colors.primary : colors.white,
     },
     memoryLoadingContainer: {
       flex: 1,
@@ -174,7 +205,7 @@ export const styles = ({ theme }: Props): Style =>
     },
     memoryQuestionHeader: {
       ...header2,
-      color: colors.accent,
+      color: isEinkMode ? theme.colors.primary : colors.accent,
     },
     memoryHelperText: {
       ...header2,
@@ -191,7 +222,7 @@ export const styles = ({ theme }: Props): Style =>
       color: theme.colors.text,
     },
     memoryText: {
-      color: theme.dark ? colors.white : colors.darkGrey,
+      color: theme.colors.text,
     },
     footer: {
       paddingHorizontal: spacing.medium,
@@ -235,7 +266,7 @@ export const styles = ({ theme }: Props): Style =>
     prayerAssignmentMeta: {
       ...body,
       color: theme.colors.text,
-      opacity: 0.7,
+      opacity: isEinkMode ? 1 : 0.7,
       marginBottom: spacing.medium,
     },
     prayerStateText: {
@@ -246,7 +277,7 @@ export const styles = ({ theme }: Props): Style =>
       marginTop: spacing.medium,
       borderRadius: radius.medium,
       borderWidth: 1,
-      borderColor: colors.accent,
+      borderColor: isEinkMode ? theme.colors.primary : colors.accent,
       paddingVertical: spacing.medium,
       paddingHorizontal: spacing.large,
       minHeight: 45,
@@ -255,7 +286,93 @@ export const styles = ({ theme }: Props): Style =>
       alignSelf: "flex-start",
     },
     prayerActionButtonText: {
-      color: colors.accent,
+      color: isEinkMode ? theme.colors.primary : colors.accent,
+      fontWeight: "600",
+    },
+    dashboardGrid: {
+      flexDirection: "row",
+      gap: spacing.large,
+      paddingHorizontal: spacing.large,
+    },
+    dashboardColumn: {
+      flex: 1,
+    },
+    contentCardTablet: {
+      marginHorizontal: 0,
+    },
+    splitView: {
+      flex: 1,
+      flexDirection: "row",
+    },
+    splitViewSingle: {
+      flex: 1,
+    },
+    splitViewDetail: {
+      flex: 1,
+      borderLeftWidth: StyleSheet.hairlineWidth,
+      borderLeftColor: theme.colors.border,
+      backgroundColor: theme.colors.background,
+    },
+    splitViewDetailHeader: {
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderBottomColor: theme.colors.border,
+      paddingHorizontal: spacing.large,
+      paddingBottom: spacing.small,
+      backgroundColor: theme.colors.background,
+    },
+    splitViewDetailHeaderRow: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      gap: spacing.medium,
+    },
+    splitViewDetailHeaderActions: {
+      flexDirection: "row",
+      gap: spacing.medium,
+      alignItems: "center",
+      flex: 1,
+    },
+    splitViewDetailHeaderButton: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.small,
+      paddingVertical: spacing.small,
+      paddingHorizontal: spacing.medium,
+      borderRadius: radius.medium,
+      borderWidth: 1,
+      borderColor: isEinkMode ? theme.colors.primary : colors.accent,
+      backgroundColor: theme.colors.card,
+      overflow: "hidden",
+    },
+    splitViewDetailHeaderButtonLiquidGlass: {
+      borderColor: "rgba(255,255,255,0.18)",
+      backgroundColor: "transparent",
+    },
+    splitViewDetailHeaderButtonGlass: {
+      position: "absolute",
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+    },
+    splitViewDetailCloseButton: {
+      width: 40,
+      height: 40,
+      borderRadius: radius.medium,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      backgroundColor: theme.colors.card,
+      alignItems: "center",
+      justifyContent: "center",
+      overflow: "hidden",
+    },
+    splitViewDetailCloseButtonLiquidGlass: {
+      borderColor: "rgba(255,255,255,0.18)",
+      backgroundColor: "transparent",
+    },
+    splitViewDetailHeaderButtonText: {
+      ...body,
+      color: isEinkMode ? theme.colors.primary : colors.accent,
       fontWeight: "600",
     },
   });

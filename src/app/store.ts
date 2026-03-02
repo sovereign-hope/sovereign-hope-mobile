@@ -8,6 +8,7 @@ import { memoryReducer } from "src/redux/memorySlice";
 import { notificationsReducer } from "src/redux/notificationsSlice";
 import { commentaryReducer } from "src/redux/commentarySlice";
 import { memberReducer } from "src/redux/memberSlice";
+import { memoryAudioReducer } from "src/redux/memoryAudioSlice";
 
 export const store = configureStore({
   reducer: {
@@ -17,6 +18,7 @@ export const store = configureStore({
     settings: settingsReducer,
     podcast: podcastReducer,
     memory: memoryReducer,
+    memoryAudio: memoryAudioReducer,
     notifications: notificationsReducer,
     commentary: commentaryReducer,
     member: memberReducer,

@@ -5,6 +5,7 @@ import { colors } from "src/style/colors";
 
 type Props = {
   theme: Theme;
+  isEinkMode?: boolean;
 };
 
 interface Style {
@@ -13,7 +14,7 @@ interface Style {
   text: TextStyle;
 }
 
-export const styles = ({ theme }: Props): Style =>
+export const styles = ({ theme, isEinkMode = false }: Props): Style =>
   StyleSheet.create({
     button: {
       flexDirection: "row",
@@ -23,15 +24,20 @@ export const styles = ({ theme }: Props): Style =>
       paddingHorizontal: spacing.large,
       minHeight: elementSize.small,
       borderRadius: radius.medium,
-      elevation: elevation.small,
-      backgroundColor: colors.accent,
-      borderColor: theme.colors.card,
+      elevation: isEinkMode ? 0 : elevation.small,
+      backgroundColor: isEinkMode ? theme.colors.background : colors.accent,
+      borderColor: isEinkMode ? theme.colors.primary : theme.colors.card,
+      ...(isEinkMode
+        ? {
+            borderWidth: 1,
+          }
+        : {}),
     },
     icon: {
       marginRight: spacing.small,
     },
     text: {
-      color: colors.white,
+      color: isEinkMode ? theme.colors.primary : colors.white,
       flex: 1,
       textAlign: "center",
     },

@@ -15,6 +15,7 @@ import { readingPlanReducer } from "src/redux/readingPlanSlice";
 import { settingsReducer } from "src/redux/settingsSlice";
 import { podcastReducer } from "src/redux/podcastSlice";
 import { memoryReducer } from "src/redux/memorySlice";
+import { memoryAudioReducer } from "src/redux/memoryAudioSlice";
 import { notificationsReducer } from "src/redux/notificationsSlice";
 import { commentaryReducer } from "src/redux/commentarySlice";
 import { memberReducer } from "src/redux/memberSlice";
@@ -26,6 +27,7 @@ const rootReducer = {
   settings: settingsReducer,
   podcast: podcastReducer,
   memory: memoryReducer,
+  memoryAudio: memoryAudioReducer,
   notifications: notificationsReducer,
   commentary: commentaryReducer,
   member: memberReducer,

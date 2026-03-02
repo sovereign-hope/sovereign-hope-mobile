@@ -36,10 +36,21 @@ import { colors } from "src/style/colors";
 import { spacing } from "src/style/layout";
 import { ScrollView } from "react-native-gesture-handler";
 import { useMiniPlayerHeight } from "src/hooks/useMiniPlayerHeight";
+import { initializeTrackPlayer } from "src/services/trackPlayerSetup";
+import { store } from "src/app/store";
+import { stopMemoryAudioSession } from "src/redux/memoryAudioSlice";
+import { useUiPreferences } from "src/hooks/useUiPreferences";
+import { getPressFeedbackStyle } from "src/style/eink";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Resources">;
 
 const playEpisode = async (episode: FeedItem) => {
+  const isTrackPlayerInitialized = await initializeTrackPlayer();
+  if (!isTrackPlayerInitialized) {
+    return;
+  }
+
+  await store.dispatch(stopMemoryAudioSession());
   await TrackPlayer.reset();
   const track: Track = {
     url: episode.enclosures[0].url,
@@ -119,6 +130,10 @@ export const PodcastScreen: React.FunctionComponent<Props> = ({
   const isLoading = useAppSelector(selectIsLoading);
   const miniPlayerHeight = useMiniPlayerHeight();
   const insets = useSafeAreaInsets();
+  const uiPreferences = useUiPreferences();
+  const actionColor = uiPreferences.isEinkMode
+    ? theme.colors.primary
+    : colors.accent;
 
   // Ref Hooks
   const mountAnimation = useRef(new Animated.Value(0)).current;
@@ -130,13 +145,17 @@ export const PodcastScreen: React.FunctionComponent<Props> = ({
   // Effect hooks
   useEffect(() => {
     if (!isLoading) {
-      Animated.timing(mountAnimation, {
-        toValue: 1,
-        duration: 500,
-        useNativeDriver: true,
-      }).start();
+      if (uiPreferences.disableAnimations) {
+        mountAnimation.setValue(1);
+      } else {
+        Animated.timing(mountAnimation, {
+          toValue: 1,
+          duration: 500,
+          useNativeDriver: true,
+        }).start();
+      }
     }
-  }, [isLoading, mountAnimation]);
+  }, [isLoading, mountAnimation, uiPreferences.disableAnimations]);
 
   useEffect(() => {
     void dispatch(getEpisodes());
@@ -145,7 +164,7 @@ export const PodcastScreen: React.FunctionComponent<Props> = ({
   // Event handlers
 
   // Constants
-  const themedStyles = styles({ theme });
+  const themedStyles = styles({ theme, isEinkMode: uiPreferences.isEinkMode });
   const menuActions = [
     {
       id: "apple",
@@ -187,7 +206,7 @@ export const PodcastScreen: React.FunctionComponent<Props> = ({
           themedStyles.contentCard,
           {
             marginRight: 0,
-            opacity: pressed ? 0.7 : 1,
+            ...getPressFeedbackStyle(pressed, uiPreferences.isEinkMode),
           },
         ]}
       >
@@ -225,7 +244,7 @@ export const PodcastScreen: React.FunctionComponent<Props> = ({
           <Animated.View
             style={{
               flex: 1,
-              opacity: mountAnimation,
+              opacity: uiPreferences.disableAnimations ? 1 : mountAnimation,
               paddingTop: spacing.large,
             }}
           >
@@ -246,12 +265,12 @@ export const PodcastScreen: React.FunctionComponent<Props> = ({
                 <Pressable
                   style={({ pressed }) => [
                     themedStyles.textButton,
-                    { opacity: pressed ? 0.7 : 1 },
+                    getPressFeedbackStyle(pressed, uiPreferences.isEinkMode),
                   ]}
                   accessibilityRole="button"
                   onPress={() => {}}
                 >
-                  <Text style={{ color: colors.accent, fontSize: 18 }}>
+                  <Text style={{ color: actionColor, fontSize: 18 }}>
                     Subscribe
                   </Text>
                 </Pressable>
@@ -288,9 +307,7 @@ export const PodcastScreen: React.FunctionComponent<Props> = ({
               accessibilityRole="button"
               style={({ pressed }) => [
                 themedStyles.contentCard,
-                {
-                  opacity: pressed ? 0.7 : 1,
-                },
+                getPressFeedbackStyle(pressed, uiPreferences.isEinkMode),
               ]}
             >
               <View style={themedStyles.contentCardColumn}>
@@ -316,9 +333,7 @@ export const PodcastScreen: React.FunctionComponent<Props> = ({
               accessibilityRole="button"
               style={({ pressed }) => [
                 themedStyles.contentCard,
-                {
-                  opacity: pressed ? 0.7 : 1,
-                },
+                getPressFeedbackStyle(pressed, uiPreferences.isEinkMode),
               ]}
             >
               <View style={themedStyles.contentCardColumn}>
@@ -343,9 +358,7 @@ export const PodcastScreen: React.FunctionComponent<Props> = ({
               accessibilityRole="button"
               style={({ pressed }) => [
                 themedStyles.contentCard,
-                {
-                  opacity: pressed ? 0.7 : 1,
-                },
+                getPressFeedbackStyle(pressed, uiPreferences.isEinkMode),
               ]}
             >
               <View style={themedStyles.contentCardColumn}>
@@ -374,9 +387,7 @@ export const PodcastScreen: React.FunctionComponent<Props> = ({
               accessibilityRole="button"
               style={({ pressed }) => [
                 themedStyles.contentCard,
-                {
-                  opacity: pressed ? 0.7 : 1,
-                },
+                getPressFeedbackStyle(pressed, uiPreferences.isEinkMode),
               ]}
             >
               <View style={themedStyles.contentCardColumn}>
