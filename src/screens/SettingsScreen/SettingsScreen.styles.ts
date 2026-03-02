@@ -85,7 +85,11 @@ export const styles = ({ theme, isEinkMode = false }: Props): Style =>
       borderBottomWidth: 0,
     },
     settingsRowPressed: {
-      backgroundColor: isEinkMode ? colors.grey0 : theme.colors.background,
+      backgroundColor: isEinkMode
+        ? theme.dark
+          ? colors.darkGrey
+          : colors.grey0
+        : theme.colors.background,
     },
     settingsRowText: {
       color: theme.colors.text,
@@ -186,7 +190,11 @@ export const styles = ({ theme, isEinkMode = false }: Props): Style =>
     },
     modalBackdrop: {
       flex: 1,
-      backgroundColor: isEinkMode ? colors.white : "rgba(0,0,0,0.35)",
+      backgroundColor: isEinkMode
+        ? theme.dark
+          ? colors.black
+          : colors.white
+        : "rgba(0,0,0,0.35)",
       justifyContent: "center",
       padding: spacing.large,
     },

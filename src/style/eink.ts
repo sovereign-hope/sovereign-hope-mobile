@@ -4,7 +4,8 @@ import { colors } from "src/style/colors";
 export const getPressFeedbackStyle = (
   pressed: boolean,
   isEinkMode: boolean,
-  pressedOpacity = 0.7
+  pressedOpacity = 0.7,
+  isDarkMode = false
 ): ViewStyle | undefined => {
   if (!pressed) {
     return;
@@ -12,8 +13,8 @@ export const getPressFeedbackStyle = (
 
   if (isEinkMode) {
     return {
-      backgroundColor: colors.grey0,
-      borderColor: colors.black,
+      backgroundColor: isDarkMode ? colors.darkGrey : colors.grey0,
+      borderColor: isDarkMode ? colors.white : colors.black,
     };
   }
 
@@ -23,7 +24,8 @@ export const getPressFeedbackStyle = (
 export const getDisabledFeedbackStyle = (
   disabled: boolean,
   isEinkMode: boolean,
-  disabledOpacity = 0.4
+  disabledOpacity = 0.4,
+  isDarkMode = false
 ): ViewStyle | undefined => {
   if (!disabled) {
     return;
@@ -31,7 +33,7 @@ export const getDisabledFeedbackStyle = (
 
   if (isEinkMode) {
     return {
-      backgroundColor: colors.grey0,
+      backgroundColor: isDarkMode ? colors.darkGrey : colors.grey0,
     };
   }
 

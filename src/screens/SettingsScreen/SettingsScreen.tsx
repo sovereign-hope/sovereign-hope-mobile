@@ -31,6 +31,21 @@ import {
   getEnableEinkMode,
   selectEnableEinkMode,
   storeEnableEinkMode,
+  getOverrideSystemTheme,
+  selectOverrideSystemTheme,
+  storeOverrideSystemTheme,
+  getDarkModeEnabled,
+  selectDarkModeEnabled,
+  storeDarkModeEnabled,
+  getDarkModeScheduleEnabled,
+  selectDarkModeScheduleEnabled,
+  storeDarkModeScheduleEnabled,
+  getDarkModeScheduleStartMinutes,
+  selectDarkModeScheduleStartMinutes,
+  storeDarkModeScheduleStartMinutes,
+  getDarkModeScheduleEndMinutes,
+  selectDarkModeScheduleEndMinutes,
+  storeDarkModeScheduleEndMinutes,
 } from "src/redux/settingsSlice";
 import { styles } from "./SettingsScreen.styles";
 import { ScrollView } from "react-native-gesture-handler";
@@ -54,6 +69,11 @@ import { useMiniPlayerHeight } from "src/hooks/useMiniPlayerHeight";
 import { spacing } from "src/style/layout";
 import { getPressFeedbackStyle } from "src/style/eink";
 import { useUiPreferences } from "src/hooks/useUiPreferences";
+import {
+  dateToMinutesOfDay,
+  formatMinutesOfDay,
+  minutesOfDayToDate,
+} from "src/style/themeMode";
 
 type Props = NativeStackScreenProps<
   RootStackParamList,
@@ -110,6 +130,15 @@ export const SettingsScreen: React.FunctionComponent<Props> = ({
     selectEnableChurchCenterDeepLink
   );
   const enableEinkMode = useAppSelector(selectEnableEinkMode);
+  const overrideSystemTheme = useAppSelector(selectOverrideSystemTheme);
+  const darkModeEnabled = useAppSelector(selectDarkModeEnabled);
+  const darkModeScheduleEnabled = useAppSelector(selectDarkModeScheduleEnabled);
+  const darkModeScheduleStartMinutes = useAppSelector(
+    selectDarkModeScheduleStartMinutes
+  );
+  const darkModeScheduleEndMinutes = useAppSelector(
+    selectDarkModeScheduleEndMinutes
+  );
   const authUser = useAppSelector(selectAuthUser);
   const authIsInitialized = useAppSelector(selectAuthIsInitialized);
   const authIsLoading = useAppSelector(selectAuthIsLoading);
@@ -121,6 +150,10 @@ export const SettingsScreen: React.FunctionComponent<Props> = ({
 
   // State hooks
   const [isDatePickerVisible, setIsDatePickerVisible] = useState(false);
+  const [isDarkModeStartPickerVisible, setIsDarkModeStartPickerVisible] =
+    useState(false);
+  const [isDarkModeEndPickerVisible, setIsDarkModeEndPickerVisible] =
+    useState(false);
   const [deletePassword, setDeletePassword] = useState("");
   const [isDeletePasswordPromptVisible, setIsDeletePasswordPromptVisible] =
     useState(false);
@@ -134,6 +167,11 @@ export const SettingsScreen: React.FunctionComponent<Props> = ({
     void dispatch(getShowChildrensPlan());
     void dispatch(getEnableChurchCenterDeepLink());
     void dispatch(getEnableEinkMode());
+    void dispatch(getOverrideSystemTheme());
+    void dispatch(getDarkModeEnabled());
+    void dispatch(getDarkModeScheduleEnabled());
+    void dispatch(getDarkModeScheduleStartMinutes());
+    void dispatch(getDarkModeScheduleEndMinutes());
   }, [dispatch]);
 
   // Event handlers
@@ -152,6 +190,28 @@ export const SettingsScreen: React.FunctionComponent<Props> = ({
 
   const handleToggleEinkMode = (value: boolean) => {
     void dispatch(storeEnableEinkMode(value));
+  };
+
+  const handleToggleOverrideSystemTheme = (value: boolean) => {
+    void dispatch(storeOverrideSystemTheme(value));
+  };
+
+  const handleToggleDarkModeEnabled = (value: boolean) => {
+    void dispatch(storeDarkModeEnabled(value));
+  };
+
+  const handleToggleDarkModeScheduleEnabled = (value: boolean) => {
+    void dispatch(storeDarkModeScheduleEnabled(value));
+  };
+
+  const handleSetDarkModeScheduleStart = (value: Date) => {
+    void dispatch(storeDarkModeScheduleStartMinutes(dateToMinutesOfDay(value)));
+    setIsDarkModeStartPickerVisible(false);
+  };
+
+  const handleSetDarkModeScheduleEnd = (value: Date) => {
+    void dispatch(storeDarkModeScheduleEndMinutes(dateToMinutesOfDay(value)));
+    setIsDarkModeEndPickerVisible(false);
   };
 
   const showSelectReadingPlan = () => {
@@ -363,6 +423,116 @@ export const SettingsScreen: React.FunctionComponent<Props> = ({
               style={[
                 themedStyles.settingsRow,
                 useInsetSettingsGroups && themedStyles.settingsRowGrouped,
+              ]}
+            >
+              <View style={themedStyles.settingsRowTextContainer}>
+                <Text style={themedStyles.settingsRowText}>
+                  Override System Theme
+                </Text>
+                <Text style={themedStyles.settingsRowSubtext}>
+                  Apply app light/dark mode settings instead of following your
+                  device theme.
+                </Text>
+              </View>
+              <Switch
+                onValueChange={handleToggleOverrideSystemTheme}
+                value={overrideSystemTheme}
+              />
+            </View>
+
+            {overrideSystemTheme && (
+              <View
+                style={[
+                  themedStyles.settingsRow,
+                  useInsetSettingsGroups && themedStyles.settingsRowGrouped,
+                ]}
+              >
+                <View style={themedStyles.settingsRowTextContainer}>
+                  <Text style={themedStyles.settingsRowText}>
+                    Dark Schedule
+                  </Text>
+                  <Text style={themedStyles.settingsRowSubtext}>
+                    Automatically enable dark mode between selected hours.
+                  </Text>
+                </View>
+                <Switch
+                  onValueChange={handleToggleDarkModeScheduleEnabled}
+                  value={darkModeScheduleEnabled}
+                />
+              </View>
+            )}
+
+            {overrideSystemTheme && !darkModeScheduleEnabled && (
+              <View
+                style={[
+                  themedStyles.settingsRow,
+                  useInsetSettingsGroups && themedStyles.settingsRowGrouped,
+                ]}
+              >
+                <Text style={themedStyles.settingsRowText}>Dark Mode</Text>
+                <Switch
+                  onValueChange={handleToggleDarkModeEnabled}
+                  value={darkModeEnabled}
+                />
+              </View>
+            )}
+
+            {overrideSystemTheme && darkModeScheduleEnabled && (
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => setIsDarkModeStartPickerVisible(true)}
+                style={({ pressed }) => [
+                  themedStyles.settingsRow,
+                  useInsetSettingsGroups && themedStyles.settingsRowGrouped,
+                  pressed && themedStyles.settingsRowPressed,
+                ]}
+              >
+                <Text style={themedStyles.settingsRowText}>
+                  Dark Mode Starts
+                </Text>
+                <View style={themedStyles.settingsRowValueContainer}>
+                  <Text style={themedStyles.settingsRowText}>
+                    {formatMinutesOfDay(darkModeScheduleStartMinutes)}
+                  </Text>
+                  <Ionicons
+                    name="chevron-forward"
+                    size={24}
+                    color={theme.colors.border}
+                    style={themedStyles.disclosureIcon}
+                  />
+                </View>
+              </Pressable>
+            )}
+
+            {overrideSystemTheme && darkModeScheduleEnabled && (
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => setIsDarkModeEndPickerVisible(true)}
+                style={({ pressed }) => [
+                  themedStyles.settingsRow,
+                  useInsetSettingsGroups && themedStyles.settingsRowGrouped,
+                  pressed && themedStyles.settingsRowPressed,
+                ]}
+              >
+                <Text style={themedStyles.settingsRowText}>Dark Mode Ends</Text>
+                <View style={themedStyles.settingsRowValueContainer}>
+                  <Text style={themedStyles.settingsRowText}>
+                    {formatMinutesOfDay(darkModeScheduleEndMinutes)}
+                  </Text>
+                  <Ionicons
+                    name="chevron-forward"
+                    size={24}
+                    color={theme.colors.border}
+                    style={themedStyles.disclosureIcon}
+                  />
+                </View>
+              </Pressable>
+            )}
+
+            <View
+              style={[
+                themedStyles.settingsRow,
+                useInsetSettingsGroups && themedStyles.settingsRowGrouped,
                 useInsetSettingsGroups && themedStyles.settingsRowGroupedLast,
               ]}
             >
@@ -379,6 +549,20 @@ export const SettingsScreen: React.FunctionComponent<Props> = ({
               />
             </View>
           </View>
+          <DateTimePickerModal
+            isVisible={isDarkModeStartPickerVisible}
+            mode="time"
+            date={minutesOfDayToDate(darkModeScheduleStartMinutes)}
+            onConfirm={handleSetDarkModeScheduleStart}
+            onCancel={() => setIsDarkModeStartPickerVisible(false)}
+          />
+          <DateTimePickerModal
+            isVisible={isDarkModeEndPickerVisible}
+            mode="time"
+            date={minutesOfDayToDate(darkModeScheduleEndMinutes)}
+            onConfirm={handleSetDarkModeScheduleEnd}
+            onCancel={() => setIsDarkModeEndPickerVisible(false)}
+          />
 
           {Platform.OS === "ios" && (
             <>
@@ -443,7 +627,9 @@ export const SettingsScreen: React.FunctionComponent<Props> = ({
                     { marginVertical: 12 },
                     getPressFeedbackStyle(
                       pressed || isBusy,
-                      uiPreferences.isEinkMode
+                      uiPreferences.isEinkMode,
+                      0.7,
+                      theme.dark
                     ),
                   ]}
                 >
@@ -458,7 +644,9 @@ export const SettingsScreen: React.FunctionComponent<Props> = ({
                     themedStyles.accountTextAction,
                     getPressFeedbackStyle(
                       pressed || isBusy,
-                      uiPreferences.isEinkMode
+                      uiPreferences.isEinkMode,
+                      0.7,
+                      theme.dark
                     ),
                   ]}
                 >
@@ -483,7 +671,9 @@ export const SettingsScreen: React.FunctionComponent<Props> = ({
                     { marginTop: 12 },
                     getPressFeedbackStyle(
                       pressed || isBusy,
-                      uiPreferences.isEinkMode
+                      uiPreferences.isEinkMode,
+                      0.7,
+                      theme.dark
                     ),
                   ]}
                 >
@@ -560,7 +750,9 @@ export const SettingsScreen: React.FunctionComponent<Props> = ({
                     themedStyles.accountButton,
                     getPressFeedbackStyle(
                       pressed || isBusy,
-                      uiPreferences.isEinkMode
+                      uiPreferences.isEinkMode,
+                      0.7,
+                      theme.dark
                     ),
                   ]}
                 >
@@ -587,7 +779,9 @@ export const SettingsScreen: React.FunctionComponent<Props> = ({
                     themedStyles.accountButtonDanger,
                     getPressFeedbackStyle(
                       pressed || isBusy,
-                      uiPreferences.isEinkMode
+                      uiPreferences.isEinkMode,
+                      0.7,
+                      theme.dark
                     ),
                   ]}
                 >
