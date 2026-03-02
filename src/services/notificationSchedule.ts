@@ -2,6 +2,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Notifications from "expo-notifications";
 import { SchedulableTriggerInputTypes } from "expo-notifications";
 
+const MEMORY_AUDIO_NOTIFICATION_ID_KEY = "@memoryAudio/reviewNotificationId";
 const DEFAULT_NOTIFICATION_HOUR = 8;
 const DEFAULT_NOTIFICATION_MINUTE = 0;
 
