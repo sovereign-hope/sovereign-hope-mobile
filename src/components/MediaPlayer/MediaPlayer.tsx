@@ -205,6 +205,8 @@ export const MediaPlayer: React.FunctionComponent<Props> = () => {
     isGlassEffectCheck: isGlassEffectAPIAvailable,
     isLiquidGlassCheck: isLiquidGlassAvailable,
   });
+  const shouldRenderGlassLayer =
+    Platform.OS === "ios" && !uiPreferences.disableTransparency;
   const miniPrimaryForeground =
     Platform.OS === "ios"
       ? DynamicColorIOS({
