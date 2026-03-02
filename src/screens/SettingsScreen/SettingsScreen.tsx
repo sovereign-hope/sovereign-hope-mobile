@@ -28,6 +28,9 @@ import {
   selectEnableChurchCenterDeepLink,
   storeEnableChurchCenterDeepLink,
   getEnableChurchCenterDeepLink,
+  getEnableEinkMode,
+  selectEnableEinkMode,
+  storeEnableEinkMode,
 } from "src/redux/settingsSlice";
 import { styles } from "./SettingsScreen.styles";
 import { ScrollView } from "react-native-gesture-handler";
@@ -49,6 +52,8 @@ import {
 } from "src/redux/authSlice";
 import { useMiniPlayerHeight } from "src/hooks/useMiniPlayerHeight";
 import { spacing } from "src/style/layout";
+import { getPressFeedbackStyle } from "src/style/eink";
+import { useUiPreferences } from "src/hooks/useUiPreferences";
 
 type Props = NativeStackScreenProps<
   RootStackParamList,
@@ -104,11 +109,13 @@ export const SettingsScreen: React.FunctionComponent<Props> = ({
   const enableChurchCenterDeepLink = useAppSelector(
     selectEnableChurchCenterDeepLink
   );
+  const enableEinkMode = useAppSelector(selectEnableEinkMode);
   const authUser = useAppSelector(selectAuthUser);
   const authIsInitialized = useAppSelector(selectAuthIsInitialized);
   const authIsLoading = useAppSelector(selectAuthIsLoading);
   const authIsSyncing = useAppSelector(selectAuthIsSyncing);
   const authErrorMessage = useAppSelector(selectAuthErrorMessage);
+  const uiPreferences = useUiPreferences();
 
   // Ref Hooks
 
@@ -126,6 +133,7 @@ export const SettingsScreen: React.FunctionComponent<Props> = ({
     void dispatch(getNotificationTime());
     void dispatch(getShowChildrensPlan());
     void dispatch(getEnableChurchCenterDeepLink());
+    void dispatch(getEnableEinkMode());
   }, [dispatch]);
 
   // Event handlers
@@ -140,6 +148,10 @@ export const SettingsScreen: React.FunctionComponent<Props> = ({
   const handleSetNotificationTime = (value: Date) => {
     void dispatch(storeNotificationTime(value));
     setIsDatePickerVisible(false);
+  };
+
+  const handleToggleEinkMode = (value: boolean) => {
+    void dispatch(storeEnableEinkMode(value));
   };
 
   const showSelectReadingPlan = () => {
@@ -203,7 +215,7 @@ export const SettingsScreen: React.FunctionComponent<Props> = ({
   };
 
   // Constants
-  const themedStyles = styles({ theme });
+  const themedStyles = styles({ theme, isEinkMode: uiPreferences.isEinkMode });
   const isSignedIn = Boolean(authUser);
   const isBusy = authIsLoading || authIsSyncing;
   const useInsetSettingsGroups =
@@ -341,6 +353,33 @@ export const SettingsScreen: React.FunctionComponent<Props> = ({
             </Pressable>
           </View>
 
+          <Text style={themedStyles.settingsSectionHeader}>Display</Text>
+          <View
+            style={
+              useInsetSettingsGroups ? themedStyles.settingsGroup : undefined
+            }
+          >
+            <View
+              style={[
+                themedStyles.settingsRow,
+                useInsetSettingsGroups && themedStyles.settingsRowGrouped,
+                useInsetSettingsGroups && themedStyles.settingsRowGroupedLast,
+              ]}
+            >
+              <View style={themedStyles.settingsRowTextContainer}>
+                <Text style={themedStyles.settingsRowText}>E-Ink Mode</Text>
+                <Text style={themedStyles.settingsRowSubtext}>
+                  Disable animations and transparency, increase contrast, and
+                  draw strong outlines for readability.
+                </Text>
+              </View>
+              <Switch
+                onValueChange={handleToggleEinkMode}
+                value={enableEinkMode}
+              />
+            </View>
+          </View>
+
           {Platform.OS === "ios" && (
             <>
               <Text style={themedStyles.settingsSectionHeader}>Church</Text>
@@ -402,7 +441,10 @@ export const SettingsScreen: React.FunctionComponent<Props> = ({
                   style={({ pressed }) => [
                     themedStyles.accountButton,
                     { marginVertical: 12 },
-                    (pressed || isBusy) && { opacity: 0.7 },
+                    getPressFeedbackStyle(
+                      pressed || isBusy,
+                      uiPreferences.isEinkMode
+                    ),
                   ]}
                 >
                   <Text style={themedStyles.accountButtonText}>Sign Out</Text>
@@ -414,7 +456,10 @@ export const SettingsScreen: React.FunctionComponent<Props> = ({
                   onPress={handleDeleteAccount}
                   style={({ pressed }) => [
                     themedStyles.accountTextAction,
-                    (pressed || isBusy) && { opacity: 0.7 },
+                    getPressFeedbackStyle(
+                      pressed || isBusy,
+                      uiPreferences.isEinkMode
+                    ),
                   ]}
                 >
                   <Text style={themedStyles.accountTextActionDanger}>
@@ -436,7 +481,10 @@ export const SettingsScreen: React.FunctionComponent<Props> = ({
                     themedStyles.accountButton,
                     themedStyles.accountButtonPrimary,
                     { marginTop: 12 },
-                    (pressed || isBusy) && { opacity: 0.7 },
+                    getPressFeedbackStyle(
+                      pressed || isBusy,
+                      uiPreferences.isEinkMode
+                    ),
                   ]}
                 >
                   <Text
@@ -464,7 +512,7 @@ export const SettingsScreen: React.FunctionComponent<Props> = ({
         </ScrollView>
 
         <Modal
-          animationType="fade"
+          animationType={uiPreferences.disableAnimations ? "none" : "fade"}
           transparent
           visible={isDeletePasswordPromptVisible}
           onRequestClose={() => {
@@ -510,7 +558,10 @@ export const SettingsScreen: React.FunctionComponent<Props> = ({
                   }}
                   style={({ pressed }) => [
                     themedStyles.accountButton,
-                    (pressed || isBusy) && { opacity: 0.7 },
+                    getPressFeedbackStyle(
+                      pressed || isBusy,
+                      uiPreferences.isEinkMode
+                    ),
                   ]}
                 >
                   <Text style={themedStyles.accountButtonText}>Cancel</Text>
@@ -534,7 +585,10 @@ export const SettingsScreen: React.FunctionComponent<Props> = ({
                   style={({ pressed }) => [
                     themedStyles.accountButton,
                     themedStyles.accountButtonDanger,
-                    (pressed || isBusy) && { opacity: 0.7 },
+                    getPressFeedbackStyle(
+                      pressed || isBusy,
+                      uiPreferences.isEinkMode
+                    ),
                   ]}
                 >
                   <Text

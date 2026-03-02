@@ -14,6 +14,7 @@ export interface SettingsState {
   readingBackgroundColor: string | undefined;
   showChildrensPlan: boolean;
   enableChurchCenterDeepLink: boolean;
+  enableEinkMode: boolean;
   isLoading: boolean;
   hasError: boolean;
   hasLoadedSubscribedPlans: boolean;
@@ -29,6 +30,7 @@ const initialState: SettingsState = {
   readingBackgroundColor: undefined,
   showChildrensPlan: true,
   enableChurchCenterDeepLink: false,
+  enableEinkMode: false,
   isLoading: false,
   hasError: false,
   hasLoadedSubscribedPlans: false,
@@ -330,6 +332,48 @@ export const getEnableChurchCenterDeepLink = createAsyncThunk(
   }
 );
 
+export const storeEnableEinkMode = createAsyncThunk(
+  "settings/storeEnableEinkMode",
+  async (enableEinkMode: boolean) => {
+    try {
+      await AsyncStorage.setItem(
+        "@settings/enableEinkMode",
+        String(enableEinkMode)
+      );
+      await writeThroughSettingsField("enableEinkMode", enableEinkMode);
+      return enableEinkMode;
+    } catch (error) {
+      console.error(error);
+      return false;
+    }
+  }
+);
+
+export const getEnableEinkMode = createAsyncThunk(
+  "settings/getEnableEinkMode",
+  async (): Promise<boolean> => {
+    try {
+      const stringValue = await AsyncStorage.getItem(
+        "@settings/enableEinkMode"
+      );
+      if (!stringValue) {
+        return false;
+      }
+
+      try {
+        const parsedValue = JSON.parse(stringValue) as unknown;
+        return typeof parsedValue === "boolean" ? parsedValue : false;
+      } catch (parseError) {
+        console.error("Failed to parse enableEinkMode value:", parseError);
+        return false;
+      }
+    } catch (error) {
+      console.error("Failed to read enableEinkMode from storage:", error);
+      return false;
+    }
+  }
+);
+
 export const settingsSlice = createSlice({
   name: "settings",
   initialState,
@@ -561,6 +605,37 @@ export const settingsSlice = createSlice({
       state.isLoading = false;
       state.hasError = true;
     });
+
+    // storeEnableEinkMode
+    builder.addCase(storeEnableEinkMode.pending, (state) => {
+      state.isLoading = true;
+      state.hasError = false;
+    });
+    builder.addCase(storeEnableEinkMode.fulfilled, (state, action) => {
+      state.enableEinkMode = action.payload ?? false;
+      state.isLoading = false;
+      state.hasError = false;
+    });
+    builder.addCase(storeEnableEinkMode.rejected, (state) => {
+      state.isLoading = false;
+      state.hasError = true;
+    });
+
+    // getEnableEinkMode
+    builder.addCase(getEnableEinkMode.pending, (state) => {
+      state.isLoading = true;
+      state.hasError = false;
+    });
+    builder.addCase(getEnableEinkMode.fulfilled, (state, action) => {
+      state.enableEinkMode = action.payload ?? false;
+      state.isLoading = false;
+      state.hasError = false;
+    });
+    builder.addCase(getEnableEinkMode.rejected, (state) => {
+      state.enableEinkMode = false;
+      state.isLoading = false;
+      state.hasError = true;
+    });
   },
 });
 
@@ -594,5 +669,8 @@ export const selectShowChildrensPlan = (state: RootState): boolean =>
 
 export const selectEnableChurchCenterDeepLink = (state: RootState): boolean =>
   state.settings.enableChurchCenterDeepLink;
+
+export const selectEnableEinkMode = (state: RootState): boolean =>
+  state.settings.enableEinkMode;
 
 export const settingsReducer = settingsSlice.reducer;

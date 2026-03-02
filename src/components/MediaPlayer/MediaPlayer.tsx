@@ -56,6 +56,8 @@ import {
   getEstimatedMemoryAudioSessionDurationSeconds,
 } from "src/services/memoryAudioConstants";
 import { spacing } from "src/style/layout";
+import { useUiPreferences } from "src/hooks/useUiPreferences";
+import { getPressFeedbackStyle } from "src/style/eink";
 
 interface Props {
   id: string;
@@ -82,6 +84,7 @@ export const MediaPlayer: React.FunctionComponent<Props> = () => {
   const playbackState = usePlaybackState();
   const memoryAudioState = useAppSelector(selectMemoryAudioState);
   const { width: viewportWidth, isTablet } = useTabletLayout();
+  const uiPreferences = useUiPreferences();
 
   const useExpandedPlayerSheet = isTablet;
   const minimizedBaseInset =
@@ -199,22 +202,30 @@ export const MediaPlayer: React.FunctionComponent<Props> = () => {
   const shouldShowPlayer = track !== undefined || isMemorySessionActiveTrack;
   const shouldUseLiquidGlass =
     Platform.OS === "ios" &&
+    !uiPreferences.disableTransparency &&
     isGlassEffectAPIAvailable() &&
     isLiquidGlassAvailable();
-  const miniPrimaryForeground =
-    Platform.OS === "ios"
-      ? DynamicColorIOS({
-          light: "#111319",
-          dark: "#FFFFFF",
-        })
-      : colors.white;
-  const miniSecondaryForeground =
-    Platform.OS === "ios"
-      ? DynamicColorIOS({
-          light: "rgba(17, 19, 25, 0.72)",
-          dark: "rgba(255, 255, 255, 0.86)",
-        })
-      : colors.white;
+  const shouldRenderGlassLayer =
+    Platform.OS === "ios" && !uiPreferences.disableTransparency;
+  const miniPrimaryForeground = uiPreferences.isEinkMode
+    ? colors.black
+    : Platform.OS === "ios"
+    ? DynamicColorIOS({
+        light: "#111319",
+        dark: "#FFFFFF",
+      })
+    : colors.white;
+  const miniSecondaryForeground = uiPreferences.isEinkMode
+    ? colors.darkGrey
+    : Platform.OS === "ios"
+    ? DynamicColorIOS({
+        light: "rgba(17, 19, 25, 0.72)",
+        dark: "rgba(255, 255, 255, 0.86)",
+      })
+    : colors.white;
+  const controlIconColor = uiPreferences.isEinkMode
+    ? colors.black
+    : colors.white;
   const maximizedHeaderTopInset = useExpandedPlayerSheet
     ? spacing.medium
     : insets.top;
@@ -335,6 +346,18 @@ export const MediaPlayer: React.FunctionComponent<Props> = () => {
     const MINI_HEIGHT = 56;
     const slideDistance = MINI_HEIGHT + 120; // much further off-screen for smooth disappearance
 
+    if (uiPreferences.disableAnimations) {
+      if (!shouldShowPlayer && !isPlayerOffscreen) {
+        mountAnimation.setValue(slideDistance);
+        setIsPlayerOffscreen(true);
+        setIsModalVisible(false);
+      } else if (shouldShowPlayer && isPlayerOffscreen) {
+        setIsPlayerOffscreen(false);
+        mountAnimation.setValue(0);
+      }
+      return;
+    }
+
     const unmountTiming = Animated.timing(mountAnimation, {
       toValue: slideDistance, // move completely off-screen
       duration: 250,
@@ -364,36 +387,56 @@ export const MediaPlayer: React.FunctionComponent<Props> = () => {
       mountAnimation.setValue(slideDistance);
       mountTiming.start();
     }
-  }, [shouldShowPlayer, isPlayerOffscreen, mountAnimation]);
+  }, [
+    isPlayerOffscreen,
+    mountAnimation,
+    shouldShowPlayer,
+    uiPreferences.disableAnimations,
+  ]);
 
   // Animate bottom position when tab bar height changes
   useLayoutEffect(() => {
     const newBottomOffset = getBottomOffset();
 
-    // Start animation immediately
+    if (uiPreferences.disableAnimations) {
+      bottomAnimation.setValue(-newBottomOffset);
+      return;
+    }
+
     Animated.timing(bottomAnimation, {
       toValue: -newBottomOffset, // Negative because we're using translateY
       duration: 50,
       useNativeDriver: true,
     }).start();
   }, [
-    tabBarHeight,
-    measuredHeight,
-    insets.bottom,
-    getBottomOffset,
     bottomAnimation,
+    getBottomOffset,
+    insets.bottom,
+    measuredHeight,
+    tabBarHeight,
+    uiPreferences.disableAnimations,
   ]);
 
   // Force animation when tab bar visibility changes (immediate navigation response)
   useLayoutEffect(() => {
     const newBottomOffset = getBottomOffset();
 
+    if (uiPreferences.disableAnimations) {
+      bottomAnimation.setValue(-newBottomOffset);
+      return;
+    }
+
     Animated.timing(bottomAnimation, {
       toValue: -newBottomOffset,
       duration: 50,
       useNativeDriver: true,
     }).start();
-  }, [isTabBarVisible, getBottomOffset, bottomAnimation]);
+  }, [
+    bottomAnimation,
+    getBottomOffset,
+    isTabBarVisible,
+    uiPreferences.disableAnimations,
+  ]);
 
   // Event handlers
   const stopPlayback = useCallback(async () => {
@@ -460,10 +503,13 @@ export const MediaPlayer: React.FunctionComponent<Props> = () => {
     }
 
     // Reset toggling state after a short delay
-    setTimeout(() => {
-      setIsToggling(false);
-    }, 300);
-  }, [isToggling, playerMode, isModalVisible]);
+    setTimeout(
+      () => {
+        setIsToggling(false);
+      },
+      uiPreferences.disableAnimations ? 0 : 300
+    );
+  }, [isModalVisible, isToggling, playerMode, uiPreferences.disableAnimations]);
 
   const toggleRepeatMode = useCallback(async () => {
     if (isMemorySessionActiveTrack) {
@@ -666,7 +712,7 @@ export const MediaPlayer: React.FunctionComponent<Props> = () => {
   }, []);
 
   // Constants
-  const themedStyles = styles();
+  const themedStyles = styles({ isEinkMode: uiPreferences.isEinkMode });
 
   if (isPlayerOffscreen) {
     return;
@@ -691,7 +737,7 @@ export const MediaPlayer: React.FunctionComponent<Props> = () => {
           },
         ]}
       >
-        {Platform.OS === "ios" ? (
+        {shouldRenderGlassLayer ? (
           <>
             {shouldUseLiquidGlass ? (
               <GlassView
@@ -720,7 +766,10 @@ export const MediaPlayer: React.FunctionComponent<Props> = () => {
         <View style={themedStyles.minimizedContent}>
           <Pressable
             onPress={togglePlayerMode}
-            style={themedStyles.minimizedTrackInfo}
+            style={({ pressed }) => [
+              themedStyles.minimizedTrackInfo,
+              getPressFeedbackStyle(pressed, uiPreferences.isEinkMode),
+            ]}
             accessibilityRole="button"
             accessibilityLabel="Open player"
             accessibilityHint="Tap to open the full media player"
@@ -787,7 +836,10 @@ export const MediaPlayer: React.FunctionComponent<Props> = () => {
               onPress={() => {
                 void togglePlayPause();
               }}
-              style={themedStyles.minimizedPlayButton}
+              style={({ pressed }) => [
+                themedStyles.minimizedPlayButton,
+                getPressFeedbackStyle(pressed, uiPreferences.isEinkMode),
+              ]}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               accessibilityRole="button"
               accessibilityLabel={isMemorySessionPlaying ? "Pause" : "Play"}
@@ -801,7 +853,10 @@ export const MediaPlayer: React.FunctionComponent<Props> = () => {
             </Pressable>
             <Pressable
               onPress={() => void stopPlayback()}
-              style={themedStyles.minimizedCloseButton}
+              style={({ pressed }) => [
+                themedStyles.minimizedCloseButton,
+                getPressFeedbackStyle(pressed, uiPreferences.isEinkMode),
+              ]}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               accessibilityRole="button"
               accessibilityLabel="Stop playback"
@@ -815,11 +870,19 @@ export const MediaPlayer: React.FunctionComponent<Props> = () => {
 
       <Modal
         visible={isModalVisible}
-        animationType={useExpandedPlayerSheet ? "fade" : "slide"}
+        animationType={
+          uiPreferences.disableAnimations
+            ? "none"
+            : useExpandedPlayerSheet
+            ? "fade"
+            : "slide"
+        }
         presentationStyle={
           useExpandedPlayerSheet ? "overFullScreen" : "fullScreen"
         }
-        transparent={useExpandedPlayerSheet}
+        transparent={
+          useExpandedPlayerSheet && !uiPreferences.disableTransparency
+        }
         onRequestClose={() => setIsModalVisible(false)}
         statusBarTranslucent
         navigationBarTranslucent
@@ -846,7 +909,7 @@ export const MediaPlayer: React.FunctionComponent<Props> = () => {
               { paddingBottom: insets.bottom },
             ]}
           >
-            {Platform.OS === "ios" ? (
+            {shouldRenderGlassLayer ? (
               <>
                 {shouldUseLiquidGlass ? (
                   <GlassView
@@ -878,22 +941,36 @@ export const MediaPlayer: React.FunctionComponent<Props> = () => {
             >
               <Pressable
                 onPress={togglePlayerMode}
-                style={themedStyles.maximizedCloseButton}
+                style={({ pressed }) => [
+                  themedStyles.maximizedCloseButton,
+                  getPressFeedbackStyle(pressed, uiPreferences.isEinkMode),
+                ]}
                 accessibilityRole="button"
                 accessibilityLabel="Close player"
                 accessibilityHint="Tap to minimize the player"
               >
-                <Ionicons name="chevron-down" size={28} color={colors.white} />
+                <Ionicons
+                  name="chevron-down"
+                  size={28}
+                  color={uiPreferences.isEinkMode ? colors.black : colors.white}
+                />
               </Pressable>
               <Text style={themedStyles.maximizedTitle}>Now Playing</Text>
               <Pressable
                 onPress={() => void stopPlayback()}
-                style={themedStyles.maximizedStopButton}
+                style={({ pressed }) => [
+                  themedStyles.maximizedStopButton,
+                  getPressFeedbackStyle(pressed, uiPreferences.isEinkMode),
+                ]}
                 accessibilityRole="button"
                 accessibilityLabel="Stop playback"
                 accessibilityHint="Tap to stop the current track"
               >
-                <Ionicons name="stop" size={24} color={colors.white} />
+                <Ionicons
+                  name="stop"
+                  size={24}
+                  color={uiPreferences.isEinkMode ? colors.black : colors.white}
+                />
               </Pressable>
             </View>
 
@@ -924,7 +1001,7 @@ export const MediaPlayer: React.FunctionComponent<Props> = () => {
                       <Ionicons
                         name="musical-notes"
                         size={60}
-                        color={colors.white}
+                        color={controlIconColor}
                       />
                     </View>
                   )}
@@ -964,7 +1041,13 @@ export const MediaPlayer: React.FunctionComponent<Props> = () => {
                     {Platform.OS === "ios" ? (
                       <Pressable
                         onPress={handleScrubberPress}
-                        style={themedStyles.maximizedScrubberTrack}
+                        style={({ pressed }) => [
+                          themedStyles.maximizedScrubberTrack,
+                          getPressFeedbackStyle(
+                            pressed,
+                            uiPreferences.isEinkMode
+                          ),
+                        ]}
                         hitSlop={{ top: 20, bottom: 20, left: 0, right: 0 }}
                         accessibilityRole="button"
                         accessibilityLabel="Progress bar"
@@ -1049,7 +1132,10 @@ export const MediaPlayer: React.FunctionComponent<Props> = () => {
                 {/* Removed shuffle */}
                 <Pressable
                   onPress={() => void skipToPrevious()}
-                  style={themedStyles.maximizedSecondaryButton}
+                  style={({ pressed }) => [
+                    themedStyles.maximizedSecondaryButton,
+                    getPressFeedbackStyle(pressed, uiPreferences.isEinkMode),
+                  ]}
                   accessibilityRole="button"
                   accessibilityLabel="Skip back 1 minute"
                   accessibilityHint="Tap to skip back 1 minute in the track"
@@ -1058,7 +1144,7 @@ export const MediaPlayer: React.FunctionComponent<Props> = () => {
                     <Ionicons
                       name="return-down-back"
                       size={24}
-                      color={colors.white}
+                      color={controlIconColor}
                     />
                     <Text style={themedStyles.maximizedButtonLabel}>-1m</Text>
                   </View>
@@ -1066,13 +1152,20 @@ export const MediaPlayer: React.FunctionComponent<Props> = () => {
 
                 <Pressable
                   onPress={() => void jumpBack()}
-                  style={themedStyles.maximizedSecondaryButton}
+                  style={({ pressed }) => [
+                    themedStyles.maximizedSecondaryButton,
+                    getPressFeedbackStyle(pressed, uiPreferences.isEinkMode),
+                  ]}
                   accessibilityRole="button"
                   accessibilityLabel="Jump back 15 seconds"
                   accessibilityHint="Tap to jump back 15 seconds in the track"
                 >
                   <View style={themedStyles.maximizedButtonWithLabel}>
-                    <Ionicons name="play-back" size={24} color={colors.white} />
+                    <Ionicons
+                      name="play-back"
+                      size={24}
+                      color={controlIconColor}
+                    />
                     <Text style={themedStyles.maximizedButtonLabel}>-15s</Text>
                   </View>
                 </Pressable>
@@ -1083,7 +1176,10 @@ export const MediaPlayer: React.FunctionComponent<Props> = () => {
                   onPress={() => {
                     void togglePlayPause();
                   }}
-                  style={themedStyles.maximizedPlayButton}
+                  style={({ pressed }) => [
+                    themedStyles.maximizedPlayButton,
+                    getPressFeedbackStyle(pressed, uiPreferences.isEinkMode),
+                  ]}
                   accessibilityRole="button"
                   accessibilityLabel={isMemorySessionPlaying ? "Pause" : "Play"}
                   accessibilityHint="Tap to play or pause the current track"
@@ -1091,7 +1187,7 @@ export const MediaPlayer: React.FunctionComponent<Props> = () => {
                   <Ionicons
                     name={isMemorySessionPlaying ? "pause" : "play"}
                     size={48}
-                    color={colors.white}
+                    color={controlIconColor}
                   />
                 </Pressable>
               </View>
@@ -1099,7 +1195,10 @@ export const MediaPlayer: React.FunctionComponent<Props> = () => {
               <View style={themedStyles.maximizedSecondaryControls}>
                 <Pressable
                   onPress={() => void jumpForward()}
-                  style={themedStyles.maximizedSecondaryButton}
+                  style={({ pressed }) => [
+                    themedStyles.maximizedSecondaryButton,
+                    getPressFeedbackStyle(pressed, uiPreferences.isEinkMode),
+                  ]}
                   accessibilityRole="button"
                   accessibilityLabel="Jump forward 15 seconds"
                   accessibilityHint="Tap to jump forward 15 seconds in the track"
@@ -1108,7 +1207,7 @@ export const MediaPlayer: React.FunctionComponent<Props> = () => {
                     <Ionicons
                       name="play-forward"
                       size={24}
-                      color={colors.white}
+                      color={controlIconColor}
                     />
                     <Text style={themedStyles.maximizedButtonLabel}>+15s</Text>
                   </View>
@@ -1116,7 +1215,10 @@ export const MediaPlayer: React.FunctionComponent<Props> = () => {
 
                 <Pressable
                   onPress={() => void skipToNext()}
-                  style={themedStyles.maximizedSecondaryButton}
+                  style={({ pressed }) => [
+                    themedStyles.maximizedSecondaryButton,
+                    getPressFeedbackStyle(pressed, uiPreferences.isEinkMode),
+                  ]}
                   accessibilityRole="button"
                   accessibilityLabel="Skip forward 1 minute"
                   accessibilityHint="Tap to skip forward 1 minute in the track"
@@ -1125,7 +1227,7 @@ export const MediaPlayer: React.FunctionComponent<Props> = () => {
                     <Ionicons
                       name="return-down-forward"
                       size={24}
-                      color={colors.white}
+                      color={controlIconColor}
                     />
                     <Text style={themedStyles.maximizedButtonLabel}>+1m</Text>
                   </View>
@@ -1142,10 +1244,11 @@ export const MediaPlayer: React.FunctionComponent<Props> = () => {
                   <Pressable
                     key={rate}
                     onPress={() => void changePlaybackRate(rate)}
-                    style={[
+                    style={({ pressed }) => [
                       themedStyles.maximizedPlaybackRateButton,
                       playbackRate === rate &&
                         themedStyles.maximizedPlaybackRateButtonActive,
+                      getPressFeedbackStyle(pressed, uiPreferences.isEinkMode),
                     ]}
                     accessibilityRole="button"
                     accessibilityLabel={`Playback rate ${rate}x`}
@@ -1173,11 +1276,15 @@ export const MediaPlayer: React.FunctionComponent<Props> = () => {
                 <Pressable
                   onPress={() => void toggleRepeatMode()}
                   disabled={isMemorySessionActiveTrack}
-                  style={[
+                  style={({ pressed }) => [
                     themedStyles.maximizedPlaybackOptionButton,
                     repeatMode !== "off" &&
                       themedStyles.maximizedPlaybackOptionButtonActive,
-                    isMemorySessionActiveTrack && { opacity: 0.5 },
+                    getPressFeedbackStyle(pressed, uiPreferences.isEinkMode),
+                    isMemorySessionActiveTrack &&
+                      (uiPreferences.isEinkMode
+                        ? { borderColor: colors.black }
+                        : { opacity: 0.5 }),
                   ]}
                   accessibilityRole="button"
                   accessibilityLabel={
@@ -1188,7 +1295,7 @@ export const MediaPlayer: React.FunctionComponent<Props> = () => {
                   <Ionicons
                     name={repeatMode === "track" ? "repeat" : "repeat-outline"}
                     size={20}
-                    color={colors.white}
+                    color={controlIconColor}
                   />
                   <Text style={themedStyles.maximizedPlaybackOptionLabel}>
                     {repeatMode === "track" ? "Repeat Track" : "Repeat Off"}

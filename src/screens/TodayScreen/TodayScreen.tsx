@@ -111,6 +111,8 @@ import {
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore - No types for this package
 import Bar from "react-native-progress/Bar";
+import { useUiPreferences } from "src/hooks/useUiPreferences";
+import { getPressFeedbackStyle } from "src/style/eink";
 
 const playEpisode = async (episode: FeedItem) => {
   const isTrackPlayerInitialized = await initializeTrackPlayer();
@@ -177,6 +179,7 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
   const { isTablet } = useTabletLayout();
   const readingAudioUrl = useAppSelector(selectAudioUrl);
   const readingAudioTitle = useAppSelector(selectPassageHeader);
+  const uiPreferences = useUiPreferences();
 
   // Master-detail state (tablet only)
   const [selectedDayIndex, setSelectedDayIndex] = useState<number>();
@@ -462,7 +465,13 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
   };
 
   // Constants
-  const themedStyles = styles({ theme });
+  const themedStyles = styles({
+    theme,
+    isEinkMode: uiPreferences.isEinkMode,
+  });
+  const actionColor = uiPreferences.isEinkMode
+    ? theme.colors.primary
+    : colors.accent;
   const currentDayIndex = getDayOfYearIndices(currentDate).dayIndex;
   const subscribedPlan = availablePlans.find(
     (plan) => plan.id === subscribedPlans[0]
@@ -497,6 +506,7 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
   }, [insets.top, isTablet, tabBarHeight]);
   const shouldUseLiquidGlassButtons =
     Platform.OS === "ios" &&
+    !uiPreferences.disableTransparency &&
     isGlassEffectAPIAvailable() &&
     isLiquidGlassAvailable();
   // We can do this because we really only need en US
@@ -511,22 +521,23 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
   ];
 
   const scrollToToday = useCallback(
-    (animated = true) => {
+    (animated = !uiPreferences.disableAnimations) => {
       const dayCount = readingPlanWeek?.days.length ?? 0;
       if (!readingScrollViewRef.current || dayCount === 0) {
         return;
       }
 
-      pendingScrollAnimatedRef.current = animated;
+      pendingScrollAnimatedRef.current =
+        animated && !uiPreferences.disableAnimations;
       const targetIndex =
         currentDayIndex < dayCount ? currentDayIndex : dayCount - 1;
 
       readingScrollViewRef.current.scrollToIndex({
         index: targetIndex,
-        animated,
+        animated: pendingScrollAnimatedRef.current,
       });
     },
-    [readingPlanWeek, currentDayIndex]
+    [currentDayIndex, readingPlanWeek, uiPreferences.disableAnimations]
   );
 
   const renderReadingItem: ListRenderItem<ReadingPlanDay> = ({
@@ -547,23 +558,37 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
           themedStyles.contentCard,
           {
             marginRight: 0,
-            opacity: pressed ? 0.7 : 1,
+            ...getPressFeedbackStyle(pressed, uiPreferences.isEinkMode),
           },
         ]}
       >
         <Pressable
           onPress={() => handleCompleteDay(!item.isComplete, index)}
           accessibilityRole="button"
-          style={({ pressed }) => ({
-            opacity: pressed ? 0.7 : 1,
-          })}
+          style={({ pressed }) =>
+            getPressFeedbackStyle(pressed, uiPreferences.isEinkMode)
+          }
         >
           {item.isComplete ? (
             <Animated.View
-              entering={FadeIn.duration(250)}
-              exiting={FadeOut.duration(250)}
+              entering={
+                uiPreferences.disableAnimations
+                  ? undefined
+                  : FadeIn.duration(250)
+              }
+              exiting={
+                uiPreferences.disableAnimations
+                  ? undefined
+                  : FadeOut.duration(250)
+              }
             >
-              <Ionicons name="checkbox" size={36} color={colors.green} />
+              <Ionicons
+                name="checkbox"
+                size={36}
+                color={
+                  uiPreferences.isEinkMode ? theme.colors.primary : colors.green
+                }
+              />
             </Animated.View>
           ) : (
             <Ionicons
@@ -638,7 +663,7 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
         accessibilityRole="button"
         style={({ pressed }) => [
           themedStyles.memoryPassageButton,
-          { opacity: pressed ? 0.7 : 1 },
+          getPressFeedbackStyle(pressed, uiPreferences.isEinkMode),
         ]}
       >
         <View style={themedStyles.contentCardColumn}>
@@ -654,9 +679,15 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
             <ActivityIndicator size="small" color={theme.colors.text} />
           ) : (
             <Animated.View
-              entering={FadeIn.duration(500)}
-              exiting={FadeOut}
-              layout={LinearTransition}
+              entering={
+                uiPreferences.disableAnimations
+                  ? undefined
+                  : FadeIn.duration(500)
+              }
+              exiting={uiPreferences.disableAnimations ? undefined : FadeOut}
+              layout={
+                uiPreferences.disableAnimations ? undefined : LinearTransition
+              }
             >
               <Text
                 style={{
@@ -698,7 +729,10 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
             </Text>
             <Pressable
               accessibilityRole="button"
-              style={themedStyles.prayerActionButton}
+              style={({ pressed }) => [
+                themedStyles.prayerActionButton,
+                getPressFeedbackStyle(pressed, uiPreferences.isEinkMode),
+              ]}
               onPress={() => {
                 void dispatch(fetchDailyPrayerAssignment());
               }}
@@ -713,7 +747,10 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
             </Text>
             <Pressable
               accessibilityRole="button"
-              style={themedStyles.prayerActionButton}
+              style={({ pressed }) => [
+                themedStyles.prayerActionButton,
+                getPressFeedbackStyle(pressed, uiPreferences.isEinkMode),
+              ]}
               disabled={isLoadingPrayerAssignment}
               onPress={handleGeneratePrayerAssignment}
             >
@@ -731,7 +768,10 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
                 </Text>
                 <Pressable
                   accessibilityRole="button"
-                  style={themedStyles.prayerActionButton}
+                  style={({ pressed }) => [
+                    themedStyles.prayerActionButton,
+                    getPressFeedbackStyle(pressed, uiPreferences.isEinkMode),
+                  ]}
                   disabled={isLoadingPrayerAssignment}
                   onPress={handleGeneratePrayerAssignment}
                 >
@@ -771,7 +811,7 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
           style={({ pressed }) => [
             themedStyles.contentCard,
             tabletStyle,
-            { opacity: pressed ? 0.7 : 1 },
+            getPressFeedbackStyle(pressed, uiPreferences.isEinkMode),
           ]}
         >
           <Image
@@ -814,7 +854,11 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
         />
       ) : (
         <Animated.View
-          layout={LinearTransition.duration(280)}
+          layout={
+            uiPreferences.disableAnimations
+              ? undefined
+              : LinearTransition.duration(280)
+          }
           style={
             isTablet && selectedDayIndex !== undefined
               ? themedStyles.splitView
@@ -822,12 +866,24 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
           }
         >
           <Animated.View
-            layout={LinearTransition.duration(280)}
+            layout={
+              uiPreferences.disableAnimations
+                ? undefined
+                : LinearTransition.duration(280)
+            }
             style={{ flex: 1 }}
           >
             <Animated.ScrollView
-              entering={FadeIn.duration(500)}
-              exiting={FadeOut.duration(500)}
+              entering={
+                uiPreferences.disableAnimations
+                  ? undefined
+                  : FadeIn.duration(500)
+              }
+              exiting={
+                uiPreferences.disableAnimations
+                  ? undefined
+                  : FadeOut.duration(500)
+              }
               style={themedStyles.scrollView}
               contentInsetAdjustmentBehavior="automatic"
               contentContainerStyle={{
@@ -835,7 +891,11 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
               }}
             >
               <Animated.View
-                entering={FadeIn.duration(500)}
+                entering={
+                  uiPreferences.disableAnimations
+                    ? undefined
+                    : FadeIn.duration(500)
+                }
                 style={themedStyles.notifications}
               >
                 {notifications?.map((notification) => (
@@ -847,9 +907,11 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
                     key={notification.id}
                     style={({ pressed }) => [
                       themedStyles.notificationBox,
-                      {
-                        opacity: pressed ? 0.5 : 1,
-                      },
+                      getPressFeedbackStyle(
+                        pressed,
+                        uiPreferences.isEinkMode,
+                        0.5
+                      ),
                     ]}
                   >
                     <View style={themedStyles.notificationInfo}>
@@ -871,21 +933,30 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
               </Animated.View>
               <View style={themedStyles.content}>
                 {/* Reading Section */}
-                <Animated.View entering={FadeIn.duration(500)}>
+                <Animated.View
+                  entering={
+                    uiPreferences.disableAnimations
+                      ? undefined
+                      : FadeIn.duration(500)
+                  }
+                >
                   <View style={themedStyles.headerRow}>
                     <Text style={themedStyles.header}>Reading</Text>
                     {!useWideLayout && (
                       <Pressable
                         style={({ pressed }) => [
                           themedStyles.textButton,
-                          { opacity: pressed ? 0.7 : 1 },
+                          getPressFeedbackStyle(
+                            pressed,
+                            uiPreferences.isEinkMode
+                          ),
                         ]}
                         accessibilityRole="button"
                         onPress={() => {
                           scrollToToday();
                         }}
                       >
-                        <Text style={{ color: colors.accent, fontSize: 18 }}>
+                        <Text style={{ color: actionColor, fontSize: 18 }}>
                           Show Today
                         </Text>
                       </Pressable>
@@ -943,7 +1014,7 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
                       color={colors.green}
                       animationType="timing"
                       animationConfig={{
-                        duration: 500,
+                        duration: uiPreferences.disableAnimations ? 0 : 500,
                       }}
                       indeterminate={readingPlanCompletionPercentage <= 0}
                       style={{
@@ -1021,9 +1092,21 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
           </Animated.View>
           {isTablet && selectedDayIndex !== undefined && (
             <Animated.View
-              layout={LinearTransition.duration(280)}
-              entering={FadeInRight.duration(280)}
-              exiting={FadeOutRight.duration(220)}
+              layout={
+                uiPreferences.disableAnimations
+                  ? undefined
+                  : LinearTransition.duration(280)
+              }
+              entering={
+                uiPreferences.disableAnimations
+                  ? undefined
+                  : FadeInRight.duration(280)
+              }
+              exiting={
+                uiPreferences.disableAnimations
+                  ? undefined
+                  : FadeOutRight.duration(220)
+              }
               style={themedStyles.splitViewDetail}
               onLayout={handleDetailLayout}
             >
@@ -1044,7 +1127,11 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
                         themedStyles.splitViewDetailHeaderButton,
                         shouldUseLiquidGlassButtons &&
                           themedStyles.splitViewDetailHeaderButtonLiquidGlass,
-                        { opacity: pressed ? 0.65 : 1 },
+                        getPressFeedbackStyle(
+                          pressed,
+                          uiPreferences.isEinkMode,
+                          0.65
+                        ),
                       ]}
                     >
                       {shouldUseLiquidGlassButtons && (
@@ -1059,7 +1146,7 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
                       <Ionicons
                         name="text-outline"
                         size={22}
-                        color={colors.accent}
+                        color={actionColor}
                       />
                       <Text
                         style={themedStyles.splitViewDetailHeaderButtonText}
@@ -1077,7 +1164,11 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
                           themedStyles.splitViewDetailHeaderButton,
                           shouldUseLiquidGlassButtons &&
                             themedStyles.splitViewDetailHeaderButtonLiquidGlass,
-                          { opacity: pressed ? 0.65 : 1 },
+                          getPressFeedbackStyle(
+                            pressed,
+                            uiPreferences.isEinkMode,
+                            0.65
+                          ),
                         ]}
                       >
                         {shouldUseLiquidGlassButtons && (
@@ -1094,7 +1185,7 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
                         <Ionicons
                           name="volume-high-outline"
                           size={22}
-                          color={colors.accent}
+                          color={actionColor}
                         />
                         <Text
                           style={themedStyles.splitViewDetailHeaderButtonText}
@@ -1113,7 +1204,11 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
                       themedStyles.splitViewDetailCloseButton,
                       shouldUseLiquidGlassButtons &&
                         themedStyles.splitViewDetailCloseButtonLiquidGlass,
-                      { opacity: pressed ? 0.65 : 1 },
+                      getPressFeedbackStyle(
+                        pressed,
+                        uiPreferences.isEinkMode,
+                        0.65
+                      ),
                     ]}
                   >
                     {shouldUseLiquidGlassButtons && (

@@ -1,7 +1,10 @@
 /* eslint-disable react/prop-types */
 import React, { useEffect, useRef, useState } from "react";
 import { Platform, Pressable, SectionList, Text, View } from "react-native";
-import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useAppSelector, useAppDispatch } from "src/hooks/store";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
@@ -25,6 +28,8 @@ import {
 } from "src/app/utils";
 import { spacing } from "src/style/layout";
 import { styles } from "./ReadingPlanScreen.styles";
+import { useUiPreferences } from "src/hooks/useUiPreferences";
+import { getPressFeedbackStyle } from "src/style/eink";
 
 type ReadingPlanProps = NativeStackScreenProps<
   RootStackParamList,
@@ -60,6 +65,7 @@ export const ReadingPlanListItem: React.FunctionComponent<{
   const theme = useTheme();
   const dispatch = useAppDispatch();
   const readingPlanProgress = useAppSelector(selectReadingPlanProgressState);
+  const uiPreferences = useUiPreferences();
 
   // Compute isComplete from Redux state in the item itself
   // This allows only the affected item to re-render when progress changes
@@ -68,7 +74,10 @@ export const ReadingPlanListItem: React.FunctionComponent<{
       ?.isCompleted ?? false;
 
   // Constants
-  const themedStyles = styles({ theme });
+  const themedStyles = styles({
+    theme,
+    isEinkMode: uiPreferences.isEinkMode,
+  });
 
   // Event handlers
   const handleCompleteDay = (newIsComplete: boolean) => {
@@ -97,16 +106,19 @@ export const ReadingPlanListItem: React.FunctionComponent<{
     <Pressable
       onPress={() => handleRowPress(item, handleCompleteDay)}
       accessibilityRole="button"
-      style={({ pressed }) => ({
-        backgroundColor: pressed ? theme.colors.background : theme.colors.card,
-      })}
+      style={({ pressed }) => [
+        { backgroundColor: theme.colors.card },
+        getPressFeedbackStyle(pressed, uiPreferences.isEinkMode),
+      ]}
     >
       <View style={themedStyles.planItem}>
         {isComplete ? (
           <Ionicons
             name="checkmark-circle"
             size={36}
-            color={colors.green}
+            color={
+              uiPreferences.isEinkMode ? theme.colors.primary : colors.green
+            }
             style={themedStyles.planItemCheckbox}
             onPress={() => handleCompleteDay(false)}
           />
@@ -161,7 +173,8 @@ export const ReadingPlanScreen: React.FunctionComponent<ReadingPlanProps> = ({
   navigation,
 }: ReadingPlanProps) => {
   const isIOS26OrNewer =
-    Platform.OS === "ios" && Number.parseInt(String(Platform.Version), 10) >= 26;
+    Platform.OS === "ios" &&
+    Number.parseInt(String(Platform.Version), 10) >= 26;
 
   // Custom hooks
   const readingPlan = useAppSelector(selectReadingPlan);
@@ -170,6 +183,10 @@ export const ReadingPlanScreen: React.FunctionComponent<ReadingPlanProps> = ({
   const theme = useTheme();
   const miniPlayerHeight = useMiniPlayerHeight();
   const insets = useSafeAreaInsets();
+  const uiPreferences = useUiPreferences();
+  const actionColor = uiPreferences.isEinkMode
+    ? theme.colors.primary
+    : colors.accent;
 
   // Ref Hooks
   const scrollViewRef = useRef<SectionList<ReadingPlanListItemData>>(null);
@@ -282,7 +299,7 @@ export const ReadingPlanScreen: React.FunctionComponent<ReadingPlanProps> = ({
             label: "Today",
             onPress: scrollToToday,
             variant: "plain",
-            tintColor: tintColor ?? colors.accent,
+            tintColor: tintColor ?? actionColor,
             sharesBackground: false,
             disabled: !canScrollToToday,
           },
@@ -295,18 +312,25 @@ export const ReadingPlanScreen: React.FunctionComponent<ReadingPlanProps> = ({
       unstable_headerRightItems: undefined,
       headerRight: () => (
         <Pressable
-          style={{
+          style={({ pressed }) => ({
             marginRight: spacing.large,
-          }}
+            ...getPressFeedbackStyle(pressed, uiPreferences.isEinkMode),
+          })}
           accessibilityRole="button"
           onPress={scrollToToday}
           accessibilityState={{ disabled: !canScrollToToday }}
         >
-          <Text style={{ color: colors.accent, fontSize: 18 }}>Today</Text>
+          <Text style={{ color: actionColor, fontSize: 18 }}>Today</Text>
         </Pressable>
       ),
     });
-  }, [navigation, listData, isIOS26OrNewer]);
+  }, [
+    actionColor,
+    isIOS26OrNewer,
+    listData,
+    navigation,
+    uiPreferences.isEinkMode,
+  ]);
 
   // Event handlers
   const handleRowPress = (
@@ -332,7 +356,7 @@ export const ReadingPlanScreen: React.FunctionComponent<ReadingPlanProps> = ({
   };
 
   // Constants
-  const themedStyles = styles({ theme });
+  const themedStyles = styles({ theme, isEinkMode: uiPreferences.isEinkMode });
 
   return (
     <SafeAreaView edges={["left", "right"]} style={themedStyles.screen}>

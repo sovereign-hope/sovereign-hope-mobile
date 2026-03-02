@@ -6,6 +6,7 @@ import { header2, header3 } from "src/style/typography";
 
 type Props = {
   theme: Theme;
+  isEinkMode?: boolean;
 };
 
 interface Style {
@@ -32,7 +33,7 @@ interface Style {
   studyQuestion: TextStyle;
 }
 
-export const styles = ({ theme }: Props): Style =>
+export const styles = ({ theme, isEinkMode = false }: Props): Style =>
   StyleSheet.create({
     container: {
       flex: 1,
@@ -71,10 +72,12 @@ export const styles = ({ theme }: Props): Style =>
       backgroundColor: theme.colors.background,
     },
     buttonSecondaryPressed: {
-      opacity: 0.8,
+      opacity: isEinkMode ? 1 : 0.8,
+      backgroundColor: isEinkMode ? colors.grey0 : theme.colors.background,
     },
     buttonSecondaryDisabled: {
-      opacity: 0.4,
+      opacity: isEinkMode ? 1 : 0.4,
+      backgroundColor: isEinkMode ? colors.grey0 : theme.colors.background,
     },
     buttonSecondaryText: {
       color: theme.colors.text,
@@ -88,12 +91,14 @@ export const styles = ({ theme }: Props): Style =>
       justifyContent: "center",
       alignItems: "center",
       padding: spacing.medium,
-      backgroundColor: colors.red,
+      backgroundColor: isEinkMode ? theme.colors.background : colors.red,
+      borderWidth: isEinkMode ? 1 : 0,
+      borderColor: isEinkMode ? theme.colors.primary : "transparent",
       borderRadius: radius.large,
       marginBottom: spacing.medium,
     },
     memoryButtonText: {
-      color: colors.white,
+      color: isEinkMode ? theme.colors.primary : colors.white,
     },
     memoryButtonIcon: {
       fontSize: 32,
@@ -108,17 +113,19 @@ export const styles = ({ theme }: Props): Style =>
       padding: spacing.lmedium,
       borderRadius: radius.large,
       backgroundColor: theme.colors.card,
+      borderWidth: isEinkMode ? 1 : 0,
+      borderColor: theme.colors.border,
       shadowColor: colors.black,
       shadowOffset: {
         width: 0,
         height: 2,
       },
-      shadowOpacity: 0.1,
+      shadowOpacity: isEinkMode ? 0 : 0.1,
     },
     contentCardColumn: {
       flex: 1,
       flexDirection: "column",
-      color: theme.dark ? colors.white : colors.darkGrey,
+      color: theme.colors.text,
     },
     contentCardRow: {
       flexDirection: "row",
@@ -127,12 +134,12 @@ export const styles = ({ theme }: Props): Style =>
     },
     contentCardHeader: {
       ...header3,
-      color: theme.dark ? colors.white : colors.darkGrey,
+      color: theme.colors.text,
       marginBottom: spacing.medium,
     },
     studyQuestionHeader: {
       ...header2,
-      color: colors.accent,
+      color: isEinkMode ? theme.colors.primary : colors.accent,
     },
     studyQuestionSubHeader: {
       fontWeight: "bold",

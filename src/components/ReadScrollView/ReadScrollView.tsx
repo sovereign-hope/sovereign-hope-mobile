@@ -29,6 +29,8 @@ import { selectReadingFontSize } from "src/redux/settingsSlice";
 import { selectCurrentPassageCommentaryHTML } from "src/redux/commentarySlice";
 import cheerio from "cheerio";
 import Collapsible from "react-native-collapsible";
+import { useUiPreferences } from "src/hooks/useUiPreferences";
+import { getPressFeedbackStyle } from "src/style/eink";
 
 const PASSAGE_FADE_DURATION_MS = 220;
 const PASSAGE_SCROLL_RESET_FALLBACK_MS = 700;
@@ -79,6 +81,7 @@ export const ReadScrollView: React.FunctionComponent<ReadScrollViewProps> = ({
   const fontSize = useAppSelector(selectReadingFontSize);
   const { width: windowWidth } = useWindowDimensions();
   const width = contentWidthProp ?? windowWidth;
+  const uiPreferences = useUiPreferences();
 
   // Ref Hooks
   const scrollViewRef = useRef<ScrollView>(null);
@@ -89,30 +92,39 @@ export const ReadScrollView: React.FunctionComponent<ReadScrollViewProps> = ({
   const revealTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const navigationStartPassageIndexRef = useRef<number | null>(null);
 
+  const runTiming = React.useCallback(
+    (
+      animatedValue: Animated.Value,
+      toValue: number,
+      duration: number,
+      useNativeDriver = true
+    ) => {
+      if (uiPreferences.disableAnimations) {
+        animatedValue.setValue(toValue);
+        return;
+      }
+
+      Animated.timing(animatedValue, {
+        toValue,
+        duration,
+        useNativeDriver,
+      }).start();
+    },
+    [uiPreferences.disableAnimations]
+  );
+
   // Effect hooks
   useEffect(() => {
-    Animated.timing(mountAnimation, {
-      toValue: 1,
-      duration: 500,
-      useNativeDriver: true,
-    }).start();
-  }, [mountAnimation]);
+    runTiming(mountAnimation, 1, 500);
+  }, [mountAnimation, runTiming]);
 
   const fadeInPassage = React.useCallback(() => {
-    Animated.timing(passageTransitionOpacity, {
-      toValue: 1,
-      duration: PASSAGE_FADE_DURATION_MS,
-      useNativeDriver: true,
-    }).start();
-  }, [passageTransitionOpacity]);
+    runTiming(passageTransitionOpacity, 1, PASSAGE_FADE_DURATION_MS);
+  }, [passageTransitionOpacity, runTiming]);
 
   const fadeOutPassage = React.useCallback(() => {
-    Animated.timing(passageTransitionOpacity, {
-      toValue: 0,
-      duration: PASSAGE_FADE_DURATION_MS,
-      useNativeDriver: true,
-    }).start();
-  }, [passageTransitionOpacity]);
+    runTiming(passageTransitionOpacity, 0, PASSAGE_FADE_DURATION_MS);
+  }, [passageTransitionOpacity, runTiming]);
 
   const revealPassageAfterScrollReset = React.useCallback(() => {
     if (isNavigatingPassages || !pendingRevealRef.current) {
@@ -164,7 +176,10 @@ export const ReadScrollView: React.FunctionComponent<ReadScrollViewProps> = ({
     if (prevPassageIndexRef.current !== passageIndex) {
       prevPassageIndexRef.current = passageIndex;
       pendingRevealRef.current = true;
-      scrollViewRef.current?.scrollTo({ y: 0, animated: true });
+      scrollViewRef.current?.scrollTo({
+        y: 0,
+        animated: !uiPreferences.disableAnimations,
+      });
       if (revealTimeoutRef.current) {
         clearTimeout(revealTimeoutRef.current);
       }
@@ -172,7 +187,12 @@ export const ReadScrollView: React.FunctionComponent<ReadScrollViewProps> = ({
         revealPassageAfterScrollReset();
       }, PASSAGE_SCROLL_RESET_FALLBACK_MS);
     }
-  }, [adjustsForInsets, passageIndex, revealPassageAfterScrollReset]);
+  }, [
+    adjustsForInsets,
+    passageIndex,
+    revealPassageAfterScrollReset,
+    uiPreferences.disableAnimations,
+  ]);
 
   const handleScroll = React.useCallback(
     (event: NativeSyntheticEvent<NativeScrollEvent>) => {
@@ -195,7 +215,7 @@ export const ReadScrollView: React.FunctionComponent<ReadScrollViewProps> = ({
   }, [commentaryHTML]);
 
   // Constants
-  const themedStyles = styles({ theme });
+  const themedStyles = styles({ theme, isEinkMode: uiPreferences.isEinkMode });
 
   const tagsStyles: Record<string, MixedStyleDeclaration> = useMemo(
     () => ({
@@ -230,7 +250,7 @@ export const ReadScrollView: React.FunctionComponent<ReadScrollViewProps> = ({
         color: theme.colors.text,
       },
       a: {
-        color: colors.accent,
+        color: uiPreferences.isEinkMode ? theme.colors.primary : colors.accent,
         textDecorationLine: "none",
         fontWeight: "bold",
       },
@@ -248,7 +268,7 @@ export const ReadScrollView: React.FunctionComponent<ReadScrollViewProps> = ({
       },
       sup: {
         fontSize: fontSize * 0.7,
-        color: colors.accent,
+        color: uiPreferences.isEinkMode ? theme.colors.primary : colors.accent,
         fontWeight: "bold",
       },
       small: {
@@ -262,7 +282,12 @@ export const ReadScrollView: React.FunctionComponent<ReadScrollViewProps> = ({
         marginBottom: spacing.small,
       },
     }),
-    [fontSize, theme.colors.text]
+    [
+      fontSize,
+      theme.colors.primary,
+      theme.colors.text,
+      uiPreferences.isEinkMode,
+    ]
   );
 
   const customHTMLElementModels = useMemo(
@@ -285,11 +310,11 @@ export const ReadScrollView: React.FunctionComponent<ReadScrollViewProps> = ({
       },
       verse: {
         fontStyle: "italic" as const,
-        color: colors.red,
+        color: uiPreferences.isEinkMode ? theme.colors.primary : colors.red,
         marginVertical: spacing.small,
       },
     }),
-    []
+    [theme.colors.primary, uiPreferences.isEinkMode]
   );
 
   const isPreviousPassageDisabled =
@@ -324,9 +349,9 @@ export const ReadScrollView: React.FunctionComponent<ReadScrollViewProps> = ({
             accessibilityRole="button"
             accessibilityLabel="Close reading"
             accessibilityHint="Closes the reading detail pane"
-            style={({ pressed }) => ({
-              opacity: pressed ? 0.7 : 1,
-            })}
+            style={({ pressed }) =>
+              getPressFeedbackStyle(pressed, uiPreferences.isEinkMode)
+            }
           >
             <Ionicons name="close" size={24} color={theme.colors.text} />
           </Pressable>
@@ -349,9 +374,7 @@ export const ReadScrollView: React.FunctionComponent<ReadScrollViewProps> = ({
               accessibilityRole="button"
               style={({ pressed }) => [
                 themedStyles.contentCard,
-                {
-                  opacity: pressed ? 0.7 : 1,
-                },
+                getPressFeedbackStyle(pressed, uiPreferences.isEinkMode),
               ]}
             >
               <View style={themedStyles.contentCardColumn}>
@@ -370,7 +393,10 @@ export const ReadScrollView: React.FunctionComponent<ReadScrollViewProps> = ({
                     color={theme.colors.border}
                   />
                 </View>
-                <Collapsible collapsed={!isShowingCommentary}>
+                <Collapsible
+                  collapsed={!isShowingCommentary}
+                  duration={uiPreferences.disableAnimations ? 0 : 300}
+                >
                   <RenderHtml
                     contentWidth={width}
                     source={{ html: commentaryHTMLTags }}
@@ -427,32 +453,32 @@ export const ReadScrollView: React.FunctionComponent<ReadScrollViewProps> = ({
             accessibilityRole="button"
             onPressIn={() => {
               setIsPressingHideButton(true);
-              Animated.timing(animation, {
-                toValue: 0,
-                duration: 500,
-                useNativeDriver: false,
-              }).start();
+              runTiming(animation, 0, 500, false);
             }}
             onPressOut={() => {
               setIsPressingHideButton(false);
-              Animated.timing(animation, {
-                toValue: 1,
-                duration: 500,
-                useNativeDriver: false,
-              }).start();
+              runTiming(animation, 1, 500, false);
             }}
             style={[
               themedStyles.memoryButton,
               {
                 backgroundColor: isPressingHideButton
-                  ? colors.green
+                  ? uiPreferences.isEinkMode
+                    ? theme.colors.background
+                    : colors.green
+                  : uiPreferences.isEinkMode
+                  ? theme.colors.background
                   : colors.red,
+                borderWidth: uiPreferences.isEinkMode ? 1 : 0,
+                borderColor: theme.colors.primary,
               },
             ]}
           >
             <Ionicons
               name={isPressingHideButton ? "eye" : "eye-off"}
-              color={colors.white}
+              color={
+                uiPreferences.isEinkMode ? theme.colors.primary : colors.white
+              }
               style={themedStyles.memoryButtonIcon}
             />
             <Text style={themedStyles.memoryButtonText}>
@@ -496,6 +522,7 @@ export const ReadScrollView: React.FunctionComponent<ReadScrollViewProps> = ({
             onPress={onNextPassage}
             disabled={isNavigatingPassages}
             style={themedStyles.button}
+            isEinkMode={uiPreferences.isEinkMode}
           />
         </View>
       </Animated.View>

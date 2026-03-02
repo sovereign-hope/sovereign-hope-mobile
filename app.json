@@ -7,7 +7,7 @@
     "owner": "sovereign-hope",
     "githubUrl": "https://github.com/sovereign-hope/sovereign-hope-mobile",
     "primaryColor": "#1F1F1F",
-    "orientation": "portrait",
+    "orientation": "default",
     "icon": "./assets/icon.png",
     "scheme": "sovereign-hope",
     "updates": {
@@ -34,7 +34,8 @@
         "CFBundleAllowMixedLocalizations": true,
         "UIBackgroundModes": ["audio"],
         "ITSAppUsesNonExemptEncryption": false,
-        "UIViewControllerBasedStatusBarAppearance": true
+        "UIViewControllerBasedStatusBarAppearance": true,
+        "NSMicrophoneUsageDescription": "This app does not use the microphone, but an audio library requires this declaration."
       },
       "usesAppleSignIn": true,
       "userInterfaceStyle": "automatic",

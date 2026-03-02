@@ -21,6 +21,8 @@ import {
 import { AMBIENT_SOUND_OPTIONS } from "src/services/ambientAudioService";
 import { colors } from "src/style/colors";
 import { styles } from "./MemoryAudioCard.styles";
+import { useUiPreferences } from "src/hooks/useUiPreferences";
+import { getPressFeedbackStyle } from "src/style/eink";
 
 type Props = {
   verseReference?: string;
@@ -37,7 +39,8 @@ export const MemoryAudioCard: React.FunctionComponent<Props> = ({
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const dispatch = useAppDispatch();
   const theme = useTheme();
-  const themedStyles = styles({ theme });
+  const uiPreferences = useUiPreferences();
+  const themedStyles = styles({ theme, isEinkMode: uiPreferences.isEinkMode });
   const viewModel = useAppSelector(selectMemoryAudioViewModel);
   const [showInstructions, setShowInstructions] = React.useState(false);
   const [showSessionDetails, setShowSessionDetails] = React.useState(false);
@@ -121,7 +124,7 @@ export const MemoryAudioCard: React.FunctionComponent<Props> = ({
             borderWidth={0}
             animationType="timing"
             animationConfig={{
-              duration: 250,
+              duration: uiPreferences.disableAnimations ? 0 : 250,
             }}
             indeterminate={viewModel.loadingProgress <= 0}
             style={themedStyles.loadingProgressTrack}
@@ -152,9 +155,7 @@ export const MemoryAudioCard: React.FunctionComponent<Props> = ({
             style={({ pressed }) => [
               themedStyles.sessionActionButton,
               isActive ? themedStyles.stopButton : undefined,
-              {
-                opacity: pressed ? 0.8 : 1,
-              },
+              getPressFeedbackStyle(pressed, uiPreferences.isEinkMode, 0.8),
             ]}
           >
             <Text style={themedStyles.actionButtonLabel}>
@@ -172,9 +173,7 @@ export const MemoryAudioCard: React.FunctionComponent<Props> = ({
             }}
             style={({ pressed }) => [
               themedStyles.settingsIconButton,
-              {
-                opacity: pressed ? 0.8 : 1,
-              },
+              getPressFeedbackStyle(pressed, uiPreferences.isEinkMode, 0.8),
             ]}
           >
             <Ionicons
@@ -186,7 +185,11 @@ export const MemoryAudioCard: React.FunctionComponent<Props> = ({
         </View>
       )}
 
-      <Modal transparent visible={showInstructions} animationType="fade">
+      <Modal
+        transparent
+        visible={showInstructions}
+        animationType={uiPreferences.disableAnimations ? "none" : "fade"}
+      >
         <View style={themedStyles.modalBackdrop}>
           <View style={themedStyles.modalCard}>
             <Text style={themedStyles.modalTitle}>How To Practice</Text>
@@ -205,9 +208,7 @@ export const MemoryAudioCard: React.FunctionComponent<Props> = ({
               }}
               style={({ pressed }) => [
                 themedStyles.actionButton,
-                {
-                  opacity: pressed ? 0.8 : 1,
-                },
+                getPressFeedbackStyle(pressed, uiPreferences.isEinkMode, 0.8),
               ]}
             >
               <Text style={themedStyles.actionButtonLabel}>Got It</Text>
@@ -219,7 +220,7 @@ export const MemoryAudioCard: React.FunctionComponent<Props> = ({
       <Modal
         transparent
         visible={showSessionDetails}
-        animationType="fade"
+        animationType={uiPreferences.disableAnimations ? "none" : "fade"}
         onDismiss={() => {
           if (shouldOpenAmbientPicker) {
             openAmbientPicker();
@@ -259,9 +260,7 @@ export const MemoryAudioCard: React.FunctionComponent<Props> = ({
               }}
               style={({ pressed }) => [
                 themedStyles.actionButton,
-                {
-                  opacity: pressed ? 0.8 : 1,
-                },
+                getPressFeedbackStyle(pressed, uiPreferences.isEinkMode, 0.8),
               ]}
             >
               <Text style={themedStyles.actionButtonLabel}>Choose Sound</Text>
@@ -277,9 +276,7 @@ export const MemoryAudioCard: React.FunctionComponent<Props> = ({
               }}
               style={({ pressed }) => [
                 themedStyles.secondaryButton,
-                {
-                  opacity: pressed ? 0.8 : 1,
-                },
+                getPressFeedbackStyle(pressed, uiPreferences.isEinkMode, 0.8),
               ]}
             >
               <Text style={themedStyles.secondaryButtonLabel}>Done</Text>

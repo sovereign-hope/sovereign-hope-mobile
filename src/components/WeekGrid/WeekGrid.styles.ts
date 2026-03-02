@@ -6,6 +6,7 @@ import { body, header3 } from "src/style/typography";
 
 type Props = {
   theme: Theme;
+  isEinkMode?: boolean;
 };
 
 interface Style {
@@ -23,7 +24,7 @@ interface Style {
   cardRow: ViewStyle;
 }
 
-export const styles = ({ theme }: Props): Style =>
+export const styles = ({ theme, isEinkMode = false }: Props): Style =>
   StyleSheet.create({
     grid: {
       flexDirection: "row",
@@ -41,9 +42,11 @@ export const styles = ({ theme }: Props): Style =>
       padding: spacing.lmedium,
       borderRadius: radius.large,
       backgroundColor: theme.colors.card,
+      borderWidth: isEinkMode ? 1 : 0,
+      borderColor: theme.colors.border,
       shadowColor: colors.black,
       shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.1,
+      shadowOpacity: isEinkMode ? 0 : 0.1,
     },
     dayCardCompact: {
       width: "100%",
@@ -52,15 +55,21 @@ export const styles = ({ theme }: Props): Style =>
       padding: spacing.lmedium,
       borderRadius: radius.large,
       backgroundColor: theme.colors.card,
+      borderWidth: isEinkMode ? 1 : 0,
+      borderColor: theme.colors.border,
     },
     dayCardToday: {
       borderWidth: 2,
-      borderColor: colors.accent,
+      borderColor: isEinkMode ? theme.colors.primary : colors.accent,
     },
     dayCardSelected: {
-      backgroundColor: theme.dark
+      backgroundColor: isEinkMode
+        ? theme.colors.card
+        : theme.dark
         ? "rgba(186, 135, 72, 0.2)"
         : "rgba(186, 135, 72, 0.1)",
+      borderWidth: isEinkMode ? 2 : 0,
+      borderColor: isEinkMode ? theme.colors.primary : "transparent",
     },
     checkboxContainer: {
       marginBottom: spacing.small,
@@ -71,7 +80,7 @@ export const styles = ({ theme }: Props): Style =>
     },
     dayLabel: {
       ...header3,
-      color: theme.dark ? colors.white : colors.darkGrey,
+      color: theme.colors.text,
       marginBottom: spacing.small,
     },
     readingText: {

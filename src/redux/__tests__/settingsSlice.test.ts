@@ -13,6 +13,8 @@ import {
   storeShowChildrensPlan,
   getEnableChurchCenterDeepLink,
   storeEnableChurchCenterDeepLink,
+  getEnableEinkMode,
+  storeEnableEinkMode,
   selectEnableNotifications,
   selectNotificationTime,
   selectSubscribedPlans,
@@ -20,6 +22,7 @@ import {
   selectReadingFontSize,
   selectShowChildrensPlan,
   selectEnableChurchCenterDeepLink,
+  selectEnableEinkMode,
   selectError,
   selectIsLoading,
   SettingsState,
@@ -49,6 +52,7 @@ const createState = (): RootState =>
       readingBackgroundColor: "#FFFDE7",
       showChildrensPlan: false,
       enableChurchCenterDeepLink: true,
+      enableEinkMode: true,
       isLoading: false,
       hasError: false,
       hasLoadedSubscribedPlans: true,
@@ -72,6 +76,7 @@ describe("settingsSlice", () => {
       expect(state.readingBackgroundColor).toBeUndefined();
       expect(state.showChildrensPlan).toBe(true);
       expect(state.enableChurchCenterDeepLink).toBe(false);
+      expect(state.enableEinkMode).toBe(false);
       expect(state.isLoading).toBe(false);
       expect(state.hasError).toBe(false);
       expect(state.hasLoadedSubscribedPlans).toBe(false);
@@ -283,6 +288,41 @@ describe("settingsSlice", () => {
     });
   });
 
+  describe("enableEinkMode thunks", () => {
+    describe("getEnableEinkMode", () => {
+      it("loads setting from AsyncStorage", async () => {
+        (AsyncStorage.getItem as jest.Mock).mockResolvedValueOnce("true");
+
+        const store = createTestStore();
+        await store.dispatch(getEnableEinkMode());
+
+        expect(store.getState().settings.enableEinkMode).toBe(true);
+      });
+
+      it("defaults to false when nothing saved", async () => {
+        (AsyncStorage.getItem as jest.Mock).mockResolvedValueOnce(null);
+
+        const store = createTestStore();
+        await store.dispatch(getEnableEinkMode());
+
+        expect(store.getState().settings.enableEinkMode).toBe(false);
+      });
+    });
+
+    describe("storeEnableEinkMode", () => {
+      it("saves setting to AsyncStorage", async () => {
+        const store = createTestStore();
+        await store.dispatch(storeEnableEinkMode(true));
+
+        expect(AsyncStorage.setItem).toHaveBeenCalledWith(
+          "@settings/enableEinkMode",
+          "true"
+        );
+        expect(store.getState().settings.enableEinkMode).toBe(true);
+      });
+    });
+  });
+
   describe("selectors", () => {
     it("selectEnableNotifications returns correct value", () => {
       expect(selectEnableNotifications(createState())).toBe(true);
@@ -310,6 +350,10 @@ describe("settingsSlice", () => {
 
     it("selectEnableChurchCenterDeepLink returns correct value", () => {
       expect(selectEnableChurchCenterDeepLink(createState())).toBe(true);
+    });
+
+    it("selectEnableEinkMode returns correct value", () => {
+      expect(selectEnableEinkMode(createState())).toBe(true);
     });
 
     it("selectError returns correct value", () => {

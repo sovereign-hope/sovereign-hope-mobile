@@ -22,6 +22,8 @@ import {
 import { ReadScrollView } from "src/components/ReadScrollView/ReadScrollView";
 import { styles } from "./ReadScreen.styles";
 import { spacing } from "src/style/layout";
+import { useUiPreferences } from "src/hooks/useUiPreferences";
+import { getPressFeedbackStyle } from "src/style/eink";
 
 const isIOS26OrNewer = (): boolean =>
   Platform.OS === "ios" && Number.parseInt(String(Platform.Version), 10) >= 26;
@@ -45,6 +47,10 @@ export const ReadScreen: React.FunctionComponent<ReadScreenProps> = ({
   const audioTitle = useAppSelector(selectPassageHeader);
   const isLoading = useAppSelector(selectIsLoading);
   const theme = useTheme();
+  const uiPreferences = useUiPreferences();
+  const actionColor = uiPreferences.isEinkMode
+    ? theme.colors.primary
+    : colors.accent;
 
   const onDone = useCallback(() => {
     navigation.goBack();
@@ -97,7 +103,7 @@ export const ReadScreen: React.FunctionComponent<ReadScreenProps> = ({
                 name: "textformat.size" as never,
               },
               onPress: showSelectFontSize,
-              tintColor: tintColor ?? colors.accent,
+              tintColor: tintColor ?? actionColor,
               sharesBackground: false,
             },
           ];
@@ -113,7 +119,7 @@ export const ReadScreen: React.FunctionComponent<ReadScreenProps> = ({
               onPress: () => {
                 void playAudio();
               },
-              tintColor: tintColor ?? colors.accent,
+              tintColor: tintColor ?? actionColor,
               sharesBackground: false,
             });
           }
@@ -129,33 +135,42 @@ export const ReadScreen: React.FunctionComponent<ReadScreenProps> = ({
       headerRight: () => (
         <>
           <Pressable
-            style={{
+            style={({ pressed }) => ({
               marginRight: spacing.large,
-            }}
+              ...getPressFeedbackStyle(pressed, uiPreferences.isEinkMode),
+            })}
             accessibilityRole="button"
             onPress={showSelectFontSize}
           >
-            <Ionicons name="text-outline" size={24} color={colors.accent} />
+            <Ionicons name="text-outline" size={24} color={actionColor} />
           </Pressable>
           {audioUrl && audioUrl !== "" && (
             <Pressable
-              style={{
+              style={({ pressed }) => ({
                 marginRight: spacing.large,
-              }}
+                ...getPressFeedbackStyle(pressed, uiPreferences.isEinkMode),
+              })}
               accessibilityRole="button"
               onPress={() => void playAudio()}
             >
               <Ionicons
                 name="volume-high-outline"
                 size={24}
-                color={colors.accent}
+                color={actionColor}
               />
             </Pressable>
           )}
         </>
       ),
     });
-  }, [navigation, audioUrl, playAudio, showSelectFontSize]);
+  }, [
+    actionColor,
+    audioUrl,
+    navigation,
+    playAudio,
+    showSelectFontSize,
+    uiPreferences.isEinkMode,
+  ]);
 
   // Constants
   const themedStyles = styles({ theme });

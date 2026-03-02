@@ -6,6 +6,7 @@ import { body, header3 } from "src/style/typography";
 
 type Props = {
   theme: Theme;
+  isEinkMode?: boolean;
 };
 
 interface Style {
@@ -33,7 +34,7 @@ interface Style {
   modalBody: TextStyle;
 }
 
-export const styles = ({ theme }: Props): Style =>
+export const styles = ({ theme, isEinkMode = false }: Props): Style =>
   StyleSheet.create({
     card: {
       marginBottom: spacing.medium,
@@ -41,12 +42,14 @@ export const styles = ({ theme }: Props): Style =>
       padding: spacing.medium,
       borderRadius: radius.large,
       backgroundColor: theme.colors.card,
+      borderWidth: isEinkMode ? 1 : 0,
+      borderColor: theme.colors.border,
       shadowColor: colors.black,
       shadowOffset: {
         width: 0,
         height: 2,
       },
-      shadowOpacity: 0.1,
+      shadowOpacity: isEinkMode ? 0 : 0.1,
     },
     embeddedCard: {
       marginBottom: 0,
@@ -54,6 +57,8 @@ export const styles = ({ theme }: Props): Style =>
       padding: 0,
       borderRadius: 0,
       backgroundColor: "transparent",
+      borderWidth: 0,
+      borderColor: "transparent",
       shadowOpacity: 0,
     },
     loadingState: {
@@ -70,7 +75,7 @@ export const styles = ({ theme }: Props): Style =>
     },
     loadingCaption: {
       ...body,
-      color: theme.dark ? colors.grey0 : colors.grey2,
+      color: theme.colors.text,
       textAlign: "center",
       fontSize: 13,
     },
@@ -90,7 +95,9 @@ export const styles = ({ theme }: Props): Style =>
       paddingVertical: spacing.medium,
       paddingHorizontal: spacing.lmedium,
       borderRadius: radius.medium,
-      backgroundColor: colors.accent,
+      backgroundColor: isEinkMode ? theme.colors.background : colors.accent,
+      borderWidth: isEinkMode ? 1 : 0,
+      borderColor: isEinkMode ? theme.colors.primary : "transparent",
       justifyContent: "center",
       alignItems: "center",
     },
@@ -100,7 +107,7 @@ export const styles = ({ theme }: Props): Style =>
       borderRadius: radius.medium,
       borderWidth: 1,
       borderColor: theme.colors.border,
-      backgroundColor: theme.dark ? colors.darkerGrey : colors.grey0,
+      backgroundColor: isEinkMode ? theme.colors.background : theme.colors.card,
       alignItems: "center",
       justifyContent: "center",
     },
@@ -117,7 +124,7 @@ export const styles = ({ theme }: Props): Style =>
     },
     metricLabel: {
       ...body,
-      color: theme.dark ? colors.grey0 : colors.grey2,
+      color: theme.colors.text,
     },
     metricValue: {
       ...body,
@@ -131,7 +138,9 @@ export const styles = ({ theme }: Props): Style =>
       paddingVertical: spacing.medium,
       paddingHorizontal: spacing.lmedium,
       borderRadius: radius.medium,
-      backgroundColor: colors.accent,
+      backgroundColor: isEinkMode ? theme.colors.background : colors.accent,
+      borderWidth: isEinkMode ? 1 : 0,
+      borderColor: isEinkMode ? theme.colors.primary : "transparent",
       justifyContent: "center",
       alignItems: "center",
       marginBottom: spacing.small,
@@ -139,7 +148,7 @@ export const styles = ({ theme }: Props): Style =>
     actionButtonLabel: {
       ...body,
       fontWeight: "600",
-      color: colors.white,
+      color: isEinkMode ? theme.colors.primary : colors.white,
     },
     secondaryButton: {
       minHeight: elementSize.small,
@@ -158,13 +167,19 @@ export const styles = ({ theme }: Props): Style =>
       color: theme.colors.text,
     },
     stopButton: {
-      backgroundColor: colors.red,
+      backgroundColor: isEinkMode ? theme.colors.background : colors.red,
+      ...(isEinkMode
+        ? {
+            borderColor: theme.colors.primary,
+            borderWidth: 1,
+          }
+        : {}),
     },
     modalBackdrop: {
       flex: 1,
       justifyContent: "center",
       padding: spacing.large,
-      backgroundColor: "rgba(0,0,0,0.45)",
+      backgroundColor: isEinkMode ? colors.white : "rgba(0,0,0,0.45)",
     },
     modalCard: {
       width: "100%",
