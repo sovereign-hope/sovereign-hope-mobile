@@ -1,5 +1,5 @@
 import React from "react";
-import { Modal, Pressable, Text, View } from "react-native";
+import { Modal, Platform, Pressable, Text, View } from "react-native";
 import { useTheme } from "@react-navigation/native";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -41,6 +41,8 @@ export const MemoryAudioCard: React.FunctionComponent<Props> = ({
   const viewModel = useAppSelector(selectMemoryAudioViewModel);
   const [showInstructions, setShowInstructions] = React.useState(false);
   const [showSessionDetails, setShowSessionDetails] = React.useState(false);
+  const [shouldOpenAmbientPicker, setShouldOpenAmbientPicker] =
+    React.useState(false);
   const selectedAmbientLabel = React.useMemo(() => {
     return (
       AMBIENT_SOUND_OPTIONS.find(
@@ -72,6 +74,21 @@ export const MemoryAudioCard: React.FunctionComponent<Props> = ({
     viewModel.hasSeenInstructions,
     showInstructions,
   ]);
+
+  const openAmbientPicker = React.useCallback(() => {
+    navigation.push("Ambient Sounds");
+    setShouldOpenAmbientPicker(false);
+  }, [navigation]);
+
+  React.useEffect(() => {
+    if (
+      Platform.OS !== "ios" &&
+      shouldOpenAmbientPicker &&
+      !showSessionDetails
+    ) {
+      openAmbientPicker();
+    }
+  }, [openAmbientPicker, shouldOpenAmbientPicker, showSessionDetails]);
 
   if (!verseReference || !passage) {
     // eslint-disable-next-line unicorn/no-null
@@ -199,7 +216,16 @@ export const MemoryAudioCard: React.FunctionComponent<Props> = ({
         </View>
       </Modal>
 
-      <Modal transparent visible={showSessionDetails} animationType="fade">
+      <Modal
+        transparent
+        visible={showSessionDetails}
+        animationType="fade"
+        onDismiss={() => {
+          if (shouldOpenAmbientPicker) {
+            openAmbientPicker();
+          }
+        }}
+      >
         <View style={themedStyles.modalBackdrop}>
           <View style={themedStyles.modalCard}>
             <Text style={themedStyles.modalTitle}>Daily Listening</Text>
@@ -228,8 +254,8 @@ export const MemoryAudioCard: React.FunctionComponent<Props> = ({
               accessibilityHint="Opens ambient sound previews and selection."
               onPress={() => {
                 void Haptics.selectionAsync();
+                setShouldOpenAmbientPicker(true);
                 setShowSessionDetails(false);
-                navigation.push("Ambient Sounds");
               }}
               style={({ pressed }) => [
                 themedStyles.actionButton,

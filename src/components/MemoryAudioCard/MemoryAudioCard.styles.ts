@@ -167,6 +167,9 @@ export const styles = ({ theme }: Props): Style =>
       backgroundColor: "rgba(0,0,0,0.45)",
     },
     modalCard: {
+      width: "100%",
+      maxWidth: 520,
+      alignSelf: "center",
       borderRadius: radius.large,
       backgroundColor: theme.colors.card,
       padding: spacing.large,
