@@ -98,6 +98,14 @@ const SETTINGS_STORAGE_KEYS: Record<SyncSettingsField, string> = {
   subscribedPlans: "@settings/subscribedPlans",
 };
 
+const LOCAL_ONLY_SETTINGS_KEYS = [
+  "@settings/overrideSystemTheme",
+  "@settings/darkModeEnabled",
+  "@settings/darkModeScheduleEnabled",
+  "@settings/darkModeScheduleStartMinutes",
+  "@settings/darkModeScheduleEndMinutes",
+] as const;
+
 const DEFAULT_SETTINGS: SyncSettingsShape = {
   enableNotifications: true,
   notificationTime: "8:00 AM",
@@ -293,6 +301,7 @@ export const clearLocalSyncedData = async (): Promise<void> => {
   );
   const keysToClear = [
     ...Object.values(SETTINGS_STORAGE_KEYS),
+    ...LOCAL_ONLY_SETTINGS_KEYS,
     "@dismissedNotifications",
     STORAGE_KEYS.settingsMeta,
     STORAGE_KEYS.dismissedNotificationsUpdatedAt,

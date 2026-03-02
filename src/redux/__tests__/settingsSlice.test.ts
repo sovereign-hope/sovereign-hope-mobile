@@ -15,6 +15,16 @@ import {
   storeEnableChurchCenterDeepLink,
   getEnableEinkMode,
   storeEnableEinkMode,
+  getOverrideSystemTheme,
+  storeOverrideSystemTheme,
+  getDarkModeEnabled,
+  storeDarkModeEnabled,
+  getDarkModeScheduleEnabled,
+  storeDarkModeScheduleEnabled,
+  getDarkModeScheduleStartMinutes,
+  storeDarkModeScheduleStartMinutes,
+  getDarkModeScheduleEndMinutes,
+  storeDarkModeScheduleEndMinutes,
   selectEnableNotifications,
   selectNotificationTime,
   selectSubscribedPlans,
@@ -23,6 +33,11 @@ import {
   selectShowChildrensPlan,
   selectEnableChurchCenterDeepLink,
   selectEnableEinkMode,
+  selectOverrideSystemTheme,
+  selectDarkModeEnabled,
+  selectDarkModeScheduleEnabled,
+  selectDarkModeScheduleStartMinutes,
+  selectDarkModeScheduleEndMinutes,
   selectError,
   selectIsLoading,
   SettingsState,
@@ -53,6 +68,11 @@ const createState = (): RootState =>
       showChildrensPlan: false,
       enableChurchCenterDeepLink: true,
       enableEinkMode: true,
+      overrideSystemTheme: true,
+      darkModeEnabled: true,
+      darkModeScheduleEnabled: true,
+      darkModeScheduleStartMinutes: 1320,
+      darkModeScheduleEndMinutes: 420,
       isLoading: false,
       hasError: false,
       hasLoadedSubscribedPlans: true,
@@ -77,6 +97,11 @@ describe("settingsSlice", () => {
       expect(state.showChildrensPlan).toBe(true);
       expect(state.enableChurchCenterDeepLink).toBe(false);
       expect(state.enableEinkMode).toBe(false);
+      expect(state.overrideSystemTheme).toBe(false);
+      expect(state.darkModeEnabled).toBe(false);
+      expect(state.darkModeScheduleEnabled).toBe(false);
+      expect(state.darkModeScheduleStartMinutes).toBe(1260);
+      expect(state.darkModeScheduleEndMinutes).toBe(420);
       expect(state.isLoading).toBe(false);
       expect(state.hasError).toBe(false);
       expect(state.hasLoadedSubscribedPlans).toBe(false);
@@ -323,6 +348,143 @@ describe("settingsSlice", () => {
     });
   });
 
+  describe("theme override thunks", () => {
+    describe("getOverrideSystemTheme", () => {
+      it("loads setting from AsyncStorage", async () => {
+        (AsyncStorage.getItem as jest.Mock).mockResolvedValueOnce("true");
+
+        const store = createTestStore();
+        await store.dispatch(getOverrideSystemTheme());
+
+        expect(store.getState().settings.overrideSystemTheme).toBe(true);
+      });
+
+      it("defaults to false when nothing saved", async () => {
+        (AsyncStorage.getItem as jest.Mock).mockResolvedValueOnce(null);
+
+        const store = createTestStore();
+        await store.dispatch(getOverrideSystemTheme());
+
+        expect(store.getState().settings.overrideSystemTheme).toBe(false);
+      });
+    });
+
+    describe("storeOverrideSystemTheme", () => {
+      it("saves setting to AsyncStorage", async () => {
+        const store = createTestStore();
+        await store.dispatch(storeOverrideSystemTheme(true));
+
+        expect(AsyncStorage.setItem).toHaveBeenCalledWith(
+          "@settings/overrideSystemTheme",
+          "true"
+        );
+        expect(store.getState().settings.overrideSystemTheme).toBe(true);
+      });
+    });
+  });
+
+  describe("dark mode thunks", () => {
+    describe("getDarkModeEnabled", () => {
+      it("loads setting from AsyncStorage", async () => {
+        (AsyncStorage.getItem as jest.Mock).mockResolvedValueOnce("true");
+
+        const store = createTestStore();
+        await store.dispatch(getDarkModeEnabled());
+
+        expect(store.getState().settings.darkModeEnabled).toBe(true);
+      });
+    });
+
+    describe("storeDarkModeEnabled", () => {
+      it("saves setting to AsyncStorage", async () => {
+        const store = createTestStore();
+        await store.dispatch(storeDarkModeEnabled(true));
+
+        expect(AsyncStorage.setItem).toHaveBeenCalledWith(
+          "@settings/darkModeEnabled",
+          "true"
+        );
+        expect(store.getState().settings.darkModeEnabled).toBe(true);
+      });
+    });
+  });
+
+  describe("dark mode schedule thunks", () => {
+    describe("getDarkModeScheduleEnabled", () => {
+      it("loads setting from AsyncStorage", async () => {
+        (AsyncStorage.getItem as jest.Mock).mockResolvedValueOnce("true");
+
+        const store = createTestStore();
+        await store.dispatch(getDarkModeScheduleEnabled());
+
+        expect(store.getState().settings.darkModeScheduleEnabled).toBe(true);
+      });
+    });
+
+    describe("storeDarkModeScheduleEnabled", () => {
+      it("saves setting to AsyncStorage", async () => {
+        const store = createTestStore();
+        await store.dispatch(storeDarkModeScheduleEnabled(true));
+
+        expect(AsyncStorage.setItem).toHaveBeenCalledWith(
+          "@settings/darkModeScheduleEnabled",
+          "true"
+        );
+        expect(store.getState().settings.darkModeScheduleEnabled).toBe(true);
+      });
+    });
+
+    describe("getDarkModeScheduleStartMinutes", () => {
+      it("loads setting from AsyncStorage", async () => {
+        (AsyncStorage.getItem as jest.Mock).mockResolvedValueOnce("300");
+
+        const store = createTestStore();
+        await store.dispatch(getDarkModeScheduleStartMinutes());
+
+        expect(store.getState().settings.darkModeScheduleStartMinutes).toBe(
+          300
+        );
+      });
+    });
+
+    describe("storeDarkModeScheduleStartMinutes", () => {
+      it("normalizes and saves setting to AsyncStorage", async () => {
+        const store = createTestStore();
+        await store.dispatch(storeDarkModeScheduleStartMinutes(1500));
+
+        expect(AsyncStorage.setItem).toHaveBeenCalledWith(
+          "@settings/darkModeScheduleStartMinutes",
+          "60"
+        );
+        expect(store.getState().settings.darkModeScheduleStartMinutes).toBe(60);
+      });
+    });
+
+    describe("getDarkModeScheduleEndMinutes", () => {
+      it("loads setting from AsyncStorage", async () => {
+        (AsyncStorage.getItem as jest.Mock).mockResolvedValueOnce("540");
+
+        const store = createTestStore();
+        await store.dispatch(getDarkModeScheduleEndMinutes());
+
+        expect(store.getState().settings.darkModeScheduleEndMinutes).toBe(540);
+      });
+    });
+
+    describe("storeDarkModeScheduleEndMinutes", () => {
+      it("normalizes and saves setting to AsyncStorage", async () => {
+        const store = createTestStore();
+        await store.dispatch(storeDarkModeScheduleEndMinutes(-30));
+
+        expect(AsyncStorage.setItem).toHaveBeenCalledWith(
+          "@settings/darkModeScheduleEndMinutes",
+          "1410"
+        );
+        expect(store.getState().settings.darkModeScheduleEndMinutes).toBe(1410);
+      });
+    });
+  });
+
   describe("selectors", () => {
     it("selectEnableNotifications returns correct value", () => {
       expect(selectEnableNotifications(createState())).toBe(true);
@@ -354,6 +516,26 @@ describe("settingsSlice", () => {
 
     it("selectEnableEinkMode returns correct value", () => {
       expect(selectEnableEinkMode(createState())).toBe(true);
+    });
+
+    it("selectOverrideSystemTheme returns correct value", () => {
+      expect(selectOverrideSystemTheme(createState())).toBe(true);
+    });
+
+    it("selectDarkModeEnabled returns correct value", () => {
+      expect(selectDarkModeEnabled(createState())).toBe(true);
+    });
+
+    it("selectDarkModeScheduleEnabled returns correct value", () => {
+      expect(selectDarkModeScheduleEnabled(createState())).toBe(true);
+    });
+
+    it("selectDarkModeScheduleStartMinutes returns correct value", () => {
+      expect(selectDarkModeScheduleStartMinutes(createState())).toBe(1320);
+    });
+
+    it("selectDarkModeScheduleEndMinutes returns correct value", () => {
+      expect(selectDarkModeScheduleEndMinutes(createState())).toBe(420);
     });
 
     it("selectError returns correct value", () => {
