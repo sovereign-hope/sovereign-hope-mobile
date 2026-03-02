@@ -2,7 +2,12 @@ import React, { useEffect } from "react";
 import { useColorScheme } from "src/hooks/useColorScheme";
 import { ReadingPlanScreen } from "src/screens/ReadingPlanScreen/ReadingPlanScreen";
 import { NavigationContainer, useFocusEffect } from "@react-navigation/native";
-import { lightTheme, darkTheme, einkTheme } from "src/style/themes";
+import {
+  lightTheme,
+  darkTheme,
+  einkTheme,
+  einkDarkTheme,
+} from "src/style/themes";
 import {
   createNativeStackNavigator,
   NativeStackScreenProps,
@@ -25,6 +30,8 @@ import { ScheduleScreen } from "../ScheduleScreen";
 import { SundaysScreen } from "../SundaysScreen";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
+  AppState,
+  Appearance,
   Pressable,
   Platform,
   Linking,
@@ -40,6 +47,16 @@ import {
   getEnableChurchCenterDeepLink,
   getEnableEinkMode,
   storeEnableEinkMode,
+  getDarkModeEnabled,
+  getDarkModeScheduleEnabled,
+  getDarkModeScheduleEndMinutes,
+  getDarkModeScheduleStartMinutes,
+  getOverrideSystemTheme,
+  selectDarkModeEnabled,
+  selectDarkModeScheduleEnabled,
+  selectDarkModeScheduleEndMinutes,
+  selectDarkModeScheduleStartMinutes,
+  selectOverrideSystemTheme,
 } from "src/redux/settingsSlice";
 import { selectIsMember } from "src/redux/authSlice";
 import { MemberDirectoryScreen } from "../MemberDirectoryScreen/MemberDirectoryScreen";
@@ -49,6 +66,7 @@ import { getPressFeedbackStyle } from "src/style/eink";
 import { useTabletLayout } from "src/hooks/useTabletLayout";
 import { spacing, radius } from "src/style/layout";
 import { maybeAutoEnableEinkMode } from "src/services/einkDetection";
+import { resolveThemeColorScheme } from "src/style/themeMode";
 
 // React Navigation configuration
 enableScreens();
@@ -56,6 +74,12 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 const SettingsFlowStack = createNativeStackNavigator<RootStackParamList>();
 const NativeTab = createNativeBottomTabNavigator<RootStackParamList>();
 const JSTab = createBottomTabNavigator<RootStackParamList>();
+const ResolvedColorSchemeContext = React.createContext<"light" | "dark">(
+  "light"
+);
+
+const useResolvedColorScheme = (): "light" | "dark" =>
+  React.useContext(ResolvedColorSchemeContext);
 
 const isIOS26OrNewer = (): boolean => {
   return (
@@ -63,13 +87,22 @@ const isIOS26OrNewer = (): boolean => {
   );
 };
 
-const getActionColor = (isEinkMode: boolean): string =>
-  isEinkMode ? colors.black : colors.accent;
+const getActionColor = (
+  isEinkMode: boolean,
+  colorScheme: "light" | "dark"
+): string => {
+  if (!isEinkMode) {
+    return colors.accent;
+  }
+
+  return colorScheme === "dark" ? colors.white : colors.black;
+};
 
 const getDoneButtonOptions = (
   onPress: () => void,
   isEinkMode: boolean,
-  actionColor: string
+  actionColor: string,
+  colorScheme: "light" | "dark"
 ): Record<string, unknown> => {
   if (isIOS26OrNewer()) {
     return {
@@ -92,7 +125,12 @@ const getDoneButtonOptions = (
         onPress={onPress}
         style={({ pressed }) => [
           { paddingHorizontal: 4 },
-          getPressFeedbackStyle(pressed, isEinkMode, 0.65),
+          getPressFeedbackStyle(
+            pressed,
+            isEinkMode,
+            0.65,
+            colorScheme === "dark"
+          ),
         ]}
       >
         <Text style={{ color: actionColor, fontWeight: "600" }}>Done</Text>
@@ -106,7 +144,7 @@ const getHeaderBackgroundColor = (
   isEinkMode: boolean
 ): string | undefined => {
   if (isEinkMode) {
-    return colors.white;
+    return colorScheme === "dark" ? colors.black : colors.white;
   }
 
   if (isIOS26OrNewer()) {
@@ -123,7 +161,7 @@ const getNavigationTheme = (
   isEinkMode: boolean
 ) => {
   if (isEinkMode) {
-    return einkTheme;
+    return colorScheme === "dark" ? einkDarkTheme : einkTheme;
   }
 
   return colorScheme === "dark" ? darkTheme : lightTheme;
@@ -170,14 +208,22 @@ type SettingsFlowStackScreenProps = NativeStackScreenProps<
 
 const SettingsFlowStackScreen: React.FunctionComponent<SettingsFlowStackScreenProps> =
   ({ navigation }: SettingsFlowStackScreenProps) => {
-    const colorScheme = useColorScheme();
+    const colorScheme = useResolvedColorScheme();
     const uiPreferences = useUiPreferences();
     const navigationTheme = getNavigationTheme(
       colorScheme,
       uiPreferences.isEinkMode
     );
-    const actionColor = getActionColor(uiPreferences.isEinkMode);
+    const actionColor = getActionColor(uiPreferences.isEinkMode, colorScheme);
     const { isTablet: isTabletLayout } = useTabletLayout();
+    const dismissSettingsFlow = React.useCallback(() => {
+      if (navigation.canGoBack()) {
+        navigation.goBack();
+        return;
+      }
+
+      navigation.navigate("This Week");
+    }, [navigation]);
 
     const settingsFlowNavigator = (
       <SettingsFlowStack.Navigator
@@ -214,9 +260,10 @@ const SettingsFlowStackScreen: React.FunctionComponent<SettingsFlowStackScreenPr
             headerBackVisible: false,
             ...(Platform.OS === "android" ? { headerLeft: () => <></> } : {}),
             ...getDoneButtonOptions(
-              () => navigation.goBack(),
+              dismissSettingsFlow,
               uiPreferences.isEinkMode,
-              actionColor
+              actionColor,
+              colorScheme
             ),
           })}
         />
@@ -250,7 +297,10 @@ const SettingsFlowStackScreen: React.FunctionComponent<SettingsFlowStackScreenPr
       <View
         style={[
           settingsModalStyles.androidTabletBackdrop,
-          uiPreferences.isEinkMode && { backgroundColor: colors.white },
+          uiPreferences.isEinkMode && {
+            backgroundColor:
+              colorScheme === "dark" ? colors.black : colors.white,
+          },
         ]}
       >
         <Pressable
@@ -258,7 +308,7 @@ const SettingsFlowStackScreen: React.FunctionComponent<SettingsFlowStackScreenPr
           accessibilityLabel="Close settings"
           accessibilityHint="Dismisses the settings modal."
           style={settingsModalStyles.androidTabletBackdropPressable}
-          onPress={() => navigation.goBack()}
+          onPress={dismissSettingsFlow}
         />
         <View
           style={[
@@ -278,13 +328,13 @@ const SettingsFlowStackScreen: React.FunctionComponent<SettingsFlowStackScreenPr
   };
 
 const PodcastStack = (): React.JSX.Element => {
-  const colorScheme = useColorScheme();
+  const colorScheme = useResolvedColorScheme();
   const uiPreferences = useUiPreferences();
   const navigationTheme = getNavigationTheme(
     colorScheme,
     uiPreferences.isEinkMode
   );
-  const actionColor = getActionColor(uiPreferences.isEinkMode);
+  const actionColor = getActionColor(uiPreferences.isEinkMode, colorScheme);
 
   return (
     <Stack.Navigator
@@ -318,13 +368,13 @@ const PodcastStack = (): React.JSX.Element => {
 };
 
 const WeekStack = (): React.JSX.Element => {
-  const colorScheme = useColorScheme();
+  const colorScheme = useResolvedColorScheme();
   const uiPreferences = useUiPreferences();
   const navigationTheme = getNavigationTheme(
     colorScheme,
     uiPreferences.isEinkMode
   );
-  const actionColor = getActionColor(uiPreferences.isEinkMode);
+  const actionColor = getActionColor(uiPreferences.isEinkMode, colorScheme);
 
   return (
     <Stack.Navigator
@@ -381,7 +431,12 @@ const WeekStack = (): React.JSX.Element => {
                 accessibilityRole="button"
                 hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}
                 style={({ pressed }) =>
-                  getPressFeedbackStyle(pressed, uiPreferences.isEinkMode, 0.6)
+                  getPressFeedbackStyle(
+                    pressed,
+                    uiPreferences.isEinkMode,
+                    0.6,
+                    colorScheme === "dark"
+                  )
                 }
               >
                 <Ionicons name="cog" size={24} color={actionColor} />
@@ -421,9 +476,17 @@ const WeekStack = (): React.JSX.Element => {
           headerBackVisible: false,
           ...(Platform.OS === "android" ? { headerLeft: () => <></> } : {}),
           ...getDoneButtonOptions(
-            () => navigation.goBack(),
+            () => {
+              if (navigation.canGoBack()) {
+                navigation.goBack();
+                return;
+              }
+
+              navigation.navigate("This Week");
+            },
             uiPreferences.isEinkMode,
-            actionColor
+            actionColor,
+            colorScheme
           ),
         })}
       />
@@ -449,13 +512,13 @@ const ChurchStack = (): React.JSX.Element => {
 };
 
 const ReadingPlanStack = (): React.JSX.Element => {
-  const colorScheme = useColorScheme();
+  const colorScheme = useResolvedColorScheme();
   const uiPreferences = useUiPreferences();
   const navigationTheme = getNavigationTheme(
     colorScheme,
     uiPreferences.isEinkMode
   );
-  const actionColor = getActionColor(uiPreferences.isEinkMode);
+  const actionColor = getActionColor(uiPreferences.isEinkMode, colorScheme);
 
   return (
     <Stack.Navigator
@@ -487,7 +550,7 @@ const ReadingPlanStack = (): React.JSX.Element => {
 };
 
 const MemberAccessGuardScreen = (): React.JSX.Element => {
-  const colorScheme = useColorScheme();
+  const colorScheme = useResolvedColorScheme();
   const uiPreferences = useUiPreferences();
   const navigationTheme = getNavigationTheme(
     colorScheme,
@@ -516,13 +579,13 @@ const MemberAccessGuardScreen = (): React.JSX.Element => {
 };
 
 const MemberStack = (): React.JSX.Element => {
-  const colorScheme = useColorScheme();
+  const colorScheme = useResolvedColorScheme();
   const uiPreferences = useUiPreferences();
   const navigationTheme = getNavigationTheme(
     colorScheme,
     uiPreferences.isEinkMode
   );
-  const actionColor = getActionColor(uiPreferences.isEinkMode);
+  const actionColor = getActionColor(uiPreferences.isEinkMode, colorScheme);
   const isMember = useAppSelector(selectIsMember);
 
   return (
@@ -580,7 +643,8 @@ const MemberStack = (): React.JSX.Element => {
                       getPressFeedbackStyle(
                         pressed,
                         uiPreferences.isEinkMode,
-                        0.65
+                        0.65,
+                        colorScheme === "dark"
                       )
                     }
                   >
@@ -610,13 +674,13 @@ const MemberStack = (): React.JSX.Element => {
 };
 
 const HomeScreen = (): React.JSX.Element => {
-  const colorScheme = useColorScheme();
+  const colorScheme = useResolvedColorScheme();
   const uiPreferences = useUiPreferences();
   const navigationTheme = getNavigationTheme(
     colorScheme,
     uiPreferences.isEinkMode
   );
-  const actionColor = getActionColor(uiPreferences.isEinkMode);
+  const actionColor = getActionColor(uiPreferences.isEinkMode, colorScheme);
   const dispatch = useAppDispatch();
   const isMember = useAppSelector(selectIsMember);
   const enableChurchCenterDeepLink = useAppSelector(
@@ -647,6 +711,11 @@ const HomeScreen = (): React.JSX.Element => {
     const initializeSettings = async () => {
       void dispatch(getEnableChurchCenterDeepLink());
       void dispatch(getEnableEinkMode());
+      void dispatch(getOverrideSystemTheme());
+      void dispatch(getDarkModeEnabled());
+      void dispatch(getDarkModeScheduleEnabled());
+      void dispatch(getDarkModeScheduleStartMinutes());
+      void dispatch(getDarkModeScheduleEndMinutes());
 
       const shouldAutoEnableEinkMode = await maybeAutoEnableEinkMode();
       if (shouldAutoEnableEinkMode) {
@@ -685,7 +754,9 @@ const HomeScreen = (): React.JSX.Element => {
             backgroundColor: isIOS26OrNewer()
               ? undefined
               : uiPreferences.isEinkMode
-              ? colors.white
+              ? colorScheme === "dark"
+                ? colors.black
+                : colors.white
               : colorScheme === "dark"
               ? navigationColors.dark
               : navigationColors.light,
@@ -773,7 +844,9 @@ const HomeScreen = (): React.JSX.Element => {
         tabBarInactiveTintColor: navigationTheme.colors.text,
         tabBarStyle: {
           backgroundColor: uiPreferences.isEinkMode
-            ? colors.white
+            ? colorScheme === "dark"
+              ? colors.black
+              : colors.white
             : colorScheme === "dark"
             ? navigationColors.dark
             : navigationColors.light,
@@ -846,83 +919,174 @@ const HomeScreen = (): React.JSX.Element => {
 };
 
 export const RootScreen = (): React.JSX.Element => {
-  const colorScheme = useColorScheme();
+  const systemColorScheme = useColorScheme();
   const uiPreferences = useUiPreferences();
+  const overrideSystemTheme = useAppSelector(selectOverrideSystemTheme);
+  const darkModeEnabled = useAppSelector(selectDarkModeEnabled);
+  const darkModeScheduleEnabled = useAppSelector(selectDarkModeScheduleEnabled);
+  const darkModeScheduleStartMinutes = useAppSelector(
+    selectDarkModeScheduleStartMinutes
+  );
+  const darkModeScheduleEndMinutes = useAppSelector(
+    selectDarkModeScheduleEndMinutes
+  );
+  const [scheduleEvaluationTime, setScheduleEvaluationTime] = React.useState(
+    () => Date.now()
+  );
+  const shouldTrackScheduleBoundaries =
+    overrideSystemTheme && darkModeScheduleEnabled;
+  const colorScheme = React.useMemo(
+    () =>
+      resolveThemeColorScheme(
+        systemColorScheme,
+        {
+          overrideSystemTheme,
+          darkModeEnabled,
+          darkModeScheduleEnabled,
+          darkModeScheduleStartMinutes,
+          darkModeScheduleEndMinutes,
+        },
+        new Date(scheduleEvaluationTime)
+      ),
+    [
+      darkModeEnabled,
+      darkModeScheduleEnabled,
+      darkModeScheduleEndMinutes,
+      darkModeScheduleStartMinutes,
+      overrideSystemTheme,
+      scheduleEvaluationTime,
+      systemColorScheme,
+    ]
+  );
   const navigationTheme = getNavigationTheme(
     colorScheme,
     uiPreferences.isEinkMode
   );
-  const actionColor = getActionColor(uiPreferences.isEinkMode);
+  const actionColor = getActionColor(uiPreferences.isEinkMode, colorScheme);
   const isIPad = Platform.OS === "ios" && Platform.isPad;
   const { setHeight, setIsTabBarVisible } =
     React.useContext(TabBarHeightContext);
 
-  return (
-    <NavigationContainer
-      theme={navigationTheme}
-      onStateChange={(state) => {
-        if (state) {
-          const currentRoute = state.routes[state.index];
-          if (currentRoute?.name === "Home") {
-            // Don't set height here, let HomeScreen handle it
-            setIsTabBarVisible(true);
-          } else {
-            setHeight(0);
-            setIsTabBarVisible(false);
-          }
+  useEffect(() => {
+    if (!shouldTrackScheduleBoundaries) {
+      return;
+    }
+
+    setScheduleEvaluationTime(Date.now());
+
+    const intervalId = setInterval(() => {
+      setScheduleEvaluationTime(Date.now());
+    }, 60_000);
+
+    return () => {
+      clearInterval(intervalId);
+    };
+  }, [shouldTrackScheduleBoundaries]);
+
+  useEffect(() => {
+    const appStateSubscription = AppState.addEventListener(
+      "change",
+      (nextState) => {
+        if (nextState === "active") {
+          setScheduleEvaluationTime(Date.now());
         }
-      }}
-    >
-      <Stack.Navigator
-        screenOptions={{
-          headerTintColor: actionColor,
-          headerShadowVisible: false,
-          ...(uiPreferences.disableAnimations
-            ? { animation: "none" as const }
-            : {}),
-          headerStyle: {
-            backgroundColor: getHeaderBackgroundColor(
-              colorScheme,
-              uiPreferences.isEinkMode
-            ),
-          },
-          headerTitleStyle: {
-            color: navigationTheme.colors.text,
-          },
-          ...(isIOS26OrNewer()
-            ? { headerBackButtonDisplayMode: "minimal" as const }
-            : {}),
-          ...(Platform.OS === "android" ? { statusBarTranslucent: true } : {}),
-          statusBarStyle:
-            uiPreferences.isEinkMode || colorScheme === "light"
-              ? "dark"
-              : "light",
+      }
+    );
+
+    return () => {
+      appStateSubscription.remove();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (Platform.OS !== "ios") {
+      return;
+    }
+
+    Appearance.setColorScheme(overrideSystemTheme ? colorScheme : undefined);
+  }, [colorScheme, overrideSystemTheme]);
+
+  useEffect(() => {
+    return () => {
+      if (Platform.OS === "ios") {
+        Appearance.setColorScheme(undefined);
+      }
+    };
+  }, []);
+
+  return (
+    <ResolvedColorSchemeContext.Provider value={colorScheme}>
+      <NavigationContainer
+        theme={navigationTheme}
+        onStateChange={(state) => {
+          if (state) {
+            const currentRoute = state.routes[state.index];
+            if (currentRoute?.name === "Home") {
+              // Don't set height here, let HomeScreen handle it
+              setIsTabBarVisible(true);
+            } else {
+              setHeight(0);
+              setIsTabBarVisible(false);
+            }
+          }
         }}
       >
-        <Stack.Screen
-          name="Home"
-          component={HomeScreen}
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen name="Read" component={ReadScreen} />
-        <Stack.Screen
-          name="Available Plans"
-          component={SelectPlanScreen}
-          options={
-            isIPad
-              ? {
-                  presentation: "formSheet",
-                  headerLargeTitle: false,
-                }
-              : {
-                  headerLargeTitle: false,
-                }
-          }
-        />
-        <Stack.Screen name="Font Size" component={FontSizePickerScreen} />
-        <Stack.Screen name="Schedule" component={ScheduleScreen} />
-        <Stack.Screen name="Sundays" component={SundaysScreen} />
-      </Stack.Navigator>
-    </NavigationContainer>
+        <Stack.Navigator
+          screenOptions={{
+            headerTintColor: actionColor,
+            headerShadowVisible: false,
+            ...(uiPreferences.disableAnimations
+              ? { animation: "none" as const }
+              : {}),
+            headerStyle: {
+              backgroundColor: getHeaderBackgroundColor(
+                colorScheme,
+                uiPreferences.isEinkMode
+              ),
+            },
+            headerTitleStyle: {
+              color: navigationTheme.colors.text,
+            },
+            ...(isIOS26OrNewer()
+              ? { headerBackButtonDisplayMode: "minimal" as const }
+              : {}),
+            ...(Platform.OS === "android"
+              ? { statusBarTranslucent: true }
+              : {}),
+            statusBarStyle: uiPreferences.isEinkMode
+              ? colorScheme === "dark"
+                ? "light"
+                : "dark"
+              : colorScheme === "light"
+              ? "dark"
+              : "light",
+          }}
+        >
+          <Stack.Screen
+            name="Home"
+            component={HomeScreen}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen name="Read" component={ReadScreen} />
+          <Stack.Screen
+            name="Available Plans"
+            component={SelectPlanScreen}
+            options={
+              isIPad
+                ? {
+                    presentation: "formSheet",
+                    headerLargeTitle: false,
+                  }
+                : {
+                    headerLargeTitle: false,
+                  }
+            }
+          />
+          <Stack.Screen name="Font Size" component={FontSizePickerScreen} />
+          <Stack.Screen name="Schedule" component={ScheduleScreen} />
+          <Stack.Screen name="Sundays" component={SundaysScreen} />
+        </Stack.Navigator>
+      </NavigationContainer>
+    </ResolvedColorSchemeContext.Provider>
   );
 };

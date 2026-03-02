@@ -34,3 +34,17 @@ export const einkTheme = {
     notification: colors.black,
   },
 };
+
+export const einkDarkTheme = {
+  ...DarkTheme,
+  dark: true,
+  colors: {
+    ...DarkTheme.colors,
+    primary: colors.white,
+    background: colors.black,
+    card: colors.black,
+    text: colors.white,
+    border: colors.white,
+    notification: colors.white,
+  },
+};
