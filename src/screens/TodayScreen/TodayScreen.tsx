@@ -108,6 +108,7 @@ import {
   isGlassEffectAPIAvailable,
   isLiquidGlassAvailable,
 } from "expo-glass-effect";
+import { canUseLiquidGlass } from "src/services/liquidGlassSupport";
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore - No types for this package
 import Bar from "react-native-progress/Bar";
@@ -495,10 +496,10 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
 
     return insets.top + effectiveTopTabBarHeight;
   }, [insets.top, isTablet, tabBarHeight]);
-  const shouldUseLiquidGlassButtons =
-    Platform.OS === "ios" &&
-    isGlassEffectAPIAvailable() &&
-    isLiquidGlassAvailable();
+  const shouldUseLiquidGlassButtons = canUseLiquidGlass(Platform.OS, {
+    isGlassEffectCheck: isGlassEffectAPIAvailable,
+    isLiquidGlassCheck: isLiquidGlassAvailable,
+  });
   // We can do this because we really only need en US
   const weekdayMap = [
     "Monday",

@@ -55,6 +55,7 @@ import {
   MEMORY_AUDIO_SESSION_TRACK_ARTWORK_URI,
   getEstimatedMemoryAudioSessionDurationSeconds,
 } from "src/services/memoryAudioConstants";
+import { canUseLiquidGlass } from "src/services/liquidGlassSupport";
 import { spacing } from "src/style/layout";
 
 interface Props {
@@ -197,10 +198,10 @@ export const MediaPlayer: React.FunctionComponent<Props> = () => {
   }, [effectiveDuration, visualPosition]);
 
   const shouldShowPlayer = track !== undefined || isMemorySessionActiveTrack;
-  const shouldUseLiquidGlass =
-    Platform.OS === "ios" &&
-    isGlassEffectAPIAvailable() &&
-    isLiquidGlassAvailable();
+  const shouldUseLiquidGlass = canUseLiquidGlass(Platform.OS, {
+    isGlassEffectCheck: isGlassEffectAPIAvailable,
+    isLiquidGlassCheck: isLiquidGlassAvailable,
+  });
   const miniPrimaryForeground =
     Platform.OS === "ios"
       ? DynamicColorIOS({
