@@ -3,7 +3,10 @@ import { useColorScheme } from "src/hooks/useColorScheme";
 import { ReadingPlanScreen } from "src/screens/ReadingPlanScreen/ReadingPlanScreen";
 import { NavigationContainer, useFocusEffect } from "@react-navigation/native";
 import { lightTheme, darkTheme } from "src/style/themes";
-import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import {
+  createNativeStackNavigator,
+  NativeStackScreenProps,
+} from "@react-navigation/native-stack";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createNativeBottomTabNavigator } from "@react-navigation/bottom-tabs/unstable";
 import { enableScreens } from "react-native-screens";
@@ -21,7 +24,14 @@ import { AmbientSoundPickerScreen } from "../AmbientSoundPickerScreen/AmbientSou
 import { ScheduleScreen } from "../ScheduleScreen";
 import { SundaysScreen } from "../SundaysScreen";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Pressable, Platform, Linking, Text, View } from "react-native";
+import {
+  Pressable,
+  Platform,
+  Linking,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import { TabBarHeightContext } from "src/navigation/TabBarContext";
 import { ChurchScreen } from "../ChurchScreen/ChurchScreen";
 import { useAppSelector, useAppDispatch } from "src/hooks/store";
@@ -32,10 +42,13 @@ import {
 import { selectIsMember } from "src/redux/authSlice";
 import { MemberDirectoryScreen } from "../MemberDirectoryScreen/MemberDirectoryScreen";
 import { DailyPrayerScreen } from "../DailyPrayerScreen/DailyPrayerScreen";
+import { useTabletLayout } from "src/hooks/useTabletLayout";
+import { spacing, radius } from "src/style/layout";
 
 // React Navigation configuration
 enableScreens();
 const Stack = createNativeStackNavigator<RootStackParamList>();
+const SettingsFlowStack = createNativeStackNavigator<RootStackParamList>();
 const NativeTab = createNativeBottomTabNavigator<RootStackParamList>();
 const JSTab = createBottomTabNavigator<RootStackParamList>();
 
@@ -43,6 +56,34 @@ const isIOS26OrNewer = (): boolean => {
   return (
     Platform.OS === "ios" && Number.parseInt(String(Platform.Version), 10) >= 26
   );
+};
+
+const getDoneButtonOptions = (onPress: () => void): Record<string, unknown> => {
+  if (isIOS26OrNewer()) {
+    return {
+      unstable_headerRightItems: () => [
+        {
+          type: "button" as const,
+          label: "Done",
+          onPress,
+          tintColor: colors.accent,
+          sharesBackground: false,
+        },
+      ],
+    };
+  }
+
+  return {
+    headerRight: () => (
+      <Pressable
+        accessibilityRole="button"
+        onPress={onPress}
+        style={({ pressed }) => ({ opacity: pressed ? 0.65 : 1 })}
+      >
+        <Text style={{ color: colors.accent, fontWeight: "600" }}>Done</Text>
+      </Pressable>
+    ),
+  };
 };
 
 const getHeaderBackgroundColor = (
@@ -61,6 +102,137 @@ const getNativeTabIcon = (iosSymbol: string) => ({
   type: "sfSymbol" as const,
   name: iosSymbol as never,
 });
+
+const settingsModalStyles = StyleSheet.create({
+  androidTabletBackdrop: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    padding: spacing.large,
+    backgroundColor: "rgba(0,0,0,0.45)",
+  },
+  androidTabletBackdropPressable: {
+    position: "absolute",
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+  },
+  androidTabletSheet: {
+    width: "100%",
+    maxWidth: 760,
+    height: "92%",
+    borderRadius: radius.large,
+    borderWidth: StyleSheet.hairlineWidth,
+    overflow: "hidden",
+  },
+  androidTabletNavigatorHost: {
+    flex: 1,
+    minHeight: 0,
+  },
+});
+
+type SettingsFlowStackScreenProps = NativeStackScreenProps<
+  RootStackParamList,
+  "Settings"
+>;
+
+const SettingsFlowStackScreen: React.FunctionComponent<SettingsFlowStackScreenProps> =
+  ({ navigation }: SettingsFlowStackScreenProps) => {
+    const colorScheme = useColorScheme();
+    const { isTablet: isTabletLayout } = useTabletLayout();
+
+    const settingsFlowNavigator = (
+      <SettingsFlowStack.Navigator
+        initialRouteName="SettingsView"
+        screenOptions={{
+          headerTintColor: colors.accent,
+          headerShadowVisible: false,
+          headerLargeTitle: false,
+          ...(Platform.OS === "ios"
+            ? {
+                headerBackButtonDisplayMode: "minimal" as const,
+                headerBackTitleVisible: false,
+              }
+            : {}),
+          headerStyle: {
+            backgroundColor: getHeaderBackgroundColor(colorScheme),
+          },
+          headerTitleStyle: {
+            color:
+              colorScheme === "dark"
+                ? darkTheme.colors.text
+                : lightTheme.colors.text,
+          },
+        }}
+      >
+        <SettingsFlowStack.Screen
+          name="SettingsView"
+          component={SettingsScreen}
+          options={() => ({
+            title: "Settings",
+            headerBackVisible: false,
+            ...(Platform.OS === "android" ? { headerLeft: () => <></> } : {}),
+            ...getDoneButtonOptions(() => navigation.goBack()),
+          })}
+        />
+        <SettingsFlowStack.Screen
+          name="Available Plans"
+          component={SelectPlanScreen}
+          options={{ headerLargeTitle: false }}
+        />
+        <SettingsFlowStack.Screen
+          name="Font Size"
+          component={FontSizePickerScreen}
+          options={{ headerLargeTitle: false }}
+        />
+        <SettingsFlowStack.Screen
+          name="Account Sign In"
+          component={AccountSignInScreen}
+          options={{ title: "Sign In", headerLargeTitle: false }}
+        />
+      </SettingsFlowStack.Navigator>
+    );
+
+    if (!isTabletLayout) {
+      return (
+        <View style={settingsModalStyles.androidTabletNavigatorHost}>
+          {settingsFlowNavigator}
+        </View>
+      );
+    }
+
+    return (
+      <View style={settingsModalStyles.androidTabletBackdrop}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Close settings"
+          accessibilityHint="Dismisses the settings modal."
+          style={settingsModalStyles.androidTabletBackdropPressable}
+          onPress={() => navigation.goBack()}
+        />
+        <View
+          style={[
+            settingsModalStyles.androidTabletSheet,
+            {
+              borderColor:
+                colorScheme === "dark"
+                  ? darkTheme.colors.border
+                  : lightTheme.colors.border,
+              backgroundColor:
+                colorScheme === "dark"
+                  ? darkTheme.colors.background
+                  : lightTheme.colors.background,
+            },
+          ]}
+        >
+          <View style={settingsModalStyles.androidTabletNavigatorHost}>
+            {settingsFlowNavigator}
+          </View>
+        </View>
+      </View>
+    );
+  };
 
 const PodcastStack = (): React.JSX.Element => {
   const colorScheme = useColorScheme();
@@ -155,7 +327,18 @@ const WeekStack = (): React.JSX.Element => {
           };
         }}
       />
-      <Stack.Screen name="Settings" component={SettingsScreen} />
+      <Stack.Screen
+        name="Settings"
+        component={SettingsFlowStackScreen}
+        options={{
+          presentation: "transparentModal",
+          animation: "fade",
+          headerShown: false,
+          contentStyle: {
+            backgroundColor: "transparent",
+          },
+        }}
+      />
       <Stack.Screen
         name="Ambient Sounds"
         component={AmbientSoundPickerScreen}
@@ -163,6 +346,19 @@ const WeekStack = (): React.JSX.Element => {
           title: "Ambient Sounds",
           headerLargeTitle: false,
         }}
+      />
+      <Stack.Screen
+        name="Font Size"
+        component={FontSizePickerScreen}
+        options={({ navigation }) => ({
+          ...(Platform.OS === "ios" && Platform.isPad
+            ? { presentation: "formSheet" as const }
+            : { presentation: "modal" as const }),
+          headerLargeTitle: false,
+          headerBackVisible: false,
+          ...(Platform.OS === "android" ? { headerLeft: () => <></> } : {}),
+          ...getDoneButtonOptions(() => navigation.goBack()),
+        })}
       />
       <Stack.Screen
         name="Account Sign In"
@@ -222,7 +418,7 @@ const MemberAccessGuardScreen = (): React.JSX.Element => {
         flex: 1,
         alignItems: "center",
         justifyContent: "center",
-        padding: 16,
+        padding: spacing.large,
         backgroundColor:
           colorScheme === "dark"
             ? darkTheme.colors.background
@@ -545,6 +741,7 @@ const HomeScreen = (): React.JSX.Element => {
 
 export const RootScreen = (): React.JSX.Element => {
   const colorScheme = useColorScheme();
+  const isIPad = Platform.OS === "ios" && Platform.isPad;
   const { setHeight, setIsTabBarVisible } =
     React.useContext(TabBarHeightContext);
 
@@ -590,7 +787,20 @@ export const RootScreen = (): React.JSX.Element => {
           options={{ headerShown: false }}
         />
         <Stack.Screen name="Read" component={ReadScreen} />
-        <Stack.Screen name="Available Plans" component={SelectPlanScreen} />
+        <Stack.Screen
+          name="Available Plans"
+          component={SelectPlanScreen}
+          options={
+            isIPad
+              ? {
+                  presentation: "formSheet",
+                  headerLargeTitle: false,
+                }
+              : {
+                  headerLargeTitle: false,
+                }
+          }
+        />
         <Stack.Screen name="Font Size" component={FontSizePickerScreen} />
         <Stack.Screen name="Schedule" component={ScheduleScreen} />
         <Stack.Screen name="Sundays" component={SundaysScreen} />
