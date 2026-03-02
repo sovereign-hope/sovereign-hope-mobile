@@ -5,6 +5,10 @@ import { elementSize } from "src/style/layout";
 import { text } from "src/style/colors";
 import { useTheme } from "@react-navigation/native";
 import { styles } from "./FlatButton.styles";
+import {
+  getDisabledFeedbackStyle,
+  getPressFeedbackStyle,
+} from "src/style/eink";
 
 interface ButtonProps {
   title: string;
@@ -12,6 +16,7 @@ interface ButtonProps {
   onPress: () => void;
   style?: ViewStyle;
   icon?: keyof typeof Ionicons.glyphMap;
+  isEinkMode?: boolean;
 }
 
 export const FlatButton: React.FunctionComponent<ButtonProps> = ({
@@ -20,16 +25,22 @@ export const FlatButton: React.FunctionComponent<ButtonProps> = ({
   onPress,
   style,
   icon,
+  isEinkMode = false,
 }: ButtonProps) => {
   const theme = useTheme();
-  const themedStyles = styles({ theme });
+  const themedStyles = styles({ theme, isEinkMode });
 
   return (
     <Pressable
       style={({ pressed }) => ({
         ...themedStyles.button,
         ...style,
-        opacity: pressed || disabled ? 0.6 : 1,
+        ...getPressFeedbackStyle(pressed, isEinkMode, {
+          pressedOpacity: 0.6,
+        }),
+        ...getDisabledFeedbackStyle(Boolean(disabled), isEinkMode, {
+          disabledOpacity: 0.6,
+        }),
       })}
       accessibilityRole="button"
       onPress={onPress}
@@ -39,7 +50,7 @@ export const FlatButton: React.FunctionComponent<ButtonProps> = ({
         <Ionicons
           name={icon}
           size={elementSize.tiny}
-          color={text.light}
+          color={isEinkMode ? theme.colors.primary : text.light}
           style={themedStyles.icon}
         />
       )}

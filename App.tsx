@@ -18,8 +18,6 @@ import {
   SafeAreaProvider,
   initialWindowMetrics,
 } from "react-native-safe-area-context";
-import TrackPlayer, { Capability } from "react-native-track-player";
-import playerService from "./service";
 import * as Sentry from "@sentry/react-native";
 import { MediaPlayer } from "src/components";
 import { TabBarHeightContext } from "src/navigation/TabBarContext";
@@ -38,6 +36,7 @@ import {
 import { useAppDispatch, useAppSelector } from "src/hooks/store";
 import * as SystemUI from "expo-system-ui";
 import { background as backgroundColors } from "src/style/colors";
+import { initializeTrackPlayer } from "src/services/trackPlayerSetup";
 
 // Keep the splash screen visible while we fetch resources
 // eslint-disable-next-line @typescript-eslint/no-floating-promises
@@ -199,27 +198,7 @@ const App = (): React.JSX.Element => {
   }, [colorScheme]);
 
   useEffect(() => {
-    TrackPlayer.registerPlaybackService(() => playerService);
-
-    async function setupPlayer() {
-      try {
-        await TrackPlayer.setupPlayer();
-      } catch (error) {
-        console.log(error);
-      }
-      await TrackPlayer.updateOptions({
-        capabilities: [
-          Capability.Play,
-          Capability.Pause,
-          Capability.JumpForward,
-          Capability.JumpBackward,
-          Capability.Stop,
-          Capability.SeekTo,
-        ],
-      });
-    }
-
-    void setupPlayer();
+    void initializeTrackPlayer();
   }, []);
 
   const onLayoutRootView = useCallback(async () => {

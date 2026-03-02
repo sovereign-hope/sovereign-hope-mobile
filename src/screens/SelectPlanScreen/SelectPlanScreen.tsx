@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import {
   Image,
   ImageSourcePropType,
+  Platform,
   Pressable,
   Text,
   View,
@@ -19,6 +20,7 @@ import {
 } from "src/redux/readingPlanSlice";
 import { styles } from "./SelectPlanScreen.styles";
 import { ScrollView } from "react-native-gesture-handler";
+import { useTabletLayout } from "src/hooks/useTabletLayout";
 import {
   selectSubscribedPlans,
   storeSubscribedPlans,
@@ -40,6 +42,7 @@ export const SelectPlanScreen: React.FunctionComponent<SelectPlanScreenProps> =
     const availablePlans = useAppSelector(selectAvailablePlans);
     const subscribedPlans = useAppSelector(selectSubscribedPlans);
     const theme = useTheme();
+    const { isTablet: isTabletLayout } = useTabletLayout();
 
     // State
     const [planHasChanged, setPlanHasChanged] = useState(false);
@@ -63,6 +66,7 @@ export const SelectPlanScreen: React.FunctionComponent<SelectPlanScreenProps> =
 
     // Constants
     const themedStyles = styles({ theme });
+    const isAndroidTabletLayout = Platform.OS === "android" && isTabletLayout;
     const bannerMap = {
       "Two Year Bible": twoYearBibleBanner as ImageSourcePropType,
       "One Year, One Story": oneYearOneStoryBanner as ImageSourcePropType,
@@ -79,38 +83,55 @@ export const SelectPlanScreen: React.FunctionComponent<SelectPlanScreenProps> =
       <SafeAreaView edges={["left", "right"]} style={themedStyles.screen}>
         <ScrollView
           style={themedStyles.screen}
-          contentContainerStyle={{ flexGrow: 1 }}
+          contentContainerStyle={themedStyles.scrollContent}
         >
-          {/* <Text style={themedStyles.title}>
-            {new Date().getFullYear()} Plans
-          </Text> */}
-          <Text style={themedStyles.subtitle}>
-            Choose the plan that best fits your season of life and read along
-            with others in the church.
-          </Text>
-          {availablePlans.map((plan) => (
-            <Pressable
-              key={plan.id}
-              onPress={() => handlePlanTap(plan.id)}
-              accessibilityRole="button"
-              style={({ pressed }) => ({
-                ...themedStyles.cardContainerView,
-                backgroundColor: pressed
-                  ? theme.colors.background
-                  : theme.colors.card,
-              })}
-            >
-              <View style={themedStyles.cardView}>
-                <Image
-                  source={bannerMap[plan.title as keyof typeof bannerMap]}
-                  style={themedStyles.banner}
-                  accessibilityIgnoresInvertColors
-                />
-              </View>
-              <Text style={themedStyles.cardTitle}>{plan.title}</Text>
-              <Text style={themedStyles.cardSubtitle}>{plan.description}</Text>
-            </Pressable>
-          ))}
+          <View
+            style={[
+              themedStyles.contentContainer,
+              isTabletLayout ? themedStyles.contentContainerTablet : undefined,
+            ]}
+          >
+            {/* <Text style={themedStyles.title}>
+              {new Date().getFullYear()} Plans
+            </Text> */}
+            <Text style={themedStyles.subtitle}>
+              Choose the plan that best fits your season of life and read along
+              with others in the church.
+            </Text>
+            {availablePlans.map((plan) => (
+              <Pressable
+                key={plan.id}
+                onPress={() => handlePlanTap(plan.id)}
+                accessibilityRole="button"
+                style={({ pressed }) => ({
+                  ...themedStyles.cardContainerView,
+                  backgroundColor: pressed
+                    ? theme.colors.background
+                    : theme.colors.card,
+                })}
+              >
+                <View
+                  style={[
+                    themedStyles.cardView,
+                    isTabletLayout ? themedStyles.cardViewTablet : undefined,
+                    isAndroidTabletLayout
+                      ? themedStyles.cardViewAndroidTablet
+                      : undefined,
+                  ]}
+                >
+                  <Image
+                    source={bannerMap[plan.title as keyof typeof bannerMap]}
+                    style={themedStyles.banner}
+                    accessibilityIgnoresInvertColors
+                  />
+                </View>
+                <Text style={themedStyles.cardTitle}>{plan.title}</Text>
+                <Text style={themedStyles.cardSubtitle}>
+                  {plan.description}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
         </ScrollView>
       </SafeAreaView>
     );

@@ -90,6 +90,10 @@ pglite-debug.log
 
 # Local build archives
 build-*.tar.gz
+build-*.aab
+*.apk
+*.aab
+*.ipa
 
 # Tool configs
 .codex/

@@ -38,6 +38,7 @@ interface RequestPrayerAssignmentResponse {
   memberCount?: number;
 }
 
+// Keep in sync with functions/index.js MOUNTAIN_TIME_ZONE
 const MOUNTAIN_TIME_ZONE = "America/Boise";
 
 const timestampToMilliseconds = (value: unknown): number => {

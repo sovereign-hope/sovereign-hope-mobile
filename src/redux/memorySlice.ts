@@ -7,6 +7,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export interface MemoryState {
   currentPassage?: string;
+  audioUrl?: string;
   isLoading: boolean;
   isSignout: boolean;
   hasError: boolean;
@@ -14,24 +15,44 @@ export interface MemoryState {
 
 const initialState: MemoryState = {
   currentPassage: undefined,
+  audioUrl: undefined,
   isLoading: false,
   isSignout: false,
   hasError: false,
 };
 
+type MemoryPassagePayload = {
+  passageText?: string;
+  audioUrl?: string;
+};
+
+const getMemoryPassageStorageKey = (passage: Passage) =>
+  `@memoryState-${passage.book}-${passage.startChapter}-${passage.startVerse}-${passage.endChapter}-${passage.endVerse}`;
+
+const getMemoryAudioStorageKey = (passage: Passage) =>
+  `@memoryAudioUrl-${passage.book}-${passage.startChapter}-${passage.startVerse}-${passage.endChapter}-${passage.endVerse}`;
+
 export const getMemoryPassageText = createAsyncThunk(
   "memory/getMemoryPassageText",
-  async ({ passage }: { passage: Passage }) => {
+  async ({ passage }: { passage: Passage }): Promise<MemoryPassagePayload> => {
     try {
-      // Turn this back on later, after the esv fetch bug is fixed
-      // if (
-      //   storedMemoryState &&
-      //   storedMemoryState.length > 0 &&
-      //   storedMemoryState !== '""'
-      // ) {
-      //   const parsedMemoryState = JSON.parse(storedMemoryState) as string;
-      //   return parsedMemoryState;
-      // }
+      const [storedMemoryState, storedMemoryAudioUrl] = await Promise.all([
+        AsyncStorage.getItem(getMemoryPassageStorageKey(passage)),
+        AsyncStorage.getItem(getMemoryAudioStorageKey(passage)),
+      ]);
+
+      const parsedMemoryState = storedMemoryState
+        ? (JSON.parse(storedMemoryState) as string)
+        : undefined;
+      const parsedMemoryAudioUrl = storedMemoryAudioUrl
+        ? (JSON.parse(storedMemoryAudioUrl) as string)
+        : undefined;
+      if (parsedMemoryState && parsedMemoryAudioUrl) {
+        return {
+          passageText: parsedMemoryState,
+          audioUrl: parsedMemoryAudioUrl,
+        };
+      }
 
       const passageHtml = await getPassageFromEsvApi({
         passage,
@@ -39,26 +60,48 @@ export const getMemoryPassageText = createAsyncThunk(
         includeVerseNumbers: false,
       });
       if (!passageHtml) {
-        return;
+        return {
+          passageText: parsedMemoryState,
+          audioUrl: parsedMemoryAudioUrl,
+        };
       }
+
+      const audioRegex = /https:\/\/audio\.esv\.org\/\S+?\.mp3/g;
+      const audioMatches = passageHtml.passages[0].match(audioRegex);
+      const extractedAudioUrl = audioMatches ? audioMatches[0] : undefined;
       const parsedHtml = parse(passageHtml.passages[0]);
       const passageLines = parsedHtml.querySelectorAll("p");
       const passageLineTextArray = passageLines.map((line) => line.text);
       const passageLineText = passageLineTextArray.slice(0, -1).join(" ");
 
       try {
-        const jsonValue = JSON.stringify(passageLineText);
-        await AsyncStorage.setItem(
-          `@memoryState-${passage.book}-${passage.startChapter}-${passage.startVerse}-${passage.endChapter}-${passage.endVerse}`,
-          jsonValue
+        const writePromises: Array<Promise<void>> = [];
+        writePromises.push(
+          AsyncStorage.setItem(
+            getMemoryPassageStorageKey(passage),
+            JSON.stringify(passageLineText)
+          )
         );
+        if (extractedAudioUrl) {
+          writePromises.push(
+            AsyncStorage.setItem(
+              getMemoryAudioStorageKey(passage),
+              JSON.stringify(extractedAudioUrl)
+            )
+          );
+        }
+        await Promise.all(writePromises);
       } catch (error) {
         console.error(error);
       }
 
-      return passageLineText;
+      return {
+        passageText: passageLineText || parsedMemoryState,
+        audioUrl: extractedAudioUrl || parsedMemoryAudioUrl,
+      };
     } catch (error) {
       console.error(error);
+      return {};
     }
   }
 );
@@ -88,12 +131,14 @@ export const memorySlice = createSlice({
       state.hasError = false;
     });
     builder.addCase(getMemoryPassageText.fulfilled, (state, action) => {
-      state.currentPassage = action.payload || undefined;
+      state.currentPassage = action.payload.passageText || undefined;
+      state.audioUrl = action.payload.audioUrl || undefined;
       state.isLoading = false;
       state.hasError = false;
     });
     builder.addCase(getMemoryPassageText.rejected, (state) => {
       state.currentPassage = undefined;
+      state.audioUrl = undefined;
       state.isLoading = false;
       state.hasError = true;
     });
@@ -102,6 +147,8 @@ export const memorySlice = createSlice({
 
 export const selectCurrentPassage = (state: RootState): string | undefined =>
   state.memory.currentPassage;
+export const selectMemoryAudioUrl = (state: RootState): string | undefined =>
+  state.memory.audioUrl;
 export const selectMemoryAcronym = (state: RootState): string | undefined => {
   // Extract first letter and punctuation from every word in the memory passage and capitalize
   const acronym = state.memory.currentPassage

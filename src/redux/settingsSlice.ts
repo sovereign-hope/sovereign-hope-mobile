@@ -5,6 +5,7 @@ import * as Notifications from "expo-notifications";
 import { body } from "src/style/typography";
 import { applyNotificationSchedule } from "src/services/notificationSchedule";
 import { writeThroughSettingsField } from "src/services/syncWriteThrough";
+import { normalizeMinutes } from "src/style/themeMode";
 
 export interface SettingsState {
   enableNotifications: boolean;
@@ -14,12 +15,20 @@ export interface SettingsState {
   readingBackgroundColor: string | undefined;
   showChildrensPlan: boolean;
   enableChurchCenterDeepLink: boolean;
+  enableEinkMode: boolean;
+  overrideSystemTheme: boolean;
+  darkModeEnabled: boolean;
+  darkModeScheduleEnabled: boolean;
+  darkModeScheduleStartMinutes: number;
+  darkModeScheduleEndMinutes: number;
   isLoading: boolean;
   hasError: boolean;
   hasLoadedSubscribedPlans: boolean;
 }
 
 const defaultTimeString = "8:00 AM";
+const defaultDarkModeScheduleStartMinutes = 21 * 60;
+const defaultDarkModeScheduleEndMinutes = 7 * 60;
 
 const initialState: SettingsState = {
   enableNotifications: true,
@@ -29,6 +38,12 @@ const initialState: SettingsState = {
   readingBackgroundColor: undefined,
   showChildrensPlan: true,
   enableChurchCenterDeepLink: false,
+  enableEinkMode: false,
+  overrideSystemTheme: false,
+  darkModeEnabled: false,
+  darkModeScheduleEnabled: false,
+  darkModeScheduleStartMinutes: defaultDarkModeScheduleStartMinutes,
+  darkModeScheduleEndMinutes: defaultDarkModeScheduleEndMinutes,
   isLoading: false,
   hasError: false,
   hasLoadedSubscribedPlans: false,
@@ -330,13 +345,265 @@ export const getEnableChurchCenterDeepLink = createAsyncThunk(
   }
 );
 
+export const storeEnableEinkMode = createAsyncThunk(
+  "settings/storeEnableEinkMode",
+  async (enableEinkMode: boolean) => {
+    try {
+      await AsyncStorage.setItem(
+        "@settings/enableEinkMode",
+        String(enableEinkMode)
+      );
+      await writeThroughSettingsField("enableEinkMode", enableEinkMode);
+      return enableEinkMode;
+    } catch (error) {
+      console.error(error);
+      return false;
+    }
+  }
+);
+
+export const getEnableEinkMode = createAsyncThunk(
+  "settings/getEnableEinkMode",
+  async (): Promise<boolean> => {
+    try {
+      const stringValue = await AsyncStorage.getItem(
+        "@settings/enableEinkMode"
+      );
+      if (!stringValue) {
+        return false;
+      }
+
+      try {
+        const parsedValue = JSON.parse(stringValue) as unknown;
+        return typeof parsedValue === "boolean" ? parsedValue : false;
+      } catch (parseError) {
+        console.error("Failed to parse enableEinkMode value:", parseError);
+        return false;
+      }
+    } catch (error) {
+      console.error("Failed to read enableEinkMode from storage:", error);
+      return false;
+    }
+  }
+);
+
+export const storeOverrideSystemTheme = createAsyncThunk(
+  "settings/storeOverrideSystemTheme",
+  async (overrideSystemTheme: boolean) => {
+    try {
+      await AsyncStorage.setItem(
+        "@settings/overrideSystemTheme",
+        String(overrideSystemTheme)
+      );
+      return overrideSystemTheme;
+    } catch (error) {
+      console.error(error);
+      return false;
+    }
+  }
+);
+
+export const getOverrideSystemTheme = createAsyncThunk(
+  "settings/getOverrideSystemTheme",
+  async (): Promise<boolean> => {
+    try {
+      const stringValue = await AsyncStorage.getItem(
+        "@settings/overrideSystemTheme"
+      );
+      if (!stringValue) {
+        return false;
+      }
+
+      try {
+        const parsedValue = JSON.parse(stringValue) as unknown;
+        return typeof parsedValue === "boolean" ? parsedValue : false;
+      } catch (parseError) {
+        console.error("Failed to parse overrideSystemTheme value:", parseError);
+        return false;
+      }
+    } catch (error) {
+      console.error("Failed to read overrideSystemTheme from storage:", error);
+      return false;
+    }
+  }
+);
+
+export const storeDarkModeEnabled = createAsyncThunk(
+  "settings/storeDarkModeEnabled",
+  async (darkModeEnabled: boolean) => {
+    try {
+      await AsyncStorage.setItem(
+        "@settings/darkModeEnabled",
+        String(darkModeEnabled)
+      );
+      return darkModeEnabled;
+    } catch (error) {
+      console.error(error);
+      return false;
+    }
+  }
+);
+
+export const getDarkModeEnabled = createAsyncThunk(
+  "settings/getDarkModeEnabled",
+  async (): Promise<boolean> => {
+    try {
+      const stringValue = await AsyncStorage.getItem(
+        "@settings/darkModeEnabled"
+      );
+      if (!stringValue) {
+        return false;
+      }
+
+      try {
+        const parsedValue = JSON.parse(stringValue) as unknown;
+        return typeof parsedValue === "boolean" ? parsedValue : false;
+      } catch (parseError) {
+        console.error("Failed to parse darkModeEnabled value:", parseError);
+        return false;
+      }
+    } catch (error) {
+      console.error("Failed to read darkModeEnabled from storage:", error);
+      return false;
+    }
+  }
+);
+
+export const storeDarkModeScheduleEnabled = createAsyncThunk(
+  "settings/storeDarkModeScheduleEnabled",
+  async (darkModeScheduleEnabled: boolean) => {
+    try {
+      await AsyncStorage.setItem(
+        "@settings/darkModeScheduleEnabled",
+        String(darkModeScheduleEnabled)
+      );
+      return darkModeScheduleEnabled;
+    } catch (error) {
+      console.error(error);
+      return false;
+    }
+  }
+);
+
+export const getDarkModeScheduleEnabled = createAsyncThunk(
+  "settings/getDarkModeScheduleEnabled",
+  async (): Promise<boolean> => {
+    try {
+      const stringValue = await AsyncStorage.getItem(
+        "@settings/darkModeScheduleEnabled"
+      );
+      if (!stringValue) {
+        return false;
+      }
+
+      try {
+        const parsedValue = JSON.parse(stringValue) as unknown;
+        return typeof parsedValue === "boolean" ? parsedValue : false;
+      } catch (parseError) {
+        console.error(
+          "Failed to parse darkModeScheduleEnabled value:",
+          parseError
+        );
+        return false;
+      }
+    } catch (error) {
+      console.error(
+        "Failed to read darkModeScheduleEnabled from storage:",
+        error
+      );
+      return false;
+    }
+  }
+);
+
+export const storeDarkModeScheduleStartMinutes = createAsyncThunk(
+  "settings/storeDarkModeScheduleStartMinutes",
+  async (darkModeScheduleStartMinutes: number) => {
+    const normalizedValue = normalizeMinutes(darkModeScheduleStartMinutes);
+    try {
+      await AsyncStorage.setItem(
+        "@settings/darkModeScheduleStartMinutes",
+        String(normalizedValue)
+      );
+      return normalizedValue;
+    } catch (error) {
+      console.error(error);
+      return defaultDarkModeScheduleStartMinutes;
+    }
+  }
+);
+
+export const getDarkModeScheduleStartMinutes = createAsyncThunk(
+  "settings/getDarkModeScheduleStartMinutes",
+  async (): Promise<number> => {
+    try {
+      const stringValue = await AsyncStorage.getItem(
+        "@settings/darkModeScheduleStartMinutes"
+      );
+      if (!stringValue) {
+        return defaultDarkModeScheduleStartMinutes;
+      }
+
+      const parsedValue = Number.parseInt(stringValue, 10);
+      if (Number.isNaN(parsedValue)) {
+        return defaultDarkModeScheduleStartMinutes;
+      }
+      return normalizeMinutes(parsedValue);
+    } catch (error) {
+      console.error("Failed to read darkModeScheduleStartMinutes:", error);
+      return defaultDarkModeScheduleStartMinutes;
+    }
+  }
+);
+
+export const storeDarkModeScheduleEndMinutes = createAsyncThunk(
+  "settings/storeDarkModeScheduleEndMinutes",
+  async (darkModeScheduleEndMinutes: number) => {
+    const normalizedValue = normalizeMinutes(darkModeScheduleEndMinutes);
+    try {
+      await AsyncStorage.setItem(
+        "@settings/darkModeScheduleEndMinutes",
+        String(normalizedValue)
+      );
+      return normalizedValue;
+    } catch (error) {
+      console.error(error);
+      return defaultDarkModeScheduleEndMinutes;
+    }
+  }
+);
+
+export const getDarkModeScheduleEndMinutes = createAsyncThunk(
+  "settings/getDarkModeScheduleEndMinutes",
+  async (): Promise<number> => {
+    try {
+      const stringValue = await AsyncStorage.getItem(
+        "@settings/darkModeScheduleEndMinutes"
+      );
+      if (!stringValue) {
+        return defaultDarkModeScheduleEndMinutes;
+      }
+
+      const parsedValue = Number.parseInt(stringValue, 10);
+      if (Number.isNaN(parsedValue)) {
+        return defaultDarkModeScheduleEndMinutes;
+      }
+      return normalizeMinutes(parsedValue);
+    } catch (error) {
+      console.error("Failed to read darkModeScheduleEndMinutes:", error);
+      return defaultDarkModeScheduleEndMinutes;
+    }
+  }
+);
+
 export const settingsSlice = createSlice({
   name: "settings",
   initialState,
   reducers: {},
   extraReducers: (builder) => {
     // storeEnableNotificationsState
-    builder.addCase(storeEnableNotificationsState.pending, (state) => {
+    builder.addCase(storeEnableNotificationsState.pending, (state, action) => {
+      state.enableNotifications = action.meta.arg;
       state.isLoading = true;
       state.hasError = false;
     });
@@ -495,7 +762,8 @@ export const settingsSlice = createSlice({
     });
 
     // storeShowChildrensPlan
-    builder.addCase(storeShowChildrensPlan.pending, (state) => {
+    builder.addCase(storeShowChildrensPlan.pending, (state, action) => {
+      state.showChildrensPlan = action.meta.arg;
       state.isLoading = true;
       state.hasError = false;
     });
@@ -509,11 +777,31 @@ export const settingsSlice = createSlice({
       state.hasError = true;
     });
 
-    // storeEnableChurchCenterDeepLink
-    builder.addCase(storeEnableChurchCenterDeepLink.pending, (state) => {
+    // getShowChildrensPlan
+    builder.addCase(getShowChildrensPlan.pending, (state) => {
       state.isLoading = true;
       state.hasError = false;
     });
+    builder.addCase(getShowChildrensPlan.fulfilled, (state, action) => {
+      state.showChildrensPlan = action.payload;
+      state.isLoading = false;
+      state.hasError = false;
+    });
+    builder.addCase(getShowChildrensPlan.rejected, (state) => {
+      state.showChildrensPlan = true;
+      state.isLoading = false;
+      state.hasError = true;
+    });
+
+    // storeEnableChurchCenterDeepLink
+    builder.addCase(
+      storeEnableChurchCenterDeepLink.pending,
+      (state, action) => {
+        state.enableChurchCenterDeepLink = action.meta.arg;
+        state.isLoading = true;
+        state.hasError = false;
+      }
+    );
     builder.addCase(
       storeEnableChurchCenterDeepLink.fulfilled,
       (state, action) => {
@@ -542,6 +830,220 @@ export const settingsSlice = createSlice({
     );
     builder.addCase(getEnableChurchCenterDeepLink.rejected, (state) => {
       state.enableChurchCenterDeepLink = false;
+      state.isLoading = false;
+      state.hasError = true;
+    });
+
+    // storeEnableEinkMode
+    builder.addCase(storeEnableEinkMode.pending, (state, action) => {
+      state.enableEinkMode = action.meta.arg;
+      state.isLoading = true;
+      state.hasError = false;
+    });
+    builder.addCase(storeEnableEinkMode.fulfilled, (state, action) => {
+      state.enableEinkMode = action.payload ?? false;
+      state.isLoading = false;
+      state.hasError = false;
+    });
+    builder.addCase(storeEnableEinkMode.rejected, (state) => {
+      state.isLoading = false;
+      state.hasError = true;
+    });
+
+    // getEnableEinkMode
+    builder.addCase(getEnableEinkMode.pending, (state) => {
+      state.isLoading = true;
+      state.hasError = false;
+    });
+    builder.addCase(getEnableEinkMode.fulfilled, (state, action) => {
+      state.enableEinkMode = action.payload ?? false;
+      state.isLoading = false;
+      state.hasError = false;
+    });
+    builder.addCase(getEnableEinkMode.rejected, (state) => {
+      state.enableEinkMode = false;
+      state.isLoading = false;
+      state.hasError = true;
+    });
+
+    // storeOverrideSystemTheme
+    builder.addCase(storeOverrideSystemTheme.pending, (state, action) => {
+      state.overrideSystemTheme = action.meta.arg;
+      state.isLoading = true;
+      state.hasError = false;
+    });
+    builder.addCase(storeOverrideSystemTheme.fulfilled, (state, action) => {
+      state.overrideSystemTheme = action.payload ?? false;
+      state.isLoading = false;
+      state.hasError = false;
+    });
+    builder.addCase(storeOverrideSystemTheme.rejected, (state) => {
+      state.isLoading = false;
+      state.hasError = true;
+    });
+
+    // getOverrideSystemTheme
+    builder.addCase(getOverrideSystemTheme.pending, (state) => {
+      state.isLoading = true;
+      state.hasError = false;
+    });
+    builder.addCase(getOverrideSystemTheme.fulfilled, (state, action) => {
+      state.overrideSystemTheme = action.payload ?? false;
+      state.isLoading = false;
+      state.hasError = false;
+    });
+    builder.addCase(getOverrideSystemTheme.rejected, (state) => {
+      state.overrideSystemTheme = false;
+      state.isLoading = false;
+      state.hasError = true;
+    });
+
+    // storeDarkModeEnabled
+    builder.addCase(storeDarkModeEnabled.pending, (state, action) => {
+      state.darkModeEnabled = action.meta.arg;
+      state.isLoading = true;
+      state.hasError = false;
+    });
+    builder.addCase(storeDarkModeEnabled.fulfilled, (state, action) => {
+      state.darkModeEnabled = action.payload ?? false;
+      state.isLoading = false;
+      state.hasError = false;
+    });
+    builder.addCase(storeDarkModeEnabled.rejected, (state) => {
+      state.isLoading = false;
+      state.hasError = true;
+    });
+
+    // getDarkModeEnabled
+    builder.addCase(getDarkModeEnabled.pending, (state) => {
+      state.isLoading = true;
+      state.hasError = false;
+    });
+    builder.addCase(getDarkModeEnabled.fulfilled, (state, action) => {
+      state.darkModeEnabled = action.payload ?? false;
+      state.isLoading = false;
+      state.hasError = false;
+    });
+    builder.addCase(getDarkModeEnabled.rejected, (state) => {
+      state.darkModeEnabled = false;
+      state.isLoading = false;
+      state.hasError = true;
+    });
+
+    // storeDarkModeScheduleEnabled
+    builder.addCase(storeDarkModeScheduleEnabled.pending, (state, action) => {
+      state.darkModeScheduleEnabled = action.meta.arg;
+      state.isLoading = true;
+      state.hasError = false;
+    });
+    builder.addCase(storeDarkModeScheduleEnabled.fulfilled, (state, action) => {
+      state.darkModeScheduleEnabled = action.payload ?? false;
+      state.isLoading = false;
+      state.hasError = false;
+    });
+    builder.addCase(storeDarkModeScheduleEnabled.rejected, (state) => {
+      state.isLoading = false;
+      state.hasError = true;
+    });
+
+    // getDarkModeScheduleEnabled
+    builder.addCase(getDarkModeScheduleEnabled.pending, (state) => {
+      state.isLoading = true;
+      state.hasError = false;
+    });
+    builder.addCase(getDarkModeScheduleEnabled.fulfilled, (state, action) => {
+      state.darkModeScheduleEnabled = action.payload ?? false;
+      state.isLoading = false;
+      state.hasError = false;
+    });
+    builder.addCase(getDarkModeScheduleEnabled.rejected, (state) => {
+      state.darkModeScheduleEnabled = false;
+      state.isLoading = false;
+      state.hasError = true;
+    });
+
+    // storeDarkModeScheduleStartMinutes
+    builder.addCase(
+      storeDarkModeScheduleStartMinutes.pending,
+      (state, action) => {
+        state.darkModeScheduleStartMinutes = normalizeMinutes(action.meta.arg);
+        state.isLoading = true;
+        state.hasError = false;
+      }
+    );
+    builder.addCase(
+      storeDarkModeScheduleStartMinutes.fulfilled,
+      (state, action) => {
+        state.darkModeScheduleStartMinutes =
+          action.payload ?? defaultDarkModeScheduleStartMinutes;
+        state.isLoading = false;
+        state.hasError = false;
+      }
+    );
+    builder.addCase(storeDarkModeScheduleStartMinutes.rejected, (state) => {
+      state.isLoading = false;
+      state.hasError = true;
+    });
+
+    // getDarkModeScheduleStartMinutes
+    builder.addCase(getDarkModeScheduleStartMinutes.pending, (state) => {
+      state.isLoading = true;
+      state.hasError = false;
+    });
+    builder.addCase(
+      getDarkModeScheduleStartMinutes.fulfilled,
+      (state, action) => {
+        state.darkModeScheduleStartMinutes =
+          action.payload ?? defaultDarkModeScheduleStartMinutes;
+        state.isLoading = false;
+        state.hasError = false;
+      }
+    );
+    builder.addCase(getDarkModeScheduleStartMinutes.rejected, (state) => {
+      state.darkModeScheduleStartMinutes = defaultDarkModeScheduleStartMinutes;
+      state.isLoading = false;
+      state.hasError = true;
+    });
+
+    // storeDarkModeScheduleEndMinutes
+    builder.addCase(
+      storeDarkModeScheduleEndMinutes.pending,
+      (state, action) => {
+        state.darkModeScheduleEndMinutes = normalizeMinutes(action.meta.arg);
+        state.isLoading = true;
+        state.hasError = false;
+      }
+    );
+    builder.addCase(
+      storeDarkModeScheduleEndMinutes.fulfilled,
+      (state, action) => {
+        state.darkModeScheduleEndMinutes =
+          action.payload ?? defaultDarkModeScheduleEndMinutes;
+        state.isLoading = false;
+        state.hasError = false;
+      }
+    );
+    builder.addCase(storeDarkModeScheduleEndMinutes.rejected, (state) => {
+      state.isLoading = false;
+      state.hasError = true;
+    });
+
+    // getDarkModeScheduleEndMinutes
+    builder.addCase(getDarkModeScheduleEndMinutes.pending, (state) => {
+      state.isLoading = true;
+      state.hasError = false;
+    });
+    builder.addCase(
+      getDarkModeScheduleEndMinutes.fulfilled,
+      (state, action) => {
+        state.darkModeScheduleEndMinutes =
+          action.payload ?? defaultDarkModeScheduleEndMinutes;
+        state.isLoading = false;
+        state.hasError = false;
+      }
+    );
+    builder.addCase(getDarkModeScheduleEndMinutes.rejected, (state) => {
+      state.darkModeScheduleEndMinutes = defaultDarkModeScheduleEndMinutes;
       state.isLoading = false;
       state.hasError = true;
     });
@@ -578,5 +1080,23 @@ export const selectShowChildrensPlan = (state: RootState): boolean =>
 
 export const selectEnableChurchCenterDeepLink = (state: RootState): boolean =>
   state.settings.enableChurchCenterDeepLink;
+
+export const selectEnableEinkMode = (state: RootState): boolean =>
+  state.settings.enableEinkMode;
+
+export const selectOverrideSystemTheme = (state: RootState): boolean =>
+  state.settings.overrideSystemTheme;
+
+export const selectDarkModeEnabled = (state: RootState): boolean =>
+  state.settings.darkModeEnabled;
+
+export const selectDarkModeScheduleEnabled = (state: RootState): boolean =>
+  state.settings.darkModeScheduleEnabled;
+
+export const selectDarkModeScheduleStartMinutes = (state: RootState): number =>
+  state.settings.darkModeScheduleStartMinutes;
+
+export const selectDarkModeScheduleEndMinutes = (state: RootState): number =>
+  state.settings.darkModeScheduleEndMinutes;
 
 export const settingsReducer = settingsSlice.reducer;

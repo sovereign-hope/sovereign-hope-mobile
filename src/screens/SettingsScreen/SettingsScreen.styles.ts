@@ -6,6 +6,7 @@ import { colors } from "src/style/colors";
 
 type Props = {
   theme: Theme;
+  isEinkMode?: boolean;
 };
 
 interface Style {
@@ -43,7 +44,7 @@ interface Style {
   accountTextActionDanger: TextStyle;
 }
 
-export const styles = ({ theme }: Props): Style =>
+export const styles = ({ theme, isEinkMode = false }: Props): Style =>
   StyleSheet.create({
     screen: {
       flex: 1,
@@ -54,14 +55,17 @@ export const styles = ({ theme }: Props): Style =>
       ...header3,
       marginHorizontal: spacing.large,
       marginTop: spacing.large,
-      marginBottom: Platform.OS === "ios" ? spacing.small : spacing.large,
+      marginBottom:
+        Platform.OS === "ios" || Platform.OS === "android"
+          ? spacing.small
+          : spacing.large,
       color: theme.colors.text,
     },
     settingsGroup: {
       marginHorizontal: spacing.large,
       borderRadius: radius.large,
       overflow: "hidden",
-      borderWidth: StyleSheet.hairlineWidth,
+      borderWidth: isEinkMode ? 1 : StyleSheet.hairlineWidth,
       borderColor: theme.colors.border,
       backgroundColor: theme.colors.card,
     },
@@ -81,7 +85,11 @@ export const styles = ({ theme }: Props): Style =>
       borderBottomWidth: 0,
     },
     settingsRowPressed: {
-      backgroundColor: theme.colors.background,
+      backgroundColor: isEinkMode
+        ? theme.dark
+          ? colors.darkGrey
+          : colors.grey0
+        : theme.colors.background,
     },
     settingsRowText: {
       color: theme.colors.text,
@@ -92,7 +100,7 @@ export const styles = ({ theme }: Props): Style =>
     },
     settingsRowSubtext: {
       color: theme.colors.text,
-      opacity: 0.6,
+      opacity: isEinkMode ? 1 : 0.6,
       fontSize: 14,
       marginTop: 4,
     },
@@ -106,21 +114,23 @@ export const styles = ({ theme }: Props): Style =>
     accountPanel: {
       backgroundColor: theme.colors.card,
       padding: spacing.large,
-      ...(Platform.OS === "ios"
+      ...(Platform.OS === "ios" || Platform.OS === "android"
         ? {
             marginHorizontal: spacing.large,
             borderRadius: radius.large,
             marginBottom: spacing.large,
+            borderWidth: StyleSheet.hairlineWidth,
+            borderColor: theme.colors.border,
           }
         : {}),
     },
     accountPanelMutedText: {
       color: theme.colors.text,
-      opacity: 0.7,
+      opacity: isEinkMode ? 1 : 0.7,
       marginBottom: spacing.medium,
     },
     accountErrorText: {
-      color: colors.red,
+      color: isEinkMode ? theme.colors.primary : colors.red,
       marginBottom: spacing.medium,
     },
     accountButtonRow: {
@@ -141,21 +151,21 @@ export const styles = ({ theme }: Props): Style =>
       backgroundColor: theme.colors.background,
     },
     accountButtonPrimary: {
-      backgroundColor: colors.accent,
-      borderColor: colors.accent,
+      backgroundColor: isEinkMode ? theme.colors.background : colors.accent,
+      borderColor: isEinkMode ? theme.colors.primary : colors.accent,
     },
     accountButtonDanger: {
-      borderColor: colors.red,
+      borderColor: isEinkMode ? theme.colors.primary : colors.red,
     },
     accountButtonText: {
       color: theme.colors.text,
       fontWeight: "600",
     },
     accountButtonPrimaryText: {
-      color: colors.white,
+      color: isEinkMode ? theme.colors.primary : colors.white,
     },
     accountButtonDangerText: {
-      color: colors.red,
+      color: isEinkMode ? theme.colors.primary : colors.red,
     },
     accountDivider: {
       height: 1,
@@ -167,7 +177,7 @@ export const styles = ({ theme }: Props): Style =>
       minHeight: elementSize.small,
       borderRadius: radius.medium,
       borderWidth: 1,
-      borderColor: colors.red,
+      borderColor: isEinkMode ? theme.colors.primary : colors.red,
       paddingVertical: spacing.medium,
       paddingHorizontal: spacing.large,
       justifyContent: "center",
@@ -175,12 +185,16 @@ export const styles = ({ theme }: Props): Style =>
       marginTop: spacing.small,
     },
     accountSmallDangerButtonText: {
-      color: colors.red,
+      color: isEinkMode ? theme.colors.primary : colors.red,
       fontWeight: "600",
     },
     modalBackdrop: {
       flex: 1,
-      backgroundColor: "rgba(0,0,0,0.35)",
+      backgroundColor: isEinkMode
+        ? theme.dark
+          ? colors.black
+          : colors.white
+        : "rgba(0,0,0,0.35)",
       justifyContent: "center",
       padding: spacing.large,
     },
@@ -199,7 +213,7 @@ export const styles = ({ theme }: Props): Style =>
     },
     modalBody: {
       color: theme.colors.text,
-      opacity: 0.8,
+      opacity: isEinkMode ? 1 : 0.8,
       marginBottom: spacing.medium,
     },
     modalButtonRow: {
@@ -214,8 +228,8 @@ export const styles = ({ theme }: Props): Style =>
       paddingHorizontal: spacing.small,
     },
     accountTextActionDanger: {
-      color: colors.red,
-      opacity: 0.9,
+      color: isEinkMode ? theme.colors.primary : colors.red,
+      opacity: isEinkMode ? 1 : 0.9,
       textDecorationLine: "underline",
     },
   });

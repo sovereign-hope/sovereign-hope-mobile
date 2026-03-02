@@ -6,6 +6,7 @@ import { Theme } from "@react-navigation/native";
 
 type Props = {
   theme: Theme;
+  isEinkMode?: boolean;
 };
 
 interface Style {
@@ -23,7 +24,7 @@ interface Style {
   text: TextStyle;
 }
 
-export const styles = ({ theme }: Props): Style =>
+export const styles = ({ theme, isEinkMode = false }: Props): Style =>
   StyleSheet.create({
     screen: {
       flex: 1,
@@ -47,7 +48,7 @@ export const styles = ({ theme }: Props): Style =>
     },
     textButton: {
       ...body,
-      color: colors.accent,
+      color: isEinkMode ? theme.colors.primary : colors.accent,
       margin: spacing.medium,
     },
     contentCard: {
@@ -58,21 +59,23 @@ export const styles = ({ theme }: Props): Style =>
       padding: spacing.lmedium,
       borderRadius: radius.large,
       backgroundColor: theme.colors.card,
+      borderWidth: isEinkMode ? 1 : 0,
+      borderColor: theme.colors.border,
       shadowColor: colors.black,
       shadowOffset: {
         width: 0,
         height: 2,
       },
-      shadowOpacity: 0.1,
+      shadowOpacity: isEinkMode ? 0 : 0.1,
     },
     contentCardColumn: {
       flex: 1,
       flexDirection: "column",
-      color: theme.dark ? colors.white : colors.darkGrey,
+      color: theme.colors.text,
     },
     contentCardHeader: {
       ...header3,
-      color: theme.dark ? colors.white : colors.darkGrey,
+      color: theme.colors.text,
       marginBottom: spacing.medium,
     },
     header: {

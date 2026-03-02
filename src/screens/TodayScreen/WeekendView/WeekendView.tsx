@@ -22,9 +22,11 @@ import {
   ReadingPlanListItemData,
 } from "../../ReadingPlanScreen/ReadingPlanScreen";
 import { getDayOfYearIndices } from "src/app/utils";
+import { useUiPreferences } from "src/hooks/useUiPreferences";
 
 interface ReviewListProps {
   listData: Array<ReadingPlanListItemData>;
+  isEinkMode: boolean;
   onRowPress: (
     item: ReadingPlanDay,
     onCompleteDay: (isComplete: boolean) => void
@@ -33,6 +35,7 @@ interface ReviewListProps {
 
 const ReviewList: React.FunctionComponent<ReviewListProps> = ({
   listData,
+  isEinkMode,
   onRowPress,
 }: ReviewListProps) => {
   const animation = useRef(new Animated.Value(0)).current;
@@ -51,6 +54,7 @@ const ReviewList: React.FunctionComponent<ReviewListProps> = ({
         <ReadingPlanListItem
           item={item}
           key={`${item.weekIndex}-${item.originalDayIndex}`}
+          isEinkMode={isEinkMode}
           handleRowPress={onRowPress}
         />
       ))}
@@ -72,6 +76,7 @@ export const WeekendView: React.FunctionComponent<Props> = ({
   const dispatch = useAppDispatch();
   const readingPlanWeek = useAppSelector(selectWeekReadingPlan);
   const theme = useTheme();
+  const uiPreferences = useUiPreferences();
 
   // Ref Hooks
   const appState = useRef(AppState.currentState);
@@ -152,7 +157,11 @@ export const WeekendView: React.FunctionComponent<Props> = ({
           <ActivityIndicator size="large" color={theme.colors.text} />
         </View>
       ) : (
-        <ReviewList listData={listData} onRowPress={onRowPress} />
+        <ReviewList
+          listData={listData}
+          isEinkMode={uiPreferences.isEinkMode}
+          onRowPress={onRowPress}
+        />
       )}
       <View style={themedStyles.spacer} />
     </View>
