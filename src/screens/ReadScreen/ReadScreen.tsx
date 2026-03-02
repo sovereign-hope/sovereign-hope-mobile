@@ -55,6 +55,7 @@ export const ReadScreen: React.FunctionComponent<ReadScreenProps> = ({
     shouldShowMemoryButton,
     heading,
     isNavigatingPassages,
+    hasLoadedCurrentPassage,
     handleNextPassage,
     handlePreviousPassage,
   } = usePassageLoader(passages, onComplete, onDone);
@@ -161,7 +162,7 @@ export const ReadScreen: React.FunctionComponent<ReadScreenProps> = ({
 
   return (
     <SafeAreaView style={themedStyles.screen} edges={["left", "right"]}>
-      {isLoading ? (
+      {isLoading && !hasLoadedCurrentPassage ? (
         <View style={themedStyles.loadingContainer}>
           <ActivityIndicator size="large" color={theme.colors.text} />
         </View>
