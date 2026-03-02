@@ -219,6 +219,7 @@ export const MediaPlayer: React.FunctionComponent<Props> = () => {
           dark: "rgba(255, 255, 255, 0.86)",
         })
       : colors.white;
+  const controlIconColor = uiPreferences.isEinkMode ? colors.black : colors.white;
   const maximizedHeaderTopInset = useExpandedPlayerSheet
     ? spacing.medium
     : insets.top;
