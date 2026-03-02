@@ -22,6 +22,9 @@
     "buildDevelopment:ios": "EAS_BUILD_PROFILE=development npx eas-cli build --platform ios --profile development",
     "buildDevelopment:android": "EAS_BUILD_PROFILE=development npx eas-cli build --platform android --profile development",
     "buildDevelopment:all": "EAS_BUILD_PROFILE=development npx eas-cli build --platform all --profile development",
+    "buildDevelopment:simulator": "npx eas-cli build --platform ios --profile development:simulator --local",
+    "buildDevelopment:ios:local": "npx eas-cli build --platform ios --profile development --local",
+    "buildDevelopment:android:local": "npx eas-cli build --platform android --profile development --local",
     "submitProduction": "EAS_BUILD_PROFILE=production npx eas submit --profile production"
   },
   "dependencies": {
