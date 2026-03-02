@@ -87,10 +87,7 @@ export const AmbientSoundPickerScreen: React.FunctionComponent<Props> = () => {
   );
 
   return (
-    <SafeAreaView
-      edges={["left", "right", "bottom"]}
-      style={themedStyles.screen}
-    >
+    <SafeAreaView edges={["left", "right"]} style={themedStyles.screen}>
       <ScrollView
         contentInsetAdjustmentBehavior="automatic"
         contentContainerStyle={{ paddingBottom: miniPlayerHeight }}
