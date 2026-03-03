@@ -579,7 +579,7 @@ erDiagram
 
 ### Origin
 
-- **Brainstorm document:** [docs/brainstorms/2026-02-26-member-only-features-brainstorm.md](docs/brainstorms/2026-02-26-member-only-features-brainstorm.md) - Key decisions carried forward: Firebase custom claims for member flag, flat Firestore collections, two-layer security model, scheduled Cloud Function for prayer generation
+- **Brainstorm document:** [docs/brainstorms/2026-02-26-member-only-features-brainstorm.md](../brainstorms/2026-02-26-member-only-features-brainstorm.md) - Key decisions carried forward: Firebase custom claims for member flag, flat Firestore collections, two-layer security model, scheduled Cloud Function for prayer generation
 
 ### Internal References
 
