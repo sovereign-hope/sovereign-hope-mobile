@@ -62,7 +62,7 @@ sh /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install
 
 ```bash
 gem install xcode-install
-xcversion install <latest>
+xcversion install latest
 ```
 
 Install the latest stable Xcode for your macOS version.
@@ -72,7 +72,7 @@ If you want to see available versions:
 xcversion list
 ```
 
-and then `xcversion install` whatever the latest version is.
+and then run `xcversion install <version>` with a specific version from that list.
 
 In case you're having trouble, [the xcode-install repository can be found here.](https://github.com/xcpretty/xcode-install)
 
