@@ -41,7 +41,7 @@
     "@sentry/react-native": "~7.2.0",
     "@types/cheerio": "^0.22.35",
     "@types/react-native-rss-parser": "^1.4.0",
-    "axios": "^1.7.7",
+    "axios": "^1.13.6",
     "cheerio": "npm:react-native-cheerio",
     "expo": "^54",
     "expo-apple-authentication": "~8.0.8",
