@@ -199,18 +199,30 @@ function getPersonPhotoUrl(personAttributes) {
   return null;
 }
 
-function pickBestEmailForPerson(person, emailsById) {
+function getAllEmailsForPerson(person, emailsById) {
   const emailRefs = person.relationships?.emails?.data || [];
-  const resolvedEmails = emailRefs
-    .map((ref) => emailsById.get(String(ref.id)))
-    .filter((value) => Boolean(value));
+  const seen = new Set();
+  const values = [];
 
-  if (resolvedEmails.length === 0) {
-    return null;
+  for (const ref of emailRefs) {
+    const resolved = emailsById.get(String(ref.id));
+    if (!resolved || resolved.blocked || !resolved.address) {
+      continue;
+    }
+
+    const normalized = String(resolved.address).trim().toLowerCase();
+    if (!normalized || seen.has(normalized)) {
+      continue;
+    }
+
+    seen.add(normalized);
+    values.push({
+      address: normalized,
+      primary: resolved.primary === true,
+    });
   }
 
-  const primary = resolvedEmails.find((email) => email.primary === true);
-  return primary || resolvedEmails[0];
+  return values;
 }
 
 async function fetchPcoJson(url, credentials) {
@@ -367,18 +379,21 @@ function buildCandidates(people, includedEmails, limit) {
       continue;
     }
 
-    const email = pickBestEmailForPerson(person, emailsById);
-    const normalizedEmail =
-      email && email.address && !email.blocked
-        ? String(email.address).trim().toLowerCase()
-        : null;
+    const emails = getAllEmailsForPerson(person, emailsById);
+    const primaryEmail =
+      emails.find((entry) => entry.primary === true)?.address ||
+      emails[0]?.address ||
+      null;
 
     dedupeByPersonId.set(personId, {
       personId,
       displayName:
         getPersonDisplayName(person.attributes || {}) || "Church Member",
       photoURL: getPersonPhotoUrl(person.attributes || {}),
-      email: normalizedEmail,
+      email: primaryEmail,
+      emailNormalized: primaryEmail,
+      emails,
+      emailsNormalized: emails.map((entry) => entry.address),
       personApiUrl: person.links?.self || null,
     });
   }
@@ -421,7 +436,9 @@ async function upsertSeedMember(db, listInfo, candidate, dryRun) {
         uid: linkedUid,
         linkedUid,
         email: candidate.email,
-        emailNormalized: candidate.email,
+        emailNormalized: candidate.emailNormalized,
+        emails: candidate.emails,
+        emailsNormalized: candidate.emailsNormalized,
         displayName: candidate.displayName,
         photoURL: candidate.photoURL,
         source: "planning_center",

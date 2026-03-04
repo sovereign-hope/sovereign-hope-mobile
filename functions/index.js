@@ -59,6 +59,14 @@ function shuffleArray(values) {
   return cloned;
 }
 
+function normalizeEmail(email) {
+  if (typeof email !== "string") {
+    return "";
+  }
+
+  return email.trim().toLowerCase();
+}
+
 function isAdminToken(context) {
   return (
     context.auth?.token?.admin === true || context.auth?.token?.isAdmin === true
@@ -153,6 +161,105 @@ exports.cleanupDeletedUserData = functions.auth
     await deleteCollectionInBatches(progressRef);
     await userRef.delete().catch(() => undefined);
   });
+
+exports.linkMemberOnSignUp = functions.auth.user().onCreate(async (user) => {
+  const email = normalizeEmail(user.email);
+  if (!email) {
+    console.log("Skipping member auto-link, signup has no email.", {
+      uid: user.uid,
+    });
+    return null;
+  }
+
+  const db = admin.firestore();
+  const auth = admin.auth();
+
+  const candidates = [];
+
+  const allEmailsSnapshot = await db
+    .collection("members")
+    .where("emailsNormalized", "array-contains", email)
+    .limit(5)
+    .get();
+  allEmailsSnapshot.docs.forEach((doc) => candidates.push(doc));
+
+  if (candidates.length === 0) {
+    const normalizedSnapshot = await db
+      .collection("members")
+      .where("emailNormalized", "==", email)
+      .limit(5)
+      .get();
+    normalizedSnapshot.docs.forEach((doc) => candidates.push(doc));
+  }
+
+  if (candidates.length === 0) {
+    const fallbackSnapshot = await db
+      .collection("members")
+      .where("email", "==", email)
+      .limit(5)
+      .get();
+    fallbackSnapshot.docs.forEach((doc) => candidates.push(doc));
+  }
+
+  if (candidates.length === 0) {
+    console.log("No Planning Center member doc found for signup email.", {
+      uid: user.uid,
+      email,
+    });
+    return null;
+  }
+
+  const targetDoc =
+    candidates.find((doc) => {
+      const linkedUid =
+        typeof doc.data()?.linkedUid === "string"
+          ? doc.data().linkedUid.trim()
+          : "";
+      return !linkedUid;
+    }) || candidates[0];
+
+  const targetData = targetDoc.data() || {};
+  const currentLinkedUid =
+    typeof targetData.linkedUid === "string" ? targetData.linkedUid.trim() : "";
+
+  if (currentLinkedUid && currentLinkedUid !== user.uid) {
+    console.log("Skipping member auto-link, member doc already linked.", {
+      uid: user.uid,
+      email,
+      memberId: targetDoc.id,
+      linkedUid: currentLinkedUid,
+    });
+    return null;
+  }
+
+  const userRecord = await auth.getUser(user.uid);
+  const claims = userRecord.customClaims || {};
+
+  await auth.setCustomUserClaims(user.uid, {
+    ...claims,
+    isMember: true,
+  });
+
+  await targetDoc.ref.set(
+    {
+      uid: user.uid,
+      linkedUid: user.uid,
+      email,
+      emailNormalized: email,
+      linkedAt: admin.firestore.FieldValue.serverTimestamp(),
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    },
+    { merge: true }
+  );
+
+  console.log("Auto-linked signup to member record.", {
+    uid: user.uid,
+    email,
+    memberId: targetDoc.id,
+  });
+
+  return null;
+});
 
 exports.setMemberClaim = functions.https.onCall(async (data, context) => {
   if (!context.auth || !isAdminToken(context)) {
