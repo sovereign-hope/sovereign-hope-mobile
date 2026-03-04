@@ -36,7 +36,6 @@ To view and run the most recent Development release channel on your device:
 3. From your phone, scan the QR code on the project page and open the link in Expo Go
 
 Note: If you're already on your phone, you can open the link directly and skip scanning.
-Note: Some app features require native modules and work best in a development build.
 
 ## 📱 Full Mobile Onboarding
 
@@ -46,7 +45,7 @@ Let's get right to business.
 
 First thing is installs-- let's get all these out of the way so that we can focus on learning and configuration.
 
-Note: If you use `zsh`, just substitute it in for any occurence of `bash`
+Note: If you use `zsh`, just substitute it in for any occurrence of `bash`
 
 Note Note: Since MacOS 10.15, the default shell is `zsh`
 
@@ -62,17 +61,18 @@ sh /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install
 
 ```bash
 gem install xcode-install
-xcversion install latest
+xcversion install 12.5
 ```
 
-Install the latest stable Xcode for your macOS version.
-If you want to see available versions:
+Note: This command pins Xcode 12.5. In most cases, install the latest stable Xcode unless we eject from the Managed Expo Workflow.
+
+If you want to install the most recent Xcode _and we haven't ejected from the Managed Workflow_, run:
 
 ```bash
 xcversion list
 ```
 
-and then run `xcversion install <version>` with a specific version from that list.
+and then `xcversion install` whatever the latest version is.
 
 In case you're having trouble, [the xcode-install repository can be found here.](https://github.com/xcpretty/xcode-install)
 
@@ -221,7 +221,7 @@ We use `npx expo ...` from the project dependencies and `eas-cli` for builds/sub
 
 ### ▶️ Running the App
 
-With everything set up, get your phone ready with either Expo Go or a development build running and, from the project directory, run:
+With everything set up, get your phone ready with the Expo Go app running and, from the project directory, run:
 
 ```bash
 npx expo start
@@ -250,10 +250,10 @@ These workflows are managed by workflow YAML files in the `.github/workflows` di
 
 Branch names should include the following prefixes:
 
-- `/feature` for feature branches
-- `/hotfix` for urgent bug fix branches
-- `/bugfix` for non-urgent bug fix branches
-- `/release` for release candidate branches
+- `feature/` for feature branches
+- `hotfix/` for urgent bug fix branches
+- `bugfix/` for non-urgent bug fix branches
+- `release/` for release candidate branches
 
 Examples:
 
@@ -264,11 +264,11 @@ Examples:
 When work on a branch is complete, a PR should be submitted against `main`, which is our main trunk branch.
 Given the nature of our continuous deployment capabilities, we don't employ a secondary `development` branch, but rather all work is done off of `main`. This keeps things running much more smoothly in our case and eliminates a lot of unnecessary complexity.
 
-PR branches, as part of our CI/CD pipeline, publish a PR-specific EAS Update preview (`pr-<PR_NUMBER>`). A link is added to your PR so it can be opened in Expo Go or a development build.
+PR branches, as a part of our CI/CD pipeline, will generate a PR-specific expo build that you can quickly and easily run on any device and share with coworkers to test. A link will be added to your PR when the build finishes.
 
 When a PR passes necessary checks and reviews, it can be merged to `main` at any point. Because we tag the branches with Jira keys, the ticket related to your branch should update as well.
 
-Once a PR is merged into `main`, the Development workflow publishes a new update to the `development` channel.
+Once a PR is merged into main, a new development build will be triggered and deployed to the `development` Expo release channel. New development app binaries will also be built for internal distribution.
 
 You can read more about EAS update branches and builds [here](https://docs.expo.dev/eas-update/eas-cli/) and [here](https://docs.expo.dev/build/introduction/).
 
@@ -297,10 +297,12 @@ Refer back to [Github Workflows](#github-workflows) to review the flow charts.
 
 The release process should proceed as follows:
 
-1. Prepare release changes and version updates via PRs against `main`.
-2. When ready for production, merge or push the release state to the `production` branch.
-3. The `production` branch push triggers the Production Release workflow (EAS update + platform builds).
-4. Submit binaries to stores as needed and monitor errors via Sentry for follow-up fixes.
+1. Create a release branch in Github (release/v#.#.#)
+2. The branch creation will automatically kick off the Release Candidate workflow
+3. Bump the Expo and EAS versions on the main branch
+4. Tag release branch with the version tag, kicking off the Production Release workflow
+5. If this is a major release, release binaries to the App and Play Stores.
+6. Monitor errors via Sentry-- create hotfixes if needed.
 
 ### 📚 Helpful Reading
 

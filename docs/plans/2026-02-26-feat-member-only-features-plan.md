@@ -28,7 +28,7 @@ These features must be **strictly member-only** for privacy and security reasons
 
 ## Proposed Solution
 
-### Architecture Summary (see brainstorm: docs/brainstorms/2026-02-26-member-only-features-brainstorm.md)
+### Architecture Summary (see brainstorm: ../brainstorms/2026-02-26-member-only-features-brainstorm.md)
 
 | Component         | Approach                                                              |
 | ----------------- | --------------------------------------------------------------------- |
@@ -460,7 +460,7 @@ Firebase operations for member data:
 
 ## Alternative Approaches Considered
 
-(see brainstorm: docs/brainstorms/2026-02-26-member-only-features-brainstorm.md)
+(see brainstorm: ../brainstorms/2026-02-26-member-only-features-brainstorm.md)
 
 | Approach                                 | Why Rejected                                                                         |
 | ---------------------------------------- | ------------------------------------------------------------------------------------ |
@@ -579,7 +579,7 @@ erDiagram
 
 ### Origin
 
-- **Brainstorm document:** [docs/brainstorms/2026-02-26-member-only-features-brainstorm.md](../brainstorms/2026-02-26-member-only-features-brainstorm.md) - Key decisions carried forward: Firebase custom claims for member flag, flat Firestore collections, two-layer security model, scheduled Cloud Function for prayer generation
+- **Brainstorm document:** [../brainstorms/2026-02-26-member-only-features-brainstorm.md](../brainstorms/2026-02-26-member-only-features-brainstorm.md) - Key decisions carried forward: Firebase custom claims for member flag, flat Firestore collections, two-layer security model, scheduled Cloud Function for prayer generation
 
 ### Internal References
 

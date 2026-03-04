@@ -23,7 +23,7 @@ LLM usage docs:
 
 1. Google Cloud CLI (`gcloud`) installed
 2. Access to Firebase project `sovereign-hope-mobile`
-3. Planning Center API credentials (client ID + access token/secret)
+3. Planning Center API credentials (client ID + access token)
 
 ## One-Time Setup
 
@@ -58,7 +58,7 @@ npm run member:bulk-seed -- --dry-run
 Apply:
 
 ```bash
-npm run member:bulk-seed --
+npm run member:bulk-seed
 ```
 
 Optional test limit:
@@ -85,7 +85,7 @@ npm run member:link-by-email -- --dry-run
 Apply:
 
 ```bash
-npm run member:link-by-email --
+npm run member:link-by-email
 ```
 
 Optional test limit:
@@ -134,7 +134,7 @@ npm run member:bulk-sync -- --dry-run
 Apply:
 
 ```bash
-npm run member:bulk-sync --
+npm run member:bulk-sync
 ```
 
 ## Planning Center Auth Notes
