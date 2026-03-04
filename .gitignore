@@ -91,3 +91,6 @@ build-*.tar.gz
 # Tool configs
 .codex/
 .serena/
+
+# Local AI learnings
+.learnings/
