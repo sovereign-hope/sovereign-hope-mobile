@@ -353,7 +353,6 @@ export const storeEnableEinkMode = createAsyncThunk(
         "@settings/enableEinkMode",
         String(enableEinkMode)
       );
-      await writeThroughSettingsField("enableEinkMode", enableEinkMode);
       return enableEinkMode;
     } catch (error) {
       console.error(error);
