@@ -374,6 +374,6 @@ describe("getDayOfYearIndices", () => {
 
 ## Cross-References
 
-- [Comprehensive Testing Suite Plan](../comprehensive-testing-suite.md) - Related test infrastructure
+- [Comprehensive Testing Suite Plan](../../comprehensive-testing-suite.md) - Related test infrastructure
 - `src/app/utils.ts` - Date utility functions
 - `src/redux/readingPlanSlice.ts` - Reading plan state management

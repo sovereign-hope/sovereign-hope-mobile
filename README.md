@@ -45,7 +45,7 @@ Let's get right to business.
 
 First thing is installs-- let's get all these out of the way so that we can focus on learning and configuration.
 
-Note: If you use `zsh`, just substitute it in for any occurence of `bash`
+Note: If you use `zsh`, just substitute it in for any occurrence of `bash`
 
 Note Note: Since MacOS 10.15, the default shell is `zsh`
 
@@ -64,9 +64,9 @@ gem install xcode-install
 xcversion install 12.5
 ```
 
-Note: This installs Xcode 12.5, but you should be able to install the most recent version. This will be the case _unless we eject from the Managed Expo Workflow_.
+Note: This command pins Xcode 12.5. In most cases, install the latest stable Xcode unless we eject from the Managed Expo Workflow.
 
-If you want to install the most recent Xcode _and we haven't eject from the Managed Workflow_, just:
+If you want to install the most recent Xcode _and we haven't ejected from the Managed Workflow_, run:
 
 ```bash
 xcversion list
@@ -250,16 +250,16 @@ These workflows are managed by workflow YAML files in the `.github/workflows` di
 
 Branch names should include the following prefixes:
 
-- `/feature` for feature branches
-- `/hotfix` for urgent bug fix branches
-- `/bugfix` for non-urgent bug fix branches
-- `/release` for release candidate branches
+- `feature/` for feature branches
+- `hotfix/` for urgent bug fix branches
+- `bugfix/` for non-urgent bug fix branches
+- `release/` for release candidate branches
 
 Examples:
 
-`/feature/cool-new-feature`
+`feature/cool-new-feature`
 
-`/hotfix/urgent-new-bug-fix`
+`hotfix/urgent-new-bug-fix`
 
 When work on a branch is complete, a PR should be submitted against `main`, which is our main trunk branch.
 Given the nature of our continuous deployment capabilities, we don't employ a secondary `development` branch, but rather all work is done off of `main`. This keeps things running much more smoothly in our case and eliminates a lot of unnecessary complexity.
