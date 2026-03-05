@@ -171,35 +171,48 @@ exports.linkMemberOnSignUp = functions.auth.user().onCreate(async (user) => {
     return null;
   }
 
+  if (user.emailVerified !== true) {
+    console.log(
+      "Skipping member auto-link, signup email is not verified yet.",
+      {
+        uid: user.uid,
+        email,
+      }
+    );
+    return null;
+  }
+
   const db = admin.firestore();
   const auth = admin.auth();
 
-  const candidates = [];
+  const candidatesById = new Map();
 
   const allEmailsSnapshot = await db
     .collection("members")
     .where("emailsNormalized", "array-contains", email)
     .limit(5)
     .get();
-  allEmailsSnapshot.docs.forEach((doc) => candidates.push(doc));
+  allEmailsSnapshot.docs.forEach((doc) => candidatesById.set(doc.id, doc));
 
-  if (candidates.length === 0) {
+  if (candidatesById.size === 0) {
     const normalizedSnapshot = await db
       .collection("members")
       .where("emailNormalized", "==", email)
       .limit(5)
       .get();
-    normalizedSnapshot.docs.forEach((doc) => candidates.push(doc));
+    normalizedSnapshot.docs.forEach((doc) => candidatesById.set(doc.id, doc));
   }
 
-  if (candidates.length === 0) {
+  if (candidatesById.size === 0) {
     const fallbackSnapshot = await db
       .collection("members")
       .where("email", "==", email)
       .limit(5)
       .get();
-    fallbackSnapshot.docs.forEach((doc) => candidates.push(doc));
+    fallbackSnapshot.docs.forEach((doc) => candidatesById.set(doc.id, doc));
   }
+
+  const candidates = [...candidatesById.values()];
 
   if (candidates.length === 0) {
     console.log("No Planning Center member doc found for signup email.", {
@@ -209,15 +222,37 @@ exports.linkMemberOnSignUp = functions.auth.user().onCreate(async (user) => {
     return null;
   }
 
-  const targetDoc =
-    candidates.find((doc) => {
+  if (candidates.length > 1) {
+    const alreadyLinkedToUid = candidates.find((doc) => {
       const linkedUid =
         typeof doc.data()?.linkedUid === "string"
           ? doc.data().linkedUid.trim()
           : "";
-      return !linkedUid;
-    }) || candidates[0];
+      return linkedUid === user.uid;
+    });
 
+    if (alreadyLinkedToUid) {
+      console.log(
+        "Signup auto-link already applied for user with duplicate member candidates.",
+        {
+          uid: user.uid,
+          email,
+          memberId: alreadyLinkedToUid.id,
+          candidateMemberIds: candidates.map((doc) => doc.id),
+        }
+      );
+      return null;
+    }
+
+    console.log("Skipping member auto-link, ambiguous member match.", {
+      uid: user.uid,
+      email,
+      candidateMemberIds: candidates.map((doc) => doc.id),
+    });
+    return null;
+  }
+
+  const targetDoc = candidates[0];
   const targetData = targetDoc.data() || {};
   const currentLinkedUid =
     typeof targetData.linkedUid === "string" ? targetData.linkedUid.trim() : "";
