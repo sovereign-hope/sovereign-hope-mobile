@@ -214,10 +214,12 @@ npm ci
 #### 🏗 Expo and EAS CLI
 
 ```bash
-npm i -g eas-cli
+npx eas-cli --version
 ```
 
-We use `npx expo ...` from the project dependencies and `eas-cli` for builds/submissions. More info: [Expo docs](https://docs.expo.dev/) and [EAS CLI package](https://www.npmjs.com/package/eas-cli).
+We use `npx expo ...` and `npx eas-cli ...` from project dependencies for builds/submissions.
+If you prefer a global CLI, you can still run `npm i -g eas-cli`.
+More info: [Expo docs](https://docs.expo.dev/) and [EAS CLI package](https://www.npmjs.com/package/eas-cli).
 
 ### ▶️ Running the App
 
@@ -262,13 +264,13 @@ Examples:
 `hotfix/urgent-new-bug-fix`
 
 When work on a branch is complete, a PR should be submitted against `main`, which is our main trunk branch.
-Given the nature of our continuous deployment capabilities, we don't employ a secondary `development` branch, but rather all work is done off of `main`. This keeps things running much more smoothly in our case and eliminates a lot of unnecessary complexity.
+Given the nature of our continuous deployment capabilities, normal feature work is done off `main`.
 
-PR branches, as a part of our CI/CD pipeline, will generate a PR-specific expo build that you can quickly and easily run on any device and share with coworkers to test. A link will be added to your PR when the build finishes.
+For pull requests into `main`, `ci.yml` runs typecheck/lint/test and generates PR preview updates on EAS (`pr-<PR number>`), then comments the preview link on the PR.
 
-When a PR passes necessary checks and reviews, it can be merged to `main` at any point. Because we tag the branches with Jira keys, the ticket related to your branch should update as well.
+When a PR passes required checks and review, it can be merged into `main`.
 
-Once a PR is merged into main, a new development build will be triggered and deployed to the `development` Expo release channel. New development app binaries will also be built for internal distribution.
+After merge to `main`, `development.yml` publishes the development update.
 
 You can read more about EAS update branches and builds [here](https://docs.expo.dev/eas-update/eas-cli/) and [here](https://docs.expo.dev/build/introduction/).
 
@@ -292,17 +294,15 @@ We don't currently perform E2E tests.
 
 ### 🚀 Release Cycle
 
-We use Github actions to automate most of the pipeline.
-Refer back to [Github Workflows](#github-workflows) to review the flow charts.
+We use GitHub Actions to automate most of the pipeline.
+Refer back to [Github Workflows](#github-workflows), then verify branch triggers directly in `.github/workflows`.
 
-The release process should proceed as follows:
+Current workflow triggers:
 
-1. Create a release branch in Github (release/v#.#.#)
-2. The branch creation will automatically kick off the Release Candidate workflow
-3. Bump the Expo and EAS versions on the main branch
-4. Tag release branch with the version tag, kicking off the Production Release workflow
-5. If this is a major release, release binaries to the App and Play Stores.
-6. Monitor errors via Sentry-- create hotfixes if needed.
+1. Pushes and PRs run `ci.yml`; PRs also get EAS preview updates.
+2. Pushes to `main` run `development.yml` to publish the development channel update.
+3. Pushes to `production` run `release.yml` for production staging and platform build jobs.
+4. Monitor Sentry after release and cut hotfixes as needed.
 
 ### 📚 Helpful Reading
 
