@@ -74,45 +74,12 @@ import {
   formatMinutesOfDay,
   minutesOfDayToDate,
 } from "src/style/themeMode";
+import { getDateFromTimeString } from "./timeParsing";
 
 type Props = NativeStackScreenProps<
   RootStackParamList,
   "Settings" | "SettingsView"
 >;
-
-// Create a Date object from a notification time string
-const getDateFromTimeString = (timeString: string): Date => {
-  const today = new Date();
-  try {
-    if (!timeString) return today;
-
-    const timeParts = timeString.split(":");
-    if (timeParts.length !== 2) return today;
-
-    let hour = Number.parseInt(timeParts[0]);
-    const minuteParts = timeParts[1].split(" ");
-    if (minuteParts.length !== 2) return today;
-
-    const minute = Number.parseInt(minuteParts[0]);
-    const ampm = minuteParts[1];
-
-    if (Number.isNaN(hour) || Number.isNaN(minute)) return today;
-
-    if (ampm === "PM" && hour !== 12) {
-      hour += 12;
-    }
-    if (ampm === "AM" && hour === 12) {
-      hour = 0;
-    }
-
-    const date = new Date();
-    date.setHours(hour, minute, 0, 0);
-    return date;
-  } catch (error) {
-    console.error("Error parsing time string:", error);
-    return today;
-  }
-};
 
 export const SettingsScreen: React.FunctionComponent<Props> = ({
   navigation,
