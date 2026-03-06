@@ -57,24 +57,11 @@ Here's what we're going to install, in order:
 sh /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 ```
 
-#### 🛠 xcode-install and Xcode
+#### 🛠 Xcode
 
-```bash
-gem install xcode-install
-xcversion install 12.5
-```
+Install the latest stable Xcode from the Mac App Store.
 
-Note: This command pins Xcode 12.5. In most cases, install the latest stable Xcode unless we eject from the Managed Expo Workflow.
-
-If you want to install the most recent Xcode _and we haven't ejected from the Managed Workflow_, run:
-
-```bash
-xcversion list
-```
-
-and then `xcversion install` whatever the latest version is.
-
-In case you're having trouble, [the xcode-install repository can be found here.](https://github.com/xcpretty/xcode-install)
+After installation, open Xcode at least once so it can finish first-run setup and install command line components.
 
 This takes a while and would be a great time to review some [helpful reading](#-helpful-reading)
 
@@ -83,7 +70,7 @@ Don't install `nvm` until Xcode is finished installing-- the Xcode command line 
 #### 💼 nvm
 
 ```bash
-curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.38.0/install.sh | bash
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/HEAD/install.sh | bash
 ```
 
 Now run the following to verify that `nvm` was installed properly:
@@ -155,19 +142,8 @@ sdk version
 
 If all went well, the version should be displayed. If you have any trouble, refer to the [official docs here.](https://sdkman.io/install)
 
-Now, install a couple versions of Java.
-
-```bash
-sdk install java 16.0.1-open
-```
-
-and
-
-```bash
-sdk install java 8.0.292-zulu
-```
-
-The second JDK is required should you ever need to jump into the Android command line SDK.
+Install a current Java LTS release if your local Android tooling requires it.
+If Android Studio already manages your JDK successfully, you can skip this step.
 
 #### 🪲 React Native Debugger
 
@@ -253,7 +229,7 @@ Branch names should include the following prefixes:
 - `feature/` for feature branches
 - `hotfix/` for urgent bug fix branches
 - `bugfix/` for non-urgent bug fix branches
-- `release/` for release candidate branches
+- `chore/` for maintenance and tooling work
 
 Examples:
 
@@ -262,13 +238,14 @@ Examples:
 `hotfix/urgent-new-bug-fix`
 
 When work on a branch is complete, a PR should be submitted against `main`, which is our main trunk branch.
-Given the nature of our continuous deployment capabilities, we don't employ a secondary `development` branch, but rather all work is done off of `main`. This keeps things running much more smoothly in our case and eliminates a lot of unnecessary complexity.
-
-PR branches, as a part of our CI/CD pipeline, will generate a PR-specific expo build that you can quickly and easily run on any device and share with coworkers to test. A link will be added to your PR when the build finishes.
+PR CI also publishes a PR-specific Expo update branch (`pr-<number>`) for preview testing.
 
 When a PR passes necessary checks and reviews, it can be merged to `main` at any point. Because we tag the branches with Jira keys, the ticket related to your branch should update as well.
 
-Once a PR is merged into main, a new development build will be triggered and deployed to the `development` Expo release channel. New development app binaries will also be built for internal distribution.
+After merge:
+
+- Pushes to `main` trigger the Development update workflow.
+- Pushes to `production` trigger the production release workflow.
 
 You can read more about EAS update branches and builds [here](https://docs.expo.dev/eas-update/eas-cli/) and [here](https://docs.expo.dev/build/introduction/).
 
@@ -297,12 +274,11 @@ Refer back to [Github Workflows](#github-workflows) to review the flow charts.
 
 The release process should proceed as follows:
 
-1. Create a release branch in Github (release/v#.#.#)
-2. The branch creation will automatically kick off the Release Candidate workflow
-3. Bump the Expo and EAS versions on the main branch
-4. Tag release branch with the version tag, kicking off the Production Release workflow
-5. If this is a major release, release binaries to the App and Play Stores.
-6. Monitor errors via Sentry-- create hotfixes if needed.
+1. Prepare and validate release changes through normal PR flow into `main`.
+2. Promote release-ready commits to the `production` branch.
+3. The push to `production` triggers the Production Release workflow.
+4. If this is a major release, submit binaries to the App and Play Stores.
+5. Monitor errors via Sentry and cut hotfixes as needed.
 
 ### 📚 Helpful Reading
 
