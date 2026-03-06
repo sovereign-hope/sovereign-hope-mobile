@@ -139,6 +139,41 @@ function initializeFirebaseAdmin(projectIdArg) {
   return { auth: admin.auth(), db: admin.firestore(), authMode: "adc" };
 }
 
+function getCandidateEmails(memberData) {
+  const results = [];
+  const seen = new Set();
+
+  const pushValue = (value) => {
+    const normalized = normalizeEmail(value);
+    if (!normalized || seen.has(normalized)) {
+      return;
+    }
+    seen.add(normalized);
+    results.push(normalized);
+  };
+
+  pushValue(memberData?.emailNormalized);
+  pushValue(memberData?.email);
+
+  if (Array.isArray(memberData?.emailsNormalized)) {
+    for (const email of memberData.emailsNormalized) {
+      pushValue(email);
+    }
+  }
+
+  if (Array.isArray(memberData?.emails)) {
+    for (const emailRecord of memberData.emails) {
+      if (typeof emailRecord === "string") {
+        pushValue(emailRecord);
+      } else {
+        pushValue(emailRecord?.address);
+      }
+    }
+  }
+
+  return results;
+}
+
 function canMergeLegacyDoc(memberId, memberEmail, legacyData) {
   const legacyPersonId =
     typeof legacyData?.planningCenterPersonId === "string"
@@ -188,8 +223,8 @@ async function linkMemberByEmail(options) {
 
     const data = docSnapshot.data() || {};
     const memberId = docSnapshot.id;
-    const email = normalizeEmail(data.emailNormalized || data.email || "");
-    if (!email) {
+    const candidateEmails = getCandidateEmails(data);
+    if (candidateEmails.length === 0) {
       continue;
     }
 
@@ -205,7 +240,28 @@ async function linkMemberByEmail(options) {
     processed += 1;
 
     try {
-      const userRecord = await auth.getUserByEmail(email);
+      let userRecord = null;
+      let matchedEmail = "";
+
+      for (const candidateEmail of candidateEmails) {
+        try {
+          userRecord = await auth.getUserByEmail(candidateEmail);
+          matchedEmail = candidateEmail;
+          break;
+        } catch (lookupError) {
+          const lookupCode =
+            lookupError?.errorInfo?.code || lookupError?.code || "";
+          if (lookupCode === "auth/user-not-found") {
+            continue;
+          }
+          throw lookupError;
+        }
+      }
+
+      if (!userRecord) {
+        throw { code: "auth/user-not-found" };
+      }
+
       const uid = userRecord.uid;
       const claims = userRecord.customClaims || {};
       const alreadyMember = claims.isMember === true;
@@ -239,7 +295,7 @@ async function linkMemberByEmail(options) {
             const legacySnapshot = await transaction.get(legacyRef);
             if (legacySnapshot.exists) {
               const legacyData = legacySnapshot.data() || {};
-              if (canMergeLegacyDoc(memberId, email, legacyData)) {
+              if (canMergeLegacyDoc(memberId, matchedEmail, legacyData)) {
                 mergedLegacyDoc = true;
                 if (!freshData.createdAt && legacyData.createdAt) {
                   createdAt = legacyData.createdAt;
@@ -256,7 +312,7 @@ async function linkMemberByEmail(options) {
             {
               uid,
               linkedUid: uid,
-              emailNormalized: email,
+              emailNormalized: matchedEmail,
               updatedAt: admin.firestore.FieldValue.serverTimestamp(),
               linkedAt: admin.firestore.FieldValue.serverTimestamp(),
               createdAt,
@@ -268,7 +324,7 @@ async function linkMemberByEmail(options) {
         const legacySnapshot = await legacyRef.get();
         if (legacySnapshot.exists) {
           const legacyData = legacySnapshot.data() || {};
-          if (canMergeLegacyDoc(memberId, email, legacyData)) {
+          if (canMergeLegacyDoc(memberId, matchedEmail, legacyData)) {
             mergedLegacyDoc = true;
           } else {
             legacyMergeConflict = true;
@@ -288,7 +344,8 @@ async function linkMemberByEmail(options) {
         summary.sample.push({
           memberId,
           uid,
-          email,
+          email: matchedEmail,
+          matchedViaEmail: matchedEmail,
           alreadyMember,
           mergedLegacyDoc,
           legacyMergeConflict,
@@ -299,7 +356,7 @@ async function linkMemberByEmail(options) {
       if (firebaseCode === "auth/user-not-found") {
         summary.firebaseUsersNotFound += 1;
         if (summary.unmatchedEmails.length < 200) {
-          summary.unmatchedEmails.push(email);
+          summary.unmatchedEmails.push(...candidateEmails);
         }
         continue;
       }
