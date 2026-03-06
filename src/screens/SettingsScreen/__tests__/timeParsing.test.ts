@@ -31,6 +31,13 @@ describe("getDateFromTimeString", () => {
     expect(parsed.getMinutes()).toBe(5);
   });
 
+  it("accepts compact meridiem and optional seconds", () => {
+    expect(getDateFromTimeString("8:05AM", fallback).getHours()).toBe(8);
+    expect(getDateFromTimeString("8:05AM", fallback).getMinutes()).toBe(5);
+    expect(getDateFromTimeString("8:05:59 PM", fallback).getHours()).toBe(20);
+    expect(getDateFromTimeString("8:05:59 PM", fallback).getMinutes()).toBe(5);
+  });
+
   it("returns fallback date for malformed or out-of-range values", () => {
     const malformed = [
       "",
@@ -43,7 +50,9 @@ describe("getDateFromTimeString", () => {
     ];
 
     for (const value of malformed) {
-      expect(getDateFromTimeString(value, fallback)).toBe(fallback);
+      const parsed = getDateFromTimeString(value, fallback);
+      expect(parsed).not.toBe(fallback);
+      expect(parsed.getTime()).toBe(fallback.getTime());
     }
   });
 });
