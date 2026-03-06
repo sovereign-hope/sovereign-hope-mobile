@@ -24,6 +24,7 @@ LLM usage docs:
 1. Google Cloud CLI (`gcloud`) installed
 2. Access to Firebase project `sovereign-hope-mobile`
 3. Planning Center API credentials (client ID + access token)
+4. macOS if using Keychain helper script (`security` CLI)
 
 ## One-Time Setup
 
@@ -44,6 +45,13 @@ Stored under:
 
 - `sovereign-hope-mobile.pco_client_id`
 - `sovereign-hope-mobile.pco_access_token`
+
+Non-macOS alternative:
+
+```bash
+export PCO_CLIENT_ID="<PCO_CLIENT_ID>"
+export PCO_ACCESS_TOKEN="<PCO_ACCESS_TOKEN>"
+```
 
 ## Recommended Flow (Two-Step)
 

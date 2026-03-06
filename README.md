@@ -190,10 +190,12 @@ npm ci
 #### 🏗 Expo and EAS CLI
 
 ```bash
-npm i -g eas-cli
+npx eas-cli --version
 ```
 
-We use `npx expo ...` from the project dependencies and `eas-cli` for builds/submissions. More info: [Expo docs](https://docs.expo.dev/) and [EAS CLI package](https://www.npmjs.com/package/eas-cli).
+We use `npx expo ...` and `npx eas-cli ...` from project dependencies for builds/submissions.
+If you prefer a global CLI, you can still run `npm i -g eas-cli`.
+More info: [Expo docs](https://docs.expo.dev/) and [EAS CLI package](https://www.npmjs.com/package/eas-cli).
 
 ### ▶️ Running the App
 
@@ -238,14 +240,13 @@ Examples:
 `hotfix/urgent-new-bug-fix`
 
 When work on a branch is complete, a PR should be submitted against `main`, which is our main trunk branch.
-PR CI also publishes a PR-specific Expo update branch (`pr-<number>`) for preview testing.
+Given the nature of our continuous deployment capabilities, normal feature work is done off `main`.
 
-When a PR passes necessary checks and reviews, it can be merged to `main` at any point. Because we tag the branches with Jira keys, the ticket related to your branch should update as well.
+For pull requests into `main`, `ci.yml` runs typecheck/lint/test and generates PR preview updates on EAS (`pr-<PR number>`), then comments the preview link on the PR.
 
-After merge:
+When a PR passes required checks and review, it can be merged into `main`.
 
-- Pushes to `main` trigger the Development update workflow.
-- Pushes to `production` trigger the production release workflow.
+After merge to `main`, `development.yml` publishes the development update.
 
 You can read more about EAS update branches and builds [here](https://docs.expo.dev/eas-update/eas-cli/) and [here](https://docs.expo.dev/build/introduction/).
 
@@ -269,16 +270,15 @@ We don't currently perform E2E tests.
 
 ### 🚀 Release Cycle
 
-We use Github actions to automate most of the pipeline.
-Refer back to [Github Workflows](#github-workflows) to review the flow charts.
+We use GitHub Actions to automate most of the pipeline.
+Refer back to [Github Workflows](#github-workflows), then verify branch triggers directly in `.github/workflows`.
 
-The release process should proceed as follows:
+Current workflow triggers:
 
-1. Prepare and validate release changes through normal PR flow into `main`.
-2. Promote release-ready commits to the `production` branch.
-3. The push to `production` triggers the Production Release workflow.
-4. If this is a major release, submit binaries to the App and Play Stores.
-5. Monitor errors via Sentry and cut hotfixes as needed.
+1. Pushes and PRs run `ci.yml`; PRs also get EAS preview updates.
+2. Pushes to `main` run `development.yml` to publish the development channel update.
+3. Pushes to `production` run `release.yml` for production staging and platform build jobs.
+4. Monitor Sentry after release and cut hotfixes as needed.
 
 ### 📚 Helpful Reading
 
