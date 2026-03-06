@@ -57,24 +57,11 @@ Here's what we're going to install, in order:
 sh /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 ```
 
-#### 🛠 xcode-install and Xcode
+#### 🛠 Xcode
 
-```bash
-gem install xcode-install
-xcversion install 12.5
-```
+Install the latest stable Xcode from the Mac App Store.
 
-Note: This command pins Xcode 12.5. In most cases, install the latest stable Xcode unless we eject from the Managed Expo Workflow.
-
-If you want to install the most recent Xcode _and we haven't ejected from the Managed Workflow_, run:
-
-```bash
-xcversion list
-```
-
-and then `xcversion install` whatever the latest version is.
-
-In case you're having trouble, [the xcode-install repository can be found here.](https://github.com/xcpretty/xcode-install)
+After installation, open Xcode at least once so it can finish first-run setup and install command line components.
 
 This takes a while and would be a great time to review some [helpful reading](#-helpful-reading)
 
@@ -83,7 +70,7 @@ Don't install `nvm` until Xcode is finished installing-- the Xcode command line 
 #### 💼 nvm
 
 ```bash
-curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.38.0/install.sh | bash
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/HEAD/install.sh | bash
 ```
 
 Now run the following to verify that `nvm` was installed properly:
@@ -155,19 +142,8 @@ sdk version
 
 If all went well, the version should be displayed. If you have any trouble, refer to the [official docs here.](https://sdkman.io/install)
 
-Now, install a couple versions of Java.
-
-```bash
-sdk install java 16.0.1-open
-```
-
-and
-
-```bash
-sdk install java 8.0.292-zulu
-```
-
-The second JDK is required should you ever need to jump into the Android command line SDK.
+Install a current Java LTS release if your local Android tooling requires it.
+If Android Studio already manages your JDK successfully, you can skip this step.
 
 #### 🪲 React Native Debugger
 
@@ -255,7 +231,7 @@ Branch names should include the following prefixes:
 - `feature/` for feature branches
 - `hotfix/` for urgent bug fix branches
 - `bugfix/` for non-urgent bug fix branches
-- `release/` for release candidate branches
+- `chore/` for maintenance and tooling work
 
 Examples:
 

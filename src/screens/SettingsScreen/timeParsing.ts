@@ -3,13 +3,15 @@ export const getDateFromTimeString = (
   fallbackDate: Date = new Date()
 ): Date => {
   if (!timeString) {
-    return fallbackDate;
+    return new Date(fallbackDate);
   }
 
-  const parsedTime = timeString.trim().match(/^(\d{1,2}):(\d{2})\s+(am|pm)$/i);
+  const parsedTime = timeString
+    .trim()
+    .match(/^(\d{1,2}):(\d{2})(?::\d{2})?\s*(am|pm)$/i);
 
   if (!parsedTime) {
-    return fallbackDate;
+    return new Date(fallbackDate);
   }
 
   const hourPart = Number.parseInt(parsedTime[1], 10);
@@ -24,7 +26,7 @@ export const getDateFromTimeString = (
     minute < 0 ||
     minute > 59
   ) {
-    return fallbackDate;
+    return new Date(fallbackDate);
   }
 
   let hour = hourPart;
