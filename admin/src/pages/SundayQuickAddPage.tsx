@@ -153,6 +153,7 @@ export function SundayQuickAddPage() {
   const [pasteText, setPasteText] = useState("");
   const [pasteRevision, setPasteRevision] = useState(0);
   const inputRefs = useRef<Record<number, HTMLInputElement | null>>({});
+  const pendingEdits = useRef<Record<number, string>>({});
   const currentWeekRef = useRef<HTMLTableRowElement | null>(null);
 
   useEffect(() => {
@@ -231,13 +232,14 @@ export function SundayQuickAddPage() {
   const handleSaveAll = useCallback(async () => {
     if (currentYearPlans.length === 0) return;
 
-    // Collect edits from ALL inputs (not just visible quarter)
+    // Collect edits from mounted inputs + pendingEdits for unmounted quarters
     const edits: Array<{ weekIndex: number; passages: Array<string> }> = [];
     for (const { weekIndex, passages: existing } of allSundays) {
       const input = inputRefs.current[weekIndex];
-      if (!input) continue;
+      const raw = input ? input.value : pendingEdits.current[weekIndex];
+      if (raw === undefined) continue;
 
-      const next = parsePassages(input.value);
+      const next = parsePassages(raw);
       const changed =
         next.length !== existing.length ||
         next.some((p, i) => p !== existing[i]);
@@ -281,6 +283,7 @@ export function SundayQuickAddPage() {
       );
 
       setPlans(updatedPlans);
+      pendingEdits.current = {};
       setStatus("saved");
       setTimeout(() => setStatus((s) => (s === "saved" ? "idle" : s)), 2000);
     } catch (err) {
@@ -345,6 +348,7 @@ export function SundayQuickAddPage() {
       await Promise.all(plansToSave.map((plan) => saveReadingPlan({ plan })));
 
       setPlans(updatedPlans);
+      pendingEdits.current = {};
       setPasteRevision((r) => r + 1);
       setShowPaste(false);
       setPasteText("");
@@ -516,6 +520,9 @@ export function SundayQuickAddPage() {
                       type="text"
                       defaultValue={passages.join("; ")}
                       placeholder="e.g. Romans 8:1-11; Psalm 23"
+                      onChange={(e) => {
+                        pendingEdits.current[weekIndex] = e.target.value;
+                      }}
                       onKeyDown={(e) => handleKeyDown(e, idx)}
                       disabled={status === "saving"}
                       className="w-full rounded border border-gray-200 bg-white px-2.5 py-1.5 text-sm focus:border-brand-600 focus:ring-1 focus:ring-brand-600 disabled:opacity-50"

@@ -14,7 +14,8 @@ service cloud.firestore {
     match /members/{memberId} {
       allow read: if request.auth != null
         && (request.auth.token.isMember == true
-            || request.auth.token.isAdmin == true);
+            || request.auth.token.isAdmin == true
+            || request.auth.token.admin == true);
       allow write: if false;
     }
 
@@ -32,11 +33,13 @@ service cloud.firestore {
 
     match /users/{userId} {
       allow read, write: if request.auth != null && request.auth.uid == userId;
-      allow read: if request.auth != null && request.auth.token.isAdmin == true;
+      allow read: if request.auth != null
+        && (request.auth.token.isAdmin == true || request.auth.token.admin == true);
 
       match /progress/{planId} {
         allow read, write: if request.auth != null && request.auth.uid == userId;
-        allow read: if request.auth != null && request.auth.token.isAdmin == true;
+        allow read: if request.auth != null
+          && (request.auth.token.isAdmin == true || request.auth.token.admin == true);
       }
     }
   }

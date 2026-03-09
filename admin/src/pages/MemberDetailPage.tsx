@@ -85,7 +85,13 @@ export function MemberDetailPage() {
             {member.createdAt && (
               <p>
                 Joined:{" "}
-                {new Date(member.createdAt).toLocaleDateString("en-US", {
+                {new Date(
+                  typeof member.createdAt === "object" &&
+                  member.createdAt !== null &&
+                  "seconds" in member.createdAt
+                    ? (member.createdAt as unknown as { seconds: number }).seconds * 1000
+                    : member.createdAt,
+                ).toLocaleDateString("en-US", {
                   month: "long",
                   day: "numeric",
                   year: "numeric",
