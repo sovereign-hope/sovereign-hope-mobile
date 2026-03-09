@@ -288,6 +288,23 @@ describe("readingPlanSlice", () => {
         false
       );
     });
+
+    it("keeps explicit future multi-year plan IDs when loading progress", async () => {
+      (AsyncStorage.getItem as jest.Mock).mockResolvedValueOnce(null);
+      const futureYearPlanId = `${new Date().getFullYear() + 1}.1`;
+
+      const store = createTestStore({
+        settings: {
+          subscribedPlans: [futureYearPlanId],
+        },
+      });
+
+      await store.dispatch(getReadingPlanProgressState());
+
+      expect(AsyncStorage.getItem).toHaveBeenCalledWith(
+        `@readingPlanState${futureYearPlanId}`
+      );
+    });
   });
 
   describe("storeReadingPlanProgressState thunk", () => {
@@ -311,6 +328,26 @@ describe("readingPlanSlice", () => {
 
       expect(AsyncStorage.setItem).toHaveBeenCalledWith(
         "@readingPlanState2025",
+        JSON.stringify(progressToSave)
+      );
+    });
+
+    it("keeps explicit future multi-year plan IDs when saving progress", async () => {
+      const futureYearPlanId = `${new Date().getFullYear() + 1}.1`;
+      const progressToSave: ReadingPlanProgressState = {
+        ...mockProgressState,
+      };
+
+      const store = createTestStore({
+        settings: {
+          subscribedPlans: [futureYearPlanId],
+        },
+      });
+
+      await store.dispatch(storeReadingPlanProgressState(progressToSave));
+
+      expect(AsyncStorage.setItem).toHaveBeenCalledWith(
+        `@readingPlanState${futureYearPlanId}`,
         JSON.stringify(progressToSave)
       );
     });

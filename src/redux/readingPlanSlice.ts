@@ -164,9 +164,10 @@ export const storeReadingPlanProgressState = createAsyncThunk(
     // For now, we only allow one plan
     let subscribedPlan = subscribedPlans[0];
 
-    // For multi-year plans, use current year's plan ID for progress storage
-    // This ensures year 2 of a Two Year Bible gets fresh progress
-    if (isMultiYearPlan(subscribedPlan)) {
+    // For multi-year plans, only advance stale year IDs.
+    // Keep current/future explicit selections untouched.
+    const planYear = getPlanYear(subscribedPlan);
+    if (isMultiYearPlan(subscribedPlan) && planYear < currentYear) {
       subscribedPlan = getUpdatedPlanId(subscribedPlan, currentYear);
     }
 
@@ -209,8 +210,10 @@ export const getReadingPlanProgressState = createAsyncThunk(
     // For now, we only allow one plan
     let subscribedPlan = subscribedPlans[0] ?? currentYear.toString();
 
-    // For multi-year plans, use current year's plan ID for progress storage
-    if (isMultiYearPlan(subscribedPlan)) {
+    // For multi-year plans, only advance stale year IDs.
+    // Keep current/future explicit selections untouched.
+    const planYear = getPlanYear(subscribedPlan);
+    if (isMultiYearPlan(subscribedPlan) && planYear < currentYear) {
       subscribedPlan = getUpdatedPlanId(subscribedPlan, currentYear);
     }
 
