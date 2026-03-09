@@ -8,5 +8,6 @@
       "src/*": ["./src/*"],
       "assets/*": ["./assets/*"]
     }
-  }
+  },
+  "exclude": ["admin", "shared"]
 }
