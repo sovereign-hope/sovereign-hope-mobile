@@ -25,7 +25,14 @@
     "buildDevelopment:simulator": "npx eas-cli build --platform ios --profile development:simulator --local",
     "buildDevelopment:ios:local": "npx eas-cli build --platform ios --profile development --local",
     "buildDevelopment:android:local": "npx eas-cli build --platform android --profile development --local",
-    "submitProduction": "EAS_BUILD_PROFILE=production npx eas submit --profile production"
+    "submitProduction": "EAS_BUILD_PROFILE=production npx eas submit --profile production",
+    "admin:dev": "cd admin && npm run dev",
+    "admin:build": "cd admin && npm run build",
+    "admin:deploy": "cd admin && npm run build && firebase deploy --only hosting",
+    "admin:set-admin": "node functions/scripts/set-admin-claim.cjs",
+    "deploy:functions": "firebase deploy --only functions",
+    "deploy:rules": "firebase deploy --only firestore:rules,storage",
+    "deploy:all": "cd admin && npm run build && firebase deploy"
   },
   "dependencies": {
     "@expo/metro-runtime": "~6.1.2",
@@ -144,5 +151,5 @@
     }
   },
   "name": "sovereign-hope-mobile",
-  "version": "9.0.0"
+  "version": "9.0.1"
 }

@@ -52,6 +52,8 @@ export default [
       ".expo/**",
       "jest/**",
       "functions/**",
+      "admin/**",
+      "shared/**",
     ],
   },
   {
