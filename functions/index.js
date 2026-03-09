@@ -276,6 +276,19 @@ exports.linkMemberOnSignUp = functions.auth.user().onCreate(async (user) => {
     isMember: true,
   });
 
+  // Sync displayName and photoURL from the Planning Center member doc
+  // to the Firebase Auth user profile (if not already set).
+  const authUpdate = {};
+  if (!userRecord.displayName && targetData.displayName) {
+    authUpdate.displayName = targetData.displayName;
+  }
+  if (!userRecord.photoURL && targetData.photoURL) {
+    authUpdate.photoURL = targetData.photoURL;
+  }
+  if (Object.keys(authUpdate).length > 0) {
+    await auth.updateUser(user.uid, authUpdate);
+  }
+
   await targetDoc.ref.set(
     {
       uid: user.uid,
@@ -292,6 +305,7 @@ exports.linkMemberOnSignUp = functions.auth.user().onCreate(async (user) => {
     uid: user.uid,
     email,
     memberId: targetDoc.id,
+    authUpdate,
   });
 
   return null;
@@ -521,6 +535,146 @@ exports.requestDailyPrayerAssignment = functions.https.onCall(
     };
   }
 );
+
+// ── Admin: Reading Plan Management ──────────────────────────────────────────
+
+exports.saveReadingPlan = functions.https.onCall(async (data, context) => {
+  if (!context.auth || !isAdminToken(context)) {
+    throw new functions.https.HttpsError(
+      "permission-denied",
+      "Only admins can manage reading plans."
+    );
+  }
+
+  const plan = data?.plan;
+  if (!plan || typeof plan.id !== "string" || !plan.id.trim()) {
+    throw new functions.https.HttpsError(
+      "invalid-argument",
+      "plan.id is required."
+    );
+  }
+  if (!Array.isArray(plan.weeks)) {
+    throw new functions.https.HttpsError(
+      "invalid-argument",
+      "plan.weeks must be an array."
+    );
+  }
+
+  const db = admin.firestore();
+  await db
+    .collection("readingPlans")
+    .doc(plan.id)
+    .set({
+      id: plan.id,
+      title: plan.title || "",
+      description: plan.description || "",
+      weeks: plan.weeks,
+    });
+
+  return { success: true, planId: plan.id };
+});
+
+exports.deleteReadingPlan = functions.https.onCall(async (data, context) => {
+  if (!context.auth || !isAdminToken(context)) {
+    throw new functions.https.HttpsError(
+      "permission-denied",
+      "Only admins can delete reading plans."
+    );
+  }
+
+  const planId = typeof data?.planId === "string" ? data.planId.trim() : "";
+  if (!planId) {
+    throw new functions.https.HttpsError(
+      "invalid-argument",
+      "planId is required."
+    );
+  }
+
+  const db = admin.firestore();
+  await db.collection("readingPlans").doc(planId).delete();
+
+  return { success: true, planId };
+});
+
+// ── Admin: Admin Claim Management ───────────────────────────────────────────
+
+exports.setAdminClaim = functions.https.onCall(async (data, context) => {
+  if (!context.auth || !isAdminToken(context)) {
+    throw new functions.https.HttpsError(
+      "permission-denied",
+      "Only admins can manage admin claims."
+    );
+  }
+
+  const uid = typeof data?.uid === "string" ? data.uid.trim() : "";
+  const isAdmin = data?.isAdmin !== false;
+
+  if (!uid) {
+    throw new functions.https.HttpsError(
+      "invalid-argument",
+      "uid is required."
+    );
+  }
+
+  // Prevent admin from removing their own admin role
+  if (!isAdmin && uid === context.auth.uid) {
+    throw new functions.https.HttpsError(
+      "failed-precondition",
+      "Cannot remove your own admin role."
+    );
+  }
+
+  const auth = admin.auth();
+  const userRecord = await auth.getUser(uid);
+  const existingClaims = userRecord.customClaims ?? {};
+  const nextClaims = { ...existingClaims };
+
+  if (isAdmin) {
+    nextClaims.isAdmin = true;
+  } else {
+    delete nextClaims.isAdmin;
+    delete nextClaims.admin;
+  }
+
+  await auth.setCustomUserClaims(
+    uid,
+    Object.keys(nextClaims).length > 0 ? nextClaims : null
+  );
+
+  return { success: true, uid, isAdmin };
+});
+
+// ── Admin: List Firebase Auth Users ─────────────────────────────────────────
+
+exports.listFirebaseUsers = functions.https.onCall(async (_data, context) => {
+  if (!context.auth || !isAdminToken(context)) {
+    throw new functions.https.HttpsError(
+      "permission-denied",
+      "Only admins can list users."
+    );
+  }
+
+  const auth = admin.auth();
+  const users = [];
+  let nextPageToken;
+
+  do {
+    const listResult = await auth.listUsers(1000, nextPageToken);
+    for (const user of listResult.users) {
+      users.push({
+        uid: user.uid,
+        email: user.email || null,
+        displayName: user.displayName || null,
+        customClaims: user.customClaims || null,
+      });
+    }
+    nextPageToken = listResult.pageToken;
+  } while (nextPageToken);
+
+  return { users };
+});
+
+// ── Scheduled Functions ─────────────────────────────────────────────────────
 
 exports.cleanupOldPrayerAssignments = functions.pubsub
   .schedule("0 0 * * 0")
