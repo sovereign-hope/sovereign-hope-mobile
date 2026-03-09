@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ```bash
 # Start Expo dev server
-npm start  # or expo start
+npm start  # or npx expo start
 
 # Run on specific platform
 npm run ios       # expo run:ios
@@ -16,7 +16,7 @@ npm run android   # expo run:android
 npm run lint
 
 # Testing
-npm test                    # Run all tests with coverage
+npm test                    # Run all tests
 npm run testChanged         # Watch mode for changed files since main
 npm run testDebugCurrent    # Watch mode for modified files only
 npm run updateSnapshots     # Update Jest snapshots
@@ -26,6 +26,8 @@ npm run buildProduction:ios
 npm run buildProduction:android
 npm run buildDevelopment:ios
 npm run buildDevelopment:android
+npm run buildDevelopment:simulator
+npm run submitProduction
 ```
 
 ## Architecture Overview
