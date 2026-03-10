@@ -1,7 +1,12 @@
 import React, { useEffect, useCallback, useLayoutEffect, useRef } from "react";
 import { Pressable, Text, View, ActivityIndicator } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useTheme, useNavigation } from "@react-navigation/native";
+import {
+  useTheme,
+  useNavigation,
+  NavigationProp,
+} from "@react-navigation/native";
+import { RootStackParamList } from "src/navigation/RootNavigator";
 import { Ionicons } from "@expo/vector-icons";
 import { useAppDispatch, useAppSelector } from "src/hooks/store";
 import {
@@ -66,11 +71,15 @@ export const BibleScreen: React.FunctionComponent = () => {
     [dispatch]
   );
 
+  const navigation = useNavigation<NavigationProp<RootStackParamList>>();
+
   const handleOpenPicker = useCallback(() => {
     pickerRef.current?.present();
   }, []);
 
-  const navigation = useNavigation();
+  const handleOpenReadingPlan = useCallback(() => {
+    navigation.navigate("Reading Plan");
+  }, [navigation]);
   const actionColor = uiPreferences.isEinkMode
     ? theme.dark
       ? colors.white
@@ -94,8 +103,26 @@ export const BibleScreen: React.FunctionComponent = () => {
           <Ionicons name="chevron-down" size={16} color={actionColor} />
         </Pressable>
       ),
+      headerRight: () => (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Reading Plan"
+          accessibilityHint="Opens your reading plan"
+          onPress={handleOpenReadingPlan}
+          style={({ pressed }) => [pressed && { opacity: 0.65 }]}
+        >
+          <Ionicons name="calendar-outline" size={24} color={actionColor} />
+        </Pressable>
+      ),
     });
-  }, [actionColor, handleOpenPicker, locationLabel, navigation, themedStyles]);
+  }, [
+    actionColor,
+    handleOpenPicker,
+    handleOpenReadingPlan,
+    locationLabel,
+    navigation,
+    themedStyles,
+  ]);
 
   const handlePreviousChapter = useCallback(() => {
     if (prevChapter) {
@@ -130,7 +157,7 @@ export const BibleScreen: React.FunctionComponent = () => {
         >
           <Ionicons
             name="chevron-back"
-            size={18}
+            size={20}
             color={
               !prevChapter || isLoading
                 ? themedStyles.navButtonTextDisabled.color
@@ -143,7 +170,7 @@ export const BibleScreen: React.FunctionComponent = () => {
               (!prevChapter || isLoading) && themedStyles.navButtonTextDisabled,
             ]}
           >
-            Previous
+            Previous Chapter
           </Text>
         </Pressable>
 
@@ -169,11 +196,11 @@ export const BibleScreen: React.FunctionComponent = () => {
               (!nextChapter || isLoading) && themedStyles.navButtonTextDisabled,
             ]}
           >
-            Next
+            Next Chapter
           </Text>
           <Ionicons
             name="chevron-forward"
-            size={18}
+            size={20}
             color={
               !nextChapter || isLoading
                 ? themedStyles.navButtonTextDisabled.color
@@ -238,7 +265,7 @@ export const BibleScreen: React.FunctionComponent = () => {
   return (
     <>
       <PassageReader
-        heading={locationLabel}
+        heading=""
         showMemoryButton={false}
         contentKey={`${location.bookId}-${location.chapter}`}
         isTransitioning={isLoading}

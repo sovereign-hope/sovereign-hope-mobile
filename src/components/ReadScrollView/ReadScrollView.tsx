@@ -102,6 +102,7 @@ export const ReadScrollView: React.FunctionComponent<ReadScrollViewProps> = ({
     <PassageReader
       heading={heading}
       showMemoryButton={showMemoryButton}
+      showStudyQuestions={!showMemoryButton}
       contentKey={passageIndex}
       isTransitioning={isNavigatingPassages}
       miniPlayerHeight={miniPlayerHeight}

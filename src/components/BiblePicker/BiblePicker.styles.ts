@@ -83,7 +83,9 @@ export const styles = ({ theme, isEinkMode }: StyleProps) => {
       color: theme.colors.text,
     },
     backButton: {
-      minWidth: 60,
+      minWidth: 80,
+      paddingVertical: spacing.small,
+      paddingHorizontal: spacing.small,
     },
     backButtonPressed: {
       opacity: 0.65,

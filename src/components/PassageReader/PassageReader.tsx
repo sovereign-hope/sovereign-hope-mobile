@@ -56,6 +56,8 @@ export interface PassageReaderProps {
   renderFooter?: () => React.ReactNode;
   /** Optional close button in the top-right */
   onClose?: () => void;
+  /** When true, shows study questions and reflection card below the passage */
+  showStudyQuestions?: boolean;
   /** Optional ESV response data — when provided, overrides the esvSlice selector */
   passageData?: EsvResponse;
 }
@@ -69,6 +71,7 @@ export const PassageReader: React.FunctionComponent<PassageReaderProps> = ({
   bottomInset,
   contentWidth: contentWidthProp,
   adjustsForInsets = false,
+  showStudyQuestions = false,
   renderFooter,
   onClose,
   passageData,
@@ -412,7 +415,7 @@ export const PassageReader: React.FunctionComponent<PassageReaderProps> = ({
             </Pressable>
           )}
         </Animated.View>
-        {!showMemoryButton && (
+        {showStudyQuestions && (
           <View style={themedStyles.contentCard}>
             <View style={themedStyles.contentCardColumn}>
               <Text style={themedStyles.studyQuestionHeader}>

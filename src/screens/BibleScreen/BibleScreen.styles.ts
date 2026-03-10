@@ -62,9 +62,9 @@ export const styles = ({ theme, isEinkMode }: StyleProps) => {
     navButton: {
       flexDirection: "row",
       alignItems: "center",
-      gap: 4,
-      paddingVertical: spacing.small,
-      paddingHorizontal: spacing.medium,
+      gap: 6,
+      paddingVertical: spacing.medium,
+      paddingHorizontal: spacing.large,
       borderRadius: radius.medium,
       borderWidth: StyleSheet.hairlineWidth,
       borderColor: actionColor,
@@ -78,6 +78,7 @@ export const styles = ({ theme, isEinkMode }: StyleProps) => {
     navButtonText: {
       color: actionColor,
       fontWeight: "600",
+      fontSize: 16,
     },
     navButtonTextDisabled: {
       color: disabledColor,

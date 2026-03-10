@@ -6,7 +6,7 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { Pressable, ScrollView, Text, View } from "react-native";
+import { Pressable, ScrollView, Text, View, Platform } from "react-native";
 import {
   BottomSheetModal,
   BottomSheetFlatList,
@@ -16,6 +16,7 @@ import { useTheme } from "@react-navigation/native";
 import { BIBLE_BOOKS } from "src/constants/bibleBooks";
 import type { BibleBook } from "src/constants/bibleBooks";
 import type { BibleLocation } from "src/types/bible";
+import { Ionicons } from "@expo/vector-icons";
 import { useUiPreferences } from "src/hooks/useUiPreferences";
 import { styles } from "./BiblePicker.styles";
 
@@ -37,10 +38,12 @@ type BookListItem =
 
 const buildBookList = (): BookListItem[] => {
   const items: BookListItem[] = [];
+  let addedNewTestament = false;
   items.push({ type: "header", title: "Old Testament" });
   for (const book of BIBLE_BOOKS) {
-    if (book.testament === "new" && items.at(-1)?.type !== "header") {
+    if (book.testament === "new" && !addedNewTestament) {
       items.push({ type: "header", title: "New Testament" });
+      addedNewTestament = true;
     }
     items.push({ type: "book", book });
   }
@@ -231,7 +234,16 @@ export const BiblePicker = forwardRef<BiblePickerHandle, BiblePickerProps>(
                 pressed && themedStyles.backButtonPressed,
               ]}
             >
-              <Text style={themedStyles.backButtonText}>Books</Text>
+              <View style={{ flexDirection: "row", alignItems: "center" }}>
+                {Platform.OS === "ios" && (
+                  <Ionicons
+                    name="chevron-back"
+                    size={20}
+                    color={themedStyles.backButtonText.color}
+                  />
+                )}
+                <Text style={themedStyles.backButtonText}>Books</Text>
+              </View>
             </Pressable>
             <Text style={themedStyles.chapterTitle}>{selectedBook.name}</Text>
             <View style={themedStyles.backButton} />
