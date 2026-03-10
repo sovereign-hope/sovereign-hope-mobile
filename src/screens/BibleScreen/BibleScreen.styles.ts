@@ -45,6 +45,7 @@ export const styles = ({ theme, isEinkMode }: StyleProps) => {
     headerTitleButton: {
       flexDirection: "row",
       alignItems: "center",
+      alignSelf: "center",
       gap: 4,
       paddingVertical: spacing.medium,
       paddingHorizontal: spacing.lmedium,
