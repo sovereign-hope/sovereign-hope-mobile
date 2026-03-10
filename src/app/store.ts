@@ -1,5 +1,6 @@
 import { configureStore } from "@reduxjs/toolkit";
 import { authReducer } from "src/redux/authSlice";
+import { bibleReducer } from "src/redux/bibleSlice";
 import { esvReducer } from "src/redux/esvSlice";
 import { readingPlanReducer } from "src/redux/readingPlanSlice";
 import { settingsReducer } from "src/redux/settingsSlice";
@@ -13,6 +14,7 @@ import { memoryAudioReducer } from "src/redux/memoryAudioSlice";
 export const store = configureStore({
   reducer: {
     auth: authReducer,
+    bible: bibleReducer,
     esv: esvReducer,
     readingPlan: readingPlanReducer,
     settings: settingsReducer,

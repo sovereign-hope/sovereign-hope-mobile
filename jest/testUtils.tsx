@@ -19,10 +19,12 @@ import { memoryAudioReducer } from "src/redux/memoryAudioSlice";
 import { notificationsReducer } from "src/redux/notificationsSlice";
 import { commentaryReducer } from "src/redux/commentarySlice";
 import { memberReducer } from "src/redux/memberSlice";
+import { bibleReducer } from "src/redux/bibleSlice";
 
 const rootReducer = {
-  esv: esvReducer,
   auth: authReducer,
+  bible: bibleReducer,
+  esv: esvReducer,
   readingPlan: readingPlanReducer,
   settings: settingsReducer,
   podcast: podcastReducer,
