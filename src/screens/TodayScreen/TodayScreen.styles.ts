@@ -19,7 +19,8 @@ interface Style {
   dayTitleIcon: ImageStyle;
   headerRow: ViewStyle;
   subHeader: TextStyle;
-  textButton: TextStyle;
+  textButton: ViewStyle;
+  textButtonLabel: TextStyle;
   contentCard: ViewStyle;
   memoryCard: ViewStyle;
   memoryPassageButton: ViewStyle;
@@ -114,9 +115,16 @@ export const styles = ({ theme, isEinkMode = false }: Props): Style =>
       marginBottom: spacing.medium,
     },
     textButton: {
+      paddingVertical: spacing.small,
+      paddingHorizontal: spacing.lmedium,
+      borderRadius: radius.medium,
+      borderWidth: 1,
+      borderColor: isEinkMode ? theme.colors.primary : colors.accent,
+    },
+    textButtonLabel: {
       ...body,
       color: isEinkMode ? theme.colors.primary : colors.accent,
-      marginRight: spacing.large,
+      fontWeight: "600",
     },
     contentCard: {
       flexShrink: 1,

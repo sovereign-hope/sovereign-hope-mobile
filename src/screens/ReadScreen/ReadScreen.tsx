@@ -114,7 +114,7 @@ export const ReadScreen: React.FunctionComponent<ReadScreenProps> = ({
             onNextPassage={handleNextPassage}
             hasNextPassage={passageIndex < passages.length - 1}
             miniPlayerHeight={miniPlayerHeight}
-            bottomInset={insets.bottom + themedStyles.toolbar.height}
+            bottomInset={insets.bottom + 56}
           />
           <View
             style={[themedStyles.toolbar, { paddingBottom: insets.bottom }]}
@@ -129,8 +129,8 @@ export const ReadScreen: React.FunctionComponent<ReadScreenProps> = ({
               accessibilityHint="Opens this chapter in the Bible tab"
               onPress={handleOpenInBible}
             >
-              <Ionicons name="book-outline" size={22} color={actionColor} />
-              <Text style={themedStyles.toolbarButtonText}>Bible</Text>
+              <Ionicons name="book-outline" size={24} color={actionColor} />
+              <Text style={themedStyles.toolbarLabel}>Bible</Text>
             </Pressable>
             <Pressable
               style={({ pressed }) => [
@@ -142,8 +142,8 @@ export const ReadScreen: React.FunctionComponent<ReadScreenProps> = ({
               accessibilityHint="Adjust reading font size"
               onPress={showSelectFontSize}
             >
-              <Ionicons name="text-outline" size={22} color={actionColor} />
-              <Text style={themedStyles.toolbarButtonText}>Font</Text>
+              <Ionicons name="text-outline" size={24} color={actionColor} />
+              <Text style={themedStyles.toolbarLabel}>Font</Text>
             </Pressable>
             {audioUrl && audioUrl !== "" && (
               <Pressable
@@ -158,10 +158,10 @@ export const ReadScreen: React.FunctionComponent<ReadScreenProps> = ({
               >
                 <Ionicons
                   name="volume-high-outline"
-                  size={22}
+                  size={24}
                   color={actionColor}
                 />
-                <Text style={themedStyles.toolbarButtonText}>Listen</Text>
+                <Text style={themedStyles.toolbarLabel}>Listen</Text>
               </Pressable>
             )}
           </View>

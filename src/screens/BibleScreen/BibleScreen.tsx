@@ -1,4 +1,10 @@
-import React, { useEffect, useCallback, useLayoutEffect, useRef } from "react";
+import React, {
+  useEffect,
+  useCallback,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+} from "react";
 import { Pressable, Text, View, ActivityIndicator } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
@@ -30,6 +36,7 @@ import { useTabBarHeightContext } from "src/navigation/TabBarContext";
 import { useMiniPlayerHeight } from "src/hooks/useMiniPlayerHeight";
 import { useUiPreferences } from "src/hooks/useUiPreferences";
 import { getPressFeedbackStyle } from "src/style/eink";
+import { playPassageAudio } from "src/services/passageAudio";
 import { colors } from "src/style/colors";
 import { styles } from "./BibleScreen.styles";
 
@@ -82,6 +89,32 @@ export const BibleScreen: React.FunctionComponent = () => {
   const handleOpenReadingPlan = useCallback(() => {
     navigation.navigate("Reading Plan");
   }, [navigation]);
+
+  const handleFontSize = useCallback(() => {
+    navigation.navigate("Font Size");
+  }, [navigation]);
+
+  // Extract audio URL from the chapter HTML (same pattern as esvSlice)
+  const audioUrl = useMemo(() => {
+    const html = chapter?.passages[0];
+    if (!html) {
+      return;
+    }
+    const match = html.match(/https:\/\/audio.esv.org\/.*.mp3/);
+    return match?.[0];
+  }, [chapter]);
+
+  const handlePlayAudio = useCallback(async () => {
+    if (!audioUrl) {
+      return;
+    }
+    try {
+      await playPassageAudio(audioUrl, locationLabel);
+    } catch {
+      // Audio playback failure is non-critical
+    }
+  }, [audioUrl, locationLabel]);
+
   const actionColor = uiPreferences.isEinkMode
     ? theme.dark
       ? colors.white
@@ -106,21 +139,50 @@ export const BibleScreen: React.FunctionComponent = () => {
         </Pressable>
       ),
       headerRight: () => (
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Reading Plan"
-          accessibilityHint="Opens your reading plan"
-          onPress={handleOpenReadingPlan}
-          style={({ pressed }) => [pressed && { opacity: 0.65 }]}
-        >
-          <Ionicons name="calendar-outline" size={24} color={actionColor} />
-        </Pressable>
+        <View style={themedStyles.headerRightRow}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Font Size"
+            accessibilityHint="Adjust reading font size"
+            onPress={handleFontSize}
+            style={({ pressed }) => [pressed && { opacity: 0.65 }]}
+          >
+            <Ionicons name="text-outline" size={22} color={actionColor} />
+          </Pressable>
+          {audioUrl && (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Listen"
+              accessibilityHint="Listen to this chapter"
+              onPress={() => void handlePlayAudio()}
+              style={({ pressed }) => [pressed && { opacity: 0.65 }]}
+            >
+              <Ionicons
+                name="volume-high-outline"
+                size={22}
+                color={actionColor}
+              />
+            </Pressable>
+          )}
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Reading Plan"
+            accessibilityHint="Opens your reading plan"
+            onPress={handleOpenReadingPlan}
+            style={({ pressed }) => [pressed && { opacity: 0.65 }]}
+          >
+            <Ionicons name="calendar-outline" size={22} color={actionColor} />
+          </Pressable>
+        </View>
       ),
     });
   }, [
     actionColor,
+    audioUrl,
+    handleFontSize,
     handleOpenPicker,
     handleOpenReadingPlan,
+    handlePlayAudio,
     locationLabel,
     navigation,
     themedStyles,

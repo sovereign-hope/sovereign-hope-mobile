@@ -11,10 +11,10 @@ type Props = {
 interface Style {
   screen: ViewStyle;
   loadingContainer: ViewStyle;
-  toolbar: ViewStyle & { height: number };
+  toolbar: ViewStyle;
   toolbarButton: ViewStyle;
   toolbarButtonPressed: ViewStyle;
-  toolbarButtonText: TextStyle;
+  toolbarLabel: TextStyle;
 }
 
 export const styles = ({ theme, isEinkMode }: Props): Style => {
@@ -35,11 +35,10 @@ export const styles = ({ theme, isEinkMode }: Props): Style => {
       alignItems: "center",
     },
     toolbar: {
-      height: 52,
       flexDirection: "row",
-      justifyContent: "center",
+      justifyContent: "space-evenly",
       alignItems: "center",
-      gap: spacing.extraExtraLarge,
+      paddingTop: spacing.medium,
       borderTopWidth: StyleSheet.hairlineWidth,
       borderTopColor: theme.colors.border,
       backgroundColor: theme.colors.card,
@@ -47,17 +46,16 @@ export const styles = ({ theme, isEinkMode }: Props): Style => {
     toolbarButton: {
       alignItems: "center",
       justifyContent: "center",
-      gap: 2,
       paddingVertical: spacing.small,
-      paddingHorizontal: spacing.medium,
+      paddingHorizontal: spacing.large,
     },
     toolbarButtonPressed: {
-      opacity: 0.65,
+      opacity: 0.5,
     },
-    toolbarButtonText: {
-      fontSize: 11,
+    toolbarLabel: {
+      fontSize: 10,
+      marginTop: 2,
       color: actionColor,
-      fontWeight: "500",
     },
   });
 };

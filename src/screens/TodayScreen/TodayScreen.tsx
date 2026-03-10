@@ -958,9 +958,7 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
                           navigation.navigate("Reading Plan");
                         }}
                       >
-                        <Text style={{ color: actionColor, fontSize: 18 }}>
-                          Plan
-                        </Text>
+                        <Text style={themedStyles.textButtonLabel}>Plan</Text>
                       </Pressable>
                       {!useWideLayout && (
                         <Pressable
@@ -972,12 +970,14 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
                             ),
                           ]}
                           accessibilityRole="button"
+                          accessibilityLabel="Show Today"
+                          accessibilityHint="Scrolls the reading list to today"
                           onPress={() => {
                             scrollToToday();
                           }}
                         >
-                          <Text style={{ color: actionColor, fontSize: 18 }}>
-                            Show Today
+                          <Text style={themedStyles.textButtonLabel}>
+                            Today
                           </Text>
                         </Pressable>
                       )}
