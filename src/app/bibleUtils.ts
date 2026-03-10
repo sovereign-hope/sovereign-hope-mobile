@@ -36,20 +36,21 @@ const extractBookName = (
     }
   }
 
-  // Try single-word book name: "John 3:16" or "Genesis 1"
-  if (tokens.length > 0) {
-    const book = getBookByNameOrAbbreviation(tokens[0]);
-    if (book) {
-      return { book, remainder: tokens.slice(1).join(" ") };
-    }
-  }
-
-  // Try multi-word book names: "Song of Solomon 2:1"
+  // Try multi-word book names first (longest match wins): "Song of Solomon 2:1"
+  // Must come before single-word to avoid "Song" matching and leaving "of Solomon 2:1"
   for (let i = Math.min(tokens.length, 4); i >= 2; i--) {
     const candidate = tokens.slice(0, i).join(" ");
     const book = getBookByNameOrAbbreviation(candidate);
     if (book) {
       return { book, remainder: tokens.slice(i).join(" ") };
+    }
+  }
+
+  // Try single-word book name: "John 3:16" or "Genesis 1"
+  if (tokens.length > 0) {
+    const book = getBookByNameOrAbbreviation(tokens[0]);
+    if (book) {
+      return { book, remainder: tokens.slice(1).join(" ") };
     }
   }
 

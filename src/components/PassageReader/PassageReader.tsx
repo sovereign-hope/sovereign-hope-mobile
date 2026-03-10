@@ -394,7 +394,7 @@ export const PassageReader: React.FunctionComponent<PassageReaderProps> = ({
             tagsStyles={tagsStyles}
             customHTMLElementModels={customHTMLElementModels}
           />
-          {!showMemoryButton && commentaryHTML != "" && (
+          {!showMemoryButton && !passageData && commentaryHTML != "" && (
             <Pressable
               onPress={() => setIsShowingCommentary(!isShowingCommentary)}
               accessibilityRole="button"
