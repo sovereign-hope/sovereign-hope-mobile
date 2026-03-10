@@ -18,6 +18,11 @@ export const styles = ({ theme, isEinkMode }: StyleProps) => {
   return StyleSheet.create({
     sheetBackground: {
       backgroundColor: theme.colors.card,
+      shadowColor: colors.black,
+      shadowOffset: { width: 0, height: -2 },
+      shadowOpacity: 0.15,
+      shadowRadius: 6,
+      elevation: 8,
     },
     handleIndicator: {
       backgroundColor: theme.dark ? "rgba(255,255,255,0.3)" : "rgba(0,0,0,0.2)",
