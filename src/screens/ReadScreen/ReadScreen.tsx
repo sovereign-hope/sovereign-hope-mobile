@@ -5,7 +5,7 @@ import {
   SafeAreaView,
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
-import { useAppSelector } from "src/hooks/store";
+import { useAppDispatch, useAppSelector } from "src/hooks/store";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { RootStackParamList } from "src/navigation/RootNavigator";
 import { useTheme } from "@react-navigation/native";
@@ -19,7 +19,10 @@ import {
   selectIsLoading,
   selectPassageHeader,
 } from "src/redux/esvSlice";
+import { CommonActions } from "@react-navigation/native";
 import { ReadScrollView } from "src/components/ReadScrollView/ReadScrollView";
+import { fetchBibleChapter } from "src/redux/bibleSlice";
+import { passageToLocation } from "src/app/bibleUtils";
 import { styles } from "./ReadScreen.styles";
 import { spacing } from "src/style/layout";
 import { useUiPreferences } from "src/hooks/useUiPreferences";
@@ -41,6 +44,7 @@ export const ReadScreen: React.FunctionComponent<ReadScreenProps> = ({
   const { passages, onComplete } = route.params;
 
   // Custom hooks
+  const dispatch = useAppDispatch();
   const miniPlayerHeight = useMiniPlayerHeight();
   const insets = useSafeAreaInsets();
   const audioUrl = useAppSelector(selectAudioUrl);
@@ -89,12 +93,34 @@ export const ReadScreen: React.FunctionComponent<ReadScreenProps> = ({
     navigation.push("Font Size");
   }, [navigation]);
 
+  const handleOpenInBible = useCallback(() => {
+    const currentPassage = passages[passageIndex];
+    const location = passageToLocation(currentPassage);
+    if (!location) {
+      return;
+    }
+
+    void dispatch(fetchBibleChapter(location));
+    navigation.dispatch(CommonActions.navigate("Home", { screen: "Bible" }));
+  }, [dispatch, navigation, passageIndex, passages]);
+
   useEffect(() => {
     if (isIOS26OrNewer()) {
       navigation.setOptions({
         headerRight: undefined,
         unstable_headerRightItems: ({ tintColor }) => {
           const items = [
+            {
+              type: "button" as const,
+              label: "Open in Bible",
+              icon: {
+                type: "sfSymbol" as const,
+                name: "book" as never,
+              },
+              onPress: handleOpenInBible,
+              tintColor: tintColor ?? actionColor,
+              sharesBackground: false,
+            },
             {
               type: "button" as const,
               label: "Font Size",
@@ -140,6 +166,18 @@ export const ReadScreen: React.FunctionComponent<ReadScreenProps> = ({
               ...getPressFeedbackStyle(pressed, uiPreferences.isEinkMode),
             })}
             accessibilityRole="button"
+            accessibilityLabel="Open in Bible"
+            accessibilityHint="Opens this chapter in the Bible tab"
+            onPress={handleOpenInBible}
+          >
+            <Ionicons name="book-outline" size={24} color={actionColor} />
+          </Pressable>
+          <Pressable
+            style={({ pressed }) => ({
+              marginRight: spacing.large,
+              ...getPressFeedbackStyle(pressed, uiPreferences.isEinkMode),
+            })}
+            accessibilityRole="button"
             onPress={showSelectFontSize}
           >
             <Ionicons name="text-outline" size={24} color={actionColor} />
@@ -166,6 +204,7 @@ export const ReadScreen: React.FunctionComponent<ReadScreenProps> = ({
   }, [
     actionColor,
     audioUrl,
+    handleOpenInBible,
     navigation,
     playAudio,
     showSelectFontSize,
