@@ -1,73 +1,64 @@
-# React + TypeScript + Vite
+# Admin Dashboard
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+This directory contains the web admin dashboard for Sovereign Hope Mobile.
 
-Currently, two official plugins are available:
+It is a Vite + React + TypeScript app that lets admins:
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- manage reading plans
+- use Sunday quick-add flows
+- view and manage member records
 
-## React Compiler
+## Access Requirements
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+Admin routes are protected by Firebase Auth and custom claims. A signed-in user must have one of these claims:
 
-## Expanding the ESLint configuration
+- `isAdmin: true`
+- `admin: true` (legacy compatibility)
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+To grant or remove admin access from the repository root:
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm run admin:set-admin -- --email "admin@example.com"
+npm run admin:set-admin -- --email "admin@example.com" --remove
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## Local Development
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+From the repository root:
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm run admin:dev
 ```
+
+Or directly inside this directory:
+
+```bash
+npm run dev
+```
+
+The local server starts on Vite's default port (`5173`) unless overridden.
+
+## Build and Lint
+
+From the repository root:
+
+```bash
+npm run admin:build
+```
+
+Inside this directory:
+
+```bash
+npm run build
+npm run lint
+```
+
+## Deploy
+
+From the repository root:
+
+```bash
+npm run admin:deploy
+```
+
+This builds the admin app and runs `firebase deploy --only hosting`.

@@ -25,6 +25,7 @@ If you're here to quickly get the app up and running, for whatever reason, head 
 Otherwise, if you're onboarding as a new mobile engineer or simply want to be thorough, head over to [the Full Mobile Onboarding guide.](#full-mobile-onboarding)
 
 If you need to seed members from Planning Center, link Firebase users by email, or grant/revoke member access, use the [Member Access Runbook](docs/member-access-runbook.md).
+If you are working on the admin dashboard, use the [Admin Dashboard README](admin/README.md).
 For all internal docs, plans, and runbooks, use the [Docs Index](docs/README.md).
 
 ## 💨 Quick Start
