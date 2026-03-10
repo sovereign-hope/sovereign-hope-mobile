@@ -7,11 +7,14 @@ import React, {
   useState,
 } from "react";
 import { Pressable, ScrollView, Text, View, Platform } from "react-native";
+import * as Haptics from "expo-haptics";
 import {
   BottomSheetModal,
   BottomSheetFlatList,
   BottomSheetView,
+  BottomSheetBackdrop,
 } from "@gorhom/bottom-sheet";
+import type { BottomSheetBackdropProps } from "@gorhom/bottom-sheet";
 import { useTheme } from "@react-navigation/native";
 import { BIBLE_BOOKS } from "src/constants/bibleBooks";
 import type { BibleBook } from "src/constants/bibleBooks";
@@ -98,12 +101,15 @@ export const BiblePicker = forwardRef<BiblePickerHandle, BiblePickerProps>(
       if (book.isSingleChapter) {
         return;
       }
+      if (Platform.OS === "ios") void Haptics.selectionAsync();
       setSelectedBook(book);
       bottomSheetRef.current?.snapToIndex(1);
     }, []);
 
     const handleSingleChapterBookPress = useCallback(
       (book: BibleBook) => {
+        if (Platform.OS === "ios")
+          void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
         onSelectLocation({ bookId: book.id, chapter: 1 });
         bottomSheetRef.current?.dismiss();
       },
@@ -190,6 +196,8 @@ export const BiblePicker = forwardRef<BiblePickerHandle, BiblePickerProps>(
         if (!selectedBook) {
           return;
         }
+        if (Platform.OS === "ios")
+          void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
         onSelectLocation({ bookId: selectedBook.id, chapter });
         bottomSheetRef.current?.dismiss();
       },
@@ -197,6 +205,7 @@ export const BiblePicker = forwardRef<BiblePickerHandle, BiblePickerProps>(
     );
 
     const handleBackToBooks = useCallback(() => {
+      if (Platform.OS === "ios") void Haptics.selectionAsync();
       // eslint-disable-next-line unicorn/no-null
       setSelectedBook(null);
       bottomSheetRef.current?.snapToIndex(0);
@@ -208,6 +217,18 @@ export const BiblePicker = forwardRef<BiblePickerHandle, BiblePickerProps>(
       }
       return Array.from({ length: selectedBook.chapterCount }, (_, i) => i + 1);
     }, [selectedBook]);
+
+    const renderBackdrop = useCallback(
+      (props: BottomSheetBackdropProps) => (
+        <BottomSheetBackdrop
+          {...props}
+          disappearsOnIndex={-1}
+          appearsOnIndex={0}
+          pressBehavior="close"
+        />
+      ),
+      []
+    );
 
     // ── Render ─────────────────────────────────────────────────
     const handleSheetDismiss = useCallback(() => {
@@ -289,6 +310,7 @@ export const BiblePicker = forwardRef<BiblePickerHandle, BiblePickerProps>(
         snapPoints={snapPoints}
         enableDynamicSizing={false}
         onDismiss={handleSheetDismiss}
+        backdropComponent={renderBackdrop}
         backgroundStyle={themedStyles.sheetBackground}
         handleIndicatorStyle={themedStyles.handleIndicator}
       >

@@ -6,7 +6,14 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { Pressable, Text, View, ActivityIndicator } from "react-native";
+import {
+  Pressable,
+  Text,
+  View,
+  ActivityIndicator,
+  Platform,
+} from "react-native";
+import * as Haptics from "expo-haptics";
 import {
   useTheme,
   useNavigation,
@@ -89,14 +96,17 @@ export const BibleScreen: React.FunctionComponent = () => {
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
 
   const handleOpenPicker = useCallback(() => {
+    if (Platform.OS === "ios") void Haptics.selectionAsync();
     pickerRef.current?.present();
   }, []);
 
   const handleOpenReadingPlan = useCallback(() => {
+    if (Platform.OS === "ios") void Haptics.selectionAsync();
     navigation.navigate("Reading Plan");
   }, [navigation]);
 
   const handleFontSize = useCallback(() => {
+    if (Platform.OS === "ios") void Haptics.selectionAsync();
     navigation.navigate("Font Size");
   }, [navigation]);
 
@@ -167,12 +177,16 @@ export const BibleScreen: React.FunctionComponent = () => {
 
   const handlePreviousChapter = useCallback(() => {
     if (prevChapter) {
+      if (Platform.OS === "ios")
+        void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       void dispatch(fetchBibleChapter(prevChapter));
     }
   }, [dispatch, prevChapter]);
 
   const handleNextChapter = useCallback(() => {
     if (nextChapter) {
+      if (Platform.OS === "ios")
+        void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       void dispatch(fetchBibleChapter(nextChapter));
     }
   }, [dispatch, nextChapter]);
