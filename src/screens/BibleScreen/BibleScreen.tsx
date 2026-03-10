@@ -29,6 +29,8 @@ import {
   getPreviousChapter,
 } from "src/app/bibleUtils";
 import { PassageReader } from "src/components/PassageReader/PassageReader";
+import { PassageToolbar } from "src/components/PassageToolbar/PassageToolbar";
+import type { PassageToolbarAction } from "src/components/PassageToolbar/PassageToolbar";
 import { BiblePicker } from "src/components/BiblePicker/BiblePicker";
 import type { BiblePickerHandle } from "src/components/BiblePicker/BiblePicker";
 import type { BibleLocation } from "src/types/bible";
@@ -139,50 +141,21 @@ export const BibleScreen: React.FunctionComponent = () => {
         </Pressable>
       ),
       headerRight: () => (
-        <View style={themedStyles.headerRightRow}>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Font Size"
-            accessibilityHint="Adjust reading font size"
-            onPress={handleFontSize}
-            style={({ pressed }) => [pressed && { opacity: 0.65 }]}
-          >
-            <Ionicons name="text-outline" size={22} color={actionColor} />
-          </Pressable>
-          {audioUrl && (
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Listen"
-              accessibilityHint="Listen to this chapter"
-              onPress={() => void handlePlayAudio()}
-              style={({ pressed }) => [pressed && { opacity: 0.65 }]}
-            >
-              <Ionicons
-                name="volume-high-outline"
-                size={22}
-                color={actionColor}
-              />
-            </Pressable>
-          )}
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Reading Plan"
-            accessibilityHint="Opens your reading plan"
-            onPress={handleOpenReadingPlan}
-            style={({ pressed }) => [pressed && { opacity: 0.65 }]}
-          >
-            <Ionicons name="calendar-outline" size={22} color={actionColor} />
-          </Pressable>
-        </View>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Reading Plan"
+          accessibilityHint="Opens your reading plan"
+          onPress={handleOpenReadingPlan}
+          style={({ pressed }) => [pressed && { opacity: 0.65 }]}
+        >
+          <Ionicons name="calendar-outline" size={22} color={actionColor} />
+        </Pressable>
       ),
     });
   }, [
     actionColor,
-    audioUrl,
-    handleFontSize,
     handleOpenPicker,
     handleOpenReadingPlan,
-    handlePlayAudio,
     locationLabel,
     navigation,
     themedStyles,
@@ -284,6 +257,29 @@ export const BibleScreen: React.FunctionComponent = () => {
     ]
   );
 
+  const toolbarActions = useMemo(() => {
+    const actions: PassageToolbarAction[] = [
+      {
+        key: "font",
+        icon: "text-outline",
+        label: "Font",
+        accessibilityLabel: "Font Size",
+        accessibilityHint: "Adjust reading font size",
+        onPress: handleFontSize,
+      },
+    ];
+    if (audioUrl) {
+      actions.push({
+        key: "listen",
+        icon: "volume-high-outline",
+        label: "Listen",
+        accessibilityHint: "Listen to this chapter",
+        onPress: () => void handlePlayAudio(),
+      });
+    }
+    return actions;
+  }, [audioUrl, handleFontSize, handlePlayAudio]);
+
   // Error state
   if (hasError && !chapter) {
     return (
@@ -338,6 +334,7 @@ export const BibleScreen: React.FunctionComponent = () => {
         renderFooter={renderFooter}
         passageData={chapter}
       />
+      <PassageToolbar actions={toolbarActions} />
       <BiblePicker
         ref={pickerRef}
         currentLocation={location}

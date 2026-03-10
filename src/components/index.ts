@@ -6,6 +6,8 @@ export { MediaPlayer } from "./MediaPlayer/MediaPlayer";
 export { MemberAvatar } from "./MemberAvatar/MemberAvatar";
 export { MemoryAudioCard } from "./MemoryAudioCard/MemoryAudioCard";
 export { PassageReader } from "./PassageReader/PassageReader";
+export { PassageToolbar } from "./PassageToolbar/PassageToolbar";
+export type { PassageToolbarAction } from "./PassageToolbar/PassageToolbar";
 export type { PassageReaderProps } from "./PassageReader/PassageReader";
 export { ReadScrollView } from "./ReadScrollView/ReadScrollView";
 export type { ReadScrollViewProps } from "./ReadScrollView/ReadScrollView";

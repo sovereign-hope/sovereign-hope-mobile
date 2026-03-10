@@ -1139,7 +1139,7 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
                           navigation.navigate("Resources");
                         }}
                       >
-                        <Text style={{ color: actionColor, fontSize: 18 }}>
+                        <Text style={themedStyles.textButtonLabel}>
                           See All
                         </Text>
                       </Pressable>

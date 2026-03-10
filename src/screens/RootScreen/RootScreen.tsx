@@ -1058,6 +1058,11 @@ export const RootScreen = (): React.JSX.Element => {
                   }
             }
           />
+          <Stack.Screen
+            name="Reading Plan"
+            component={ReadingPlanScreen}
+            options={{ headerLargeTitle: false }}
+          />
           <Stack.Screen name="Font Size" component={FontSizePickerScreen} />
           <Stack.Screen name="Schedule" component={ScheduleScreen} />
           <Stack.Screen name="Sundays" component={SundaysScreen} />

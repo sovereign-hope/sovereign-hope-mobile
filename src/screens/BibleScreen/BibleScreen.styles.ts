@@ -52,11 +52,6 @@ export const styles = ({ theme, isEinkMode }: StyleProps) => {
       fontWeight: "600",
       color: theme.colors.text,
     },
-    headerRightRow: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: spacing.large,
-    },
     buttonRow: {
       flexDirection: "row",
       justifyContent: "space-between",

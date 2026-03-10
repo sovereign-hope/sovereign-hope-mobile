@@ -1,6 +1,6 @@
 /* eslint-disable react/prop-types */
-import React, { useCallback } from "react";
-import { ActivityIndicator, Pressable, Text, View } from "react-native";
+import React, { useCallback, useMemo } from "react";
+import { ActivityIndicator, View } from "react-native";
 import {
   SafeAreaView,
   useSafeAreaInsets,
@@ -9,10 +9,8 @@ import { useAppDispatch, useAppSelector } from "src/hooks/store";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { RootStackParamList } from "src/navigation/RootNavigator";
 import { useTheme } from "@react-navigation/native";
-import { colors } from "src/style/colors";
 import { useMiniPlayerHeight } from "src/hooks/useMiniPlayerHeight";
 import { usePassageLoader } from "src/hooks/usePassageLoader";
-import { Ionicons } from "@expo/vector-icons";
 import { playPassageAudio } from "src/services/passageAudio";
 import {
   selectAudioUrl,
@@ -21,6 +19,8 @@ import {
 } from "src/redux/esvSlice";
 import { CommonActions } from "@react-navigation/native";
 import { ReadScrollView } from "src/components/ReadScrollView/ReadScrollView";
+import { PassageToolbar } from "src/components/PassageToolbar/PassageToolbar";
+import type { PassageToolbarAction } from "src/components/PassageToolbar/PassageToolbar";
 import { fetchBibleChapter } from "src/redux/bibleSlice";
 import { passageToLocation } from "src/app/bibleUtils";
 import { styles } from "./ReadScreen.styles";
@@ -47,9 +47,6 @@ export const ReadScreen: React.FunctionComponent<ReadScreenProps> = ({
   const isLoading = useAppSelector(selectIsLoading);
   const theme = useTheme();
   const uiPreferences = useUiPreferences();
-  const actionColor = uiPreferences.isEinkMode
-    ? theme.colors.primary
-    : colors.accent;
 
   const onDone = useCallback(() => {
     navigation.goBack();
@@ -95,6 +92,38 @@ export const ReadScreen: React.FunctionComponent<ReadScreenProps> = ({
   // Constants
   const themedStyles = styles({ theme, isEinkMode: uiPreferences.isEinkMode });
 
+  const toolbarActions = useMemo(() => {
+    const actions: PassageToolbarAction[] = [
+      {
+        key: "bible",
+        icon: "book-outline",
+        label: "Bible",
+        accessibilityLabel: "Open in Bible",
+        accessibilityHint: "Opens this chapter in the Bible tab",
+        onPress: handleOpenInBible,
+      },
+      {
+        key: "font",
+        icon: "text-outline",
+        label: "Font",
+        accessibilityLabel: "Font Size",
+        accessibilityHint: "Adjust reading font size",
+        onPress: showSelectFontSize,
+      },
+    ];
+    if (audioUrl) {
+      actions.push({
+        key: "listen",
+        icon: "volume-high-outline",
+        label: "Listen",
+        accessibilityLabel: "Play Audio",
+        accessibilityHint: "Listen to this passage",
+        onPress: () => void playAudio(),
+      });
+    }
+    return actions;
+  }, [audioUrl, handleOpenInBible, playAudio, showSelectFontSize]);
+
   return (
     <SafeAreaView style={themedStyles.screen} edges={["left", "right"]}>
       {isLoading && !hasLoadedCurrentPassage ? (
@@ -114,57 +143,9 @@ export const ReadScreen: React.FunctionComponent<ReadScreenProps> = ({
             onNextPassage={handleNextPassage}
             hasNextPassage={passageIndex < passages.length - 1}
             miniPlayerHeight={miniPlayerHeight}
-            bottomInset={insets.bottom + 56}
+            bottomInset={insets.bottom}
           />
-          <View
-            style={[themedStyles.toolbar, { paddingBottom: insets.bottom }]}
-          >
-            <Pressable
-              style={({ pressed }) => [
-                themedStyles.toolbarButton,
-                pressed && themedStyles.toolbarButtonPressed,
-              ]}
-              accessibilityRole="button"
-              accessibilityLabel="Open in Bible"
-              accessibilityHint="Opens this chapter in the Bible tab"
-              onPress={handleOpenInBible}
-            >
-              <Ionicons name="book-outline" size={24} color={actionColor} />
-              <Text style={themedStyles.toolbarLabel}>Bible</Text>
-            </Pressable>
-            <Pressable
-              style={({ pressed }) => [
-                themedStyles.toolbarButton,
-                pressed && themedStyles.toolbarButtonPressed,
-              ]}
-              accessibilityRole="button"
-              accessibilityLabel="Font Size"
-              accessibilityHint="Adjust reading font size"
-              onPress={showSelectFontSize}
-            >
-              <Ionicons name="text-outline" size={24} color={actionColor} />
-              <Text style={themedStyles.toolbarLabel}>Font</Text>
-            </Pressable>
-            {audioUrl && audioUrl !== "" && (
-              <Pressable
-                style={({ pressed }) => [
-                  themedStyles.toolbarButton,
-                  pressed && themedStyles.toolbarButtonPressed,
-                ]}
-                accessibilityRole="button"
-                accessibilityLabel="Play Audio"
-                accessibilityHint="Listen to this passage"
-                onPress={() => void playAudio()}
-              >
-                <Ionicons
-                  name="volume-high-outline"
-                  size={24}
-                  color={actionColor}
-                />
-                <Text style={themedStyles.toolbarLabel}>Listen</Text>
-              </Pressable>
-            )}
-          </View>
+          <PassageToolbar actions={toolbarActions} />
         </>
       )}
     </SafeAreaView>
