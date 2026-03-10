@@ -69,10 +69,10 @@ export const BiblePicker = forwardRef<BiblePickerHandle, BiblePickerProps>(
   function BiblePicker({ currentLocation, onSelectLocation }, ref) {
     const theme = useTheme();
     const uiPreferences = useUiPreferences();
-    const themedStyles = styles({
-      theme,
-      isEinkMode: uiPreferences.isEinkMode,
-    });
+    const themedStyles = useMemo(
+      () => styles({ theme, isEinkMode: uiPreferences.isEinkMode }),
+      [theme, uiPreferences.isEinkMode]
+    );
 
     const bottomSheetRef = useRef<BottomSheetModal>(null);
     // eslint-disable-next-line unicorn/no-null
@@ -255,7 +255,7 @@ export const BiblePicker = forwardRef<BiblePickerHandle, BiblePickerProps>(
                 pressed && themedStyles.backButtonPressed,
               ]}
             >
-              <View style={{ flexDirection: "row", alignItems: "center" }}>
+              <View style={themedStyles.backButtonRow}>
                 {Platform.OS === "ios" && (
                   <Ionicons
                     name="chevron-back"

@@ -3,6 +3,7 @@ import { RootState } from "src/app/store";
 import axios from "axios";
 import { routes } from "./esvRoutes.constants";
 import { Passage } from "src/app/utils";
+import { extractAudioUrl } from "src/app/bibleUtils";
 
 export interface EsvState {
   currentPassage?: EsvResponse;
@@ -144,13 +145,8 @@ export const esvSlice = createSlice({
 export const selectCurrentPassage = (
   state: RootState
 ): EsvResponse | undefined => state.esv.currentPassage;
-export const selectAudioUrl = (state: RootState): string | undefined => {
-  // Regex to match https://audio.esv.org/david-cochran-heath/mq/20001001-20001033.mp3
-  const audioRegex = /https:\/\/audio.esv.org\/.*.mp3/g;
-  // Extract audio url from passageHtml
-  const audioUrl = state.esv.currentPassage?.passages[0].match(audioRegex);
-  return audioUrl ? audioUrl[0] : undefined;
-};
+export const selectAudioUrl = (state: RootState): string | undefined =>
+  extractAudioUrl(state.esv.currentPassage?.passages[0]);
 export const selectPassageHeader = (state: RootState): string | undefined =>
   state.esv.currentPassage?.canonical;
 export const selectError = (state: RootState): boolean => state.esv.hasError;

@@ -6,7 +6,7 @@ export const routes = {
     includeFootnotes: boolean,
     includeVerseNumbers: boolean
   ): string =>
-    `${baseUrl}/html/?q=${passage}&include-footnotes=${
+    `${baseUrl}/html/?q=${encodeURIComponent(passage)}&include-footnotes=${
       includeFootnotes ? "true" : "false"
     }&include-verse-numbers=${includeVerseNumbers ? "true" : "false"}`,
 };

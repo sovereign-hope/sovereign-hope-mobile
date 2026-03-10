@@ -56,8 +56,8 @@ export const fetchBibleChapter = createAsyncThunk(
       includeVerseNumbers: true,
     });
 
-    // Persist last-read location
-    await AsyncStorage.setItem(STORAGE_KEY_LAST_READ, JSON.stringify(location));
+    // Persist last-read location (fire-and-forget to avoid blocking navigation)
+    void AsyncStorage.setItem(STORAGE_KEY_LAST_READ, JSON.stringify(location));
 
     return { location, response };
   }
@@ -73,7 +73,13 @@ export const restoreLastReadLocation = createAsyncThunk(
       const stored = await AsyncStorage.getItem(STORAGE_KEY_LAST_READ);
       if (stored) {
         const parsed = JSON.parse(stored) as BibleLocation;
-        if (parsed.bookId && typeof parsed.chapter === "number") {
+        const book = getBookById(parsed.bookId);
+        if (
+          book &&
+          typeof parsed.chapter === "number" &&
+          parsed.chapter >= 1 &&
+          parsed.chapter <= book.chapterCount
+        ) {
           return parsed;
         }
       }

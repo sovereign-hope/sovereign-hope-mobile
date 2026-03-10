@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useMemo, useRef } from "react";
 import { Animated, Platform, Pressable, Text, View } from "react-native";
 import { useTheme } from "@react-navigation/native";
 import { BlurView } from "expo-blur";
@@ -36,7 +36,10 @@ export const PassageToolbar: React.FunctionComponent<PassageToolbarProps> = ({
 }) => {
   const theme = useTheme();
   const uiPreferences = useUiPreferences();
-  const themedStyles = styles({ theme, isEinkMode: uiPreferences.isEinkMode });
+  const themedStyles = useMemo(
+    () => styles({ theme, isEinkMode: uiPreferences.isEinkMode }),
+    [theme, uiPreferences.isEinkMode]
+  );
 
   const translateY = useRef(new Animated.Value(0)).current;
 

@@ -624,14 +624,6 @@ export const BIBLE_BOOKS: readonly BibleBook[] = [
   },
 ] as const;
 
-/** Books grouped by testament for picker UI */
-export const OLD_TESTAMENT_BOOKS = BIBLE_BOOKS.filter(
-  (b) => b.testament === "old"
-);
-export const NEW_TESTAMENT_BOOKS = BIBLE_BOOKS.filter(
-  (b) => b.testament === "new"
-);
-
 /** Lookup map: lowercased name/abbreviation -> BibleBook */
 const bookLookupMap = new Map<string, BibleBook>();
 for (const book of BIBLE_BOOKS) {
@@ -653,13 +645,13 @@ export const getBookByNameOrAbbreviation = (
   return bookLookupMap.get(input.toLowerCase());
 };
 
+/** ID lookup map for O(1) access */
+const bookIdMap = new Map<string, BibleBook>();
+for (const book of BIBLE_BOOKS) {
+  bookIdMap.set(book.id, book);
+}
+
 /** Find a BibleBook by its canonical ID (e.g. "GEN", "1JN") */
 export const getBookById = (id: string): BibleBook | undefined => {
-  return BIBLE_BOOKS.find((b) => b.id === id);
+  return bookIdMap.get(id);
 };
-
-/** Total chapter count across all books (useful for progress calculations) */
-export const TOTAL_BIBLE_CHAPTERS = BIBLE_BOOKS.reduce(
-  (sum, book) => sum + book.chapterCount,
-  0
-);

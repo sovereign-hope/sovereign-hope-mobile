@@ -95,6 +95,10 @@ export const styles = ({ theme, isEinkMode }: StyleProps) => {
     backButtonPressed: {
       opacity: 0.65,
     },
+    backButtonRow: {
+      flexDirection: "row" as const,
+      alignItems: "center" as const,
+    },
     backButtonText: {
       fontSize: 17,
       color: actionColor,

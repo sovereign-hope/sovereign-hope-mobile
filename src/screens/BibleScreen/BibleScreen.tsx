@@ -31,6 +31,7 @@ import {
   selectBibleLocation,
 } from "src/redux/bibleSlice";
 import {
+  extractAudioUrl,
   formatBibleLocation,
   getNextChapter,
   getPreviousChapter,
@@ -41,6 +42,7 @@ import type { PassageToolbarAction } from "src/components/PassageToolbar/Passage
 import { BiblePicker } from "src/components/BiblePicker/BiblePicker";
 import type { BiblePickerHandle } from "src/components/BiblePicker/BiblePicker";
 import type { BibleLocation } from "src/types/bible";
+import { DEFAULT_BIBLE_LOCATION } from "src/types/bible";
 import { useMiniPlayerHeight } from "src/hooks/useMiniPlayerHeight";
 import { useUiPreferences } from "src/hooks/useUiPreferences";
 import { getPressFeedbackStyle } from "src/style/eink";
@@ -71,16 +73,20 @@ export const BibleScreen: React.FunctionComponent = () => {
   const prevChapter = getPreviousChapter(location);
   const nextChapter = getNextChapter(location);
 
-  const themedStyles = styles({
-    theme,
-    isEinkMode: uiPreferences.isEinkMode,
-  });
+  const themedStyles = useMemo(
+    () => styles({ theme, isEinkMode: uiPreferences.isEinkMode }),
+    [theme, uiPreferences.isEinkMode]
+  );
 
   // Restore last-read location then fetch the chapter
   useEffect(() => {
     const init = async () => {
-      const result = await dispatch(restoreLastReadLocation()).unwrap();
-      void dispatch(fetchBibleChapter(result));
+      try {
+        const result = await dispatch(restoreLastReadLocation()).unwrap();
+        void dispatch(fetchBibleChapter(result));
+      } catch {
+        void dispatch(fetchBibleChapter(DEFAULT_BIBLE_LOCATION));
+      }
     };
 
     void init();
@@ -110,15 +116,10 @@ export const BibleScreen: React.FunctionComponent = () => {
     navigation.navigate("Font Size");
   }, [navigation]);
 
-  // Extract audio URL from the chapter HTML (same pattern as esvSlice)
-  const audioUrl = useMemo(() => {
-    const html = chapter?.passages[0];
-    if (!html) {
-      return;
-    }
-    const match = html.match(/https:\/\/audio.esv.org\/.*.mp3/);
-    return match?.[0];
-  }, [chapter]);
+  const audioUrl = useMemo(
+    () => extractAudioUrl(chapter?.passages[0]),
+    [chapter]
+  );
 
   const handlePlayAudio = useCallback(async () => {
     if (!audioUrl) {

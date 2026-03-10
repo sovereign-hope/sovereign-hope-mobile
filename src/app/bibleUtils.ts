@@ -181,13 +181,8 @@ export const parsePassageStringToRange = (
     return undefined;
   }
 
-  // No chapter/verse info — treat as chapter 1 for single-chapter, or whole book
+  // No chapter/verse info — treat as chapter 1
   if (remainder.length === 0) {
-    if (book.isSingleChapter) {
-      return {
-        start: { bookId: book.id, chapter: 1 },
-      };
-    }
     return {
       start: { bookId: book.id, chapter: 1 },
     };
@@ -279,10 +274,6 @@ export const buildEsvQueryFromLocation = (location: BibleLocation): string => {
  * Build an ESV API query string from a BibleRange.
  * Examples: "John 3:16-17", "Genesis 1:1-2:3", "1 John 1"
  */
-export const buildEsvQueryFromRange = (range: BibleRange): string => {
-  return formatBibleRange(range);
-};
-
 /**
  * Convert ESV API `next_chapter` / `prev_chapter` arrays into a BibleLocation.
  * The ESV API returns these as arrays of verse IDs.
@@ -375,3 +366,9 @@ export const passageToLocation = (passage: {
 
   return { bookId: book.id, chapter };
 };
+
+const AUDIO_URL_REGEX = /https:\/\/audio\.esv\.org\/[^\s")]+\.mp3/;
+
+/** Extract the ESV audio URL from passage HTML, if present. */
+export const extractAudioUrl = (html: string | undefined): string | undefined =>
+  html?.match(AUDIO_URL_REGEX)?.[0];
