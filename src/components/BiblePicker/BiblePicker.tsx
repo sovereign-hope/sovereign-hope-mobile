@@ -7,6 +7,7 @@ import React, {
   useState,
 } from "react";
 import { Pressable, Text, View, Platform } from "react-native";
+import { TouchableOpacity } from "react-native-gesture-handler";
 import * as Haptics from "expo-haptics";
 import {
   BottomSheetModal,
@@ -253,15 +254,13 @@ export const BiblePicker = forwardRef<BiblePickerHandle, BiblePickerProps>(
     const renderChapterHeader = useCallback(
       () => (
         <View style={themedStyles.chapterHeader}>
-          <Pressable
+          <TouchableOpacity
             accessibilityRole="button"
             accessibilityLabel="Back to book list"
             accessibilityHint="Returns to the list of Bible books"
             onPress={handleBackToBooks}
-            style={({ pressed }) => [
-              themedStyles.backButton,
-              pressed && themedStyles.backButtonPressed,
-            ]}
+            activeOpacity={0.5}
+            style={themedStyles.backButton}
           >
             <View style={themedStyles.backButtonRow}>
               {Platform.OS === "ios" && (
@@ -273,7 +272,7 @@ export const BiblePicker = forwardRef<BiblePickerHandle, BiblePickerProps>(
               )}
               <Text style={themedStyles.backButtonText}>Books</Text>
             </View>
-          </Pressable>
+          </TouchableOpacity>
           <Text style={themedStyles.chapterTitle}>{selectedBook?.name}</Text>
           <View style={themedStyles.backButton} />
         </View>
