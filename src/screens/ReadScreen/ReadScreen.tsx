@@ -148,7 +148,7 @@ export const ReadScreen: React.FunctionComponent<ReadScreenProps> = ({
             onNextPassage={handleNextPassage}
             hasNextPassage={passageIndex < passages.length - 1}
             miniPlayerHeight={miniPlayerHeight}
-            bottomInset={0}
+            bottomInset={insets.bottom}
             onScrollDirectionChange={handleScrollDirection}
           />
           <PassageToolbar actions={toolbarActions} visible={toolbarVisible} />

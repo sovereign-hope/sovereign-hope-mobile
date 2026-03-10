@@ -34,18 +34,17 @@ import type { PassageToolbarAction } from "src/components/PassageToolbar/Passage
 import { BiblePicker } from "src/components/BiblePicker/BiblePicker";
 import type { BiblePickerHandle } from "src/components/BiblePicker/BiblePicker";
 import type { BibleLocation } from "src/types/bible";
-import { useTabBarHeightContext } from "src/navigation/TabBarContext";
 import { useMiniPlayerHeight } from "src/hooks/useMiniPlayerHeight";
 import { useUiPreferences } from "src/hooks/useUiPreferences";
 import { getPressFeedbackStyle } from "src/style/eink";
 import { playPassageAudio } from "src/services/passageAudio";
 import { colors } from "src/style/colors";
+import { spacing } from "src/style/layout";
 import { styles } from "./BibleScreen.styles";
 
 export const BibleScreen: React.FunctionComponent = () => {
   const dispatch = useAppDispatch();
   const theme = useTheme();
-  const { height: tabBarHeight } = useTabBarHeightContext();
   const miniPlayerHeight = useMiniPlayerHeight();
   const uiPreferences = useUiPreferences();
   const pickerRef = useRef<BiblePickerHandle>(null);
@@ -334,7 +333,7 @@ export const BibleScreen: React.FunctionComponent = () => {
         contentKey={`${location.bookId}-${location.chapter}`}
         isTransitioning={isLoading}
         miniPlayerHeight={miniPlayerHeight}
-        bottomInset={0}
+        bottomInset={spacing.medium}
         renderFooter={renderFooter}
         passageData={chapter}
         onScrollDirectionChange={handleScrollDirection}
