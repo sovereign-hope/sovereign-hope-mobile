@@ -2,6 +2,7 @@ import { Passage } from "src/app/utils";
 
 export type RootStackParamList = {
   Home: undefined;
+  Bible: undefined;
   "Reading Plan": undefined;
   "Available Plans": undefined;
   "This Week": undefined;

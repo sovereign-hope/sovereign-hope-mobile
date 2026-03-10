@@ -1049,6 +1049,27 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
                         <>
                           <View style={themedStyles.headerRow}>
                             <Text style={themedStyles.header}>Resources</Text>
+                            <Pressable
+                              style={({ pressed }) => [
+                                themedStyles.textButton,
+                                getPressFeedbackStyle(
+                                  pressed,
+                                  uiPreferences.isEinkMode
+                                ),
+                              ]}
+                              accessibilityRole="button"
+                              accessibilityLabel="See all resources"
+                              accessibilityHint="Opens the full resources screen"
+                              onPress={() => {
+                                navigation.navigate("Resources");
+                              }}
+                            >
+                              <Text
+                                style={{ color: actionColor, fontSize: 18 }}
+                              >
+                                See All
+                              </Text>
+                            </Pressable>
                           </View>
                           {renderResourcesCard(themedStyles.contentCardTablet)}
                         </>
@@ -1080,6 +1101,25 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
                   <>
                     <View style={themedStyles.headerRow}>
                       <Text style={themedStyles.header}>Resources</Text>
+                      <Pressable
+                        style={({ pressed }) => [
+                          themedStyles.textButton,
+                          getPressFeedbackStyle(
+                            pressed,
+                            uiPreferences.isEinkMode
+                          ),
+                        ]}
+                        accessibilityRole="button"
+                        accessibilityLabel="See all resources"
+                        accessibilityHint="Opens the full resources screen"
+                        onPress={() => {
+                          navigation.navigate("Resources");
+                        }}
+                      >
+                        <Text style={{ color: actionColor, fontSize: 18 }}>
+                          See All
+                        </Text>
+                      </Pressable>
                     </View>
                     {renderResourcesCard()}
                   </>
