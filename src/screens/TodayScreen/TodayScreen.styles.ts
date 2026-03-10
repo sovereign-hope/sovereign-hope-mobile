@@ -174,9 +174,7 @@ export const styles = ({ theme, isEinkMode = false }: Props): Style =>
       backgroundColor: isEinkMode ? theme.colors.card : colors.darkGrey,
     },
     header: {
-      ...header2,
-      fontSize: 28,
-      fontWeight: "600",
+      ...header1,
       margin: spacing.medium,
       color: theme.colors.text,
     },
