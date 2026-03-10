@@ -3,6 +3,7 @@ title: "both: Add General-Purpose Bible Navigation and Reading"
 type: feat
 platform: both
 date: 2026-03-10
+status: approved
 ---
 
 # Add General-Purpose Bible Navigation and Reading
@@ -34,55 +35,75 @@ Net result: the app has a reader, but not really a Bible.
 3. Reuse the current reading surface instead of building a second reader
 4. Establish a structured Bible reference model that supports future features like direct jump, bookmarks, recents, and verse selection
 
-## Proposed Solution
+## Decisions (from brainstorm session 2026-03-10)
 
-Implement a new **Bible navigation stack** that feeds a shared reader in **browse mode**, while the existing reading-plan flow continues to use the same reader in **plan mode**.
+### Tab Architecture — "Reading" becomes "Bible", "Resources" removed
 
-### User-facing flow
+- The current **Reading** tab is renamed to **Bible** and becomes the primary Bible experience
+- The **Resources** tab is removed from the tab bar; a link to Resources is added on the This Week screen
+- Reading Plan is accessible as a nested route inside the Bible stack
+- Final tab bar: **This Week** | **Bible** | **Church** | [Members]
 
-New primary flow:
+### Bible Tab UX — Reader-first, not picker-first
 
-- Tap **Bible** (or rename the existing Reading tab to Bible, depending on final product choice)
-- Pick a book
-- Pick a chapter
-- Read the chapter/passage
-- Use previous/next chapter controls
-- Jump back to book/chapter selection from the reader header
+- Tapping the **Bible** tab immediately shows the reader at the user's last-read location
+- Default location (no saved state): **Genesis 1**
+- Users always land on text, never on an empty picker screen
+- A tappable header control opens a **bottom sheet picker** for book/chapter navigation
 
-Existing reading-plan flow remains:
+### Bottom Sheet Picker — Book and chapter selection in a single sheet
 
-- Open the reading plan
-- Tap a day
-- Read through the sequence of assigned passages
-- Complete the day
+- Tapping the header title/location in the reader opens a bottom sheet
+- The sheet shows all 66 books grouped by testament (Old Testament / New Testament)
+- Tapping a book transitions the sheet content to a chapter number grid for that book
+- Tapping a chapter number dismisses the sheet and navigates to that chapter
+- A back control within the sheet returns from chapter grid to book list
 
-### Architectural approach
+### Reader Refactor — Shared presentation with thin containers
 
-#### 1. Create a canonical Bible metadata layer
-Add a source of truth for book order, names, abbreviations, testament grouping, and chapter counts.
+- Extract a shared **`PassageReader`** component from the current `ReadScreen` that handles: passage text rendering, audio playback controls, commentary display, font size settings, scroll behavior, memory-mode behavior
+- **Bible tab root** (`BibleScreen`) uses `PassageReader` + browse state + picker sheet
+- **Plan read screen** (`PlanReadScreen`) uses `PassageReader` + passage sequence + completion logic
+- The two containers are separate components, not a single component with a mode param
 
-#### 2. Create a structured Bible reference model
-Represent Bible navigation as typed objects instead of loosely parsed strings.
+### Browse Granularity — Whole chapters only for V1
 
-#### 3. Refactor the reader into two modes
-Keep one shared reader UI, but allow two container behaviors:
+- Browse mode always loads and displays whole chapters
+- Previous/next navigation uses ESV API's `prev_chapter` / `next_chapter` metadata
+- No verse-range browsing in V1 (verse ranges remain plan-mode only)
+- "Open in Bible" from plan mode snaps to the chapter containing the current passage
 
-- **Plan mode**: next/previous passage in a defined reading sequence, optional `onComplete`
-- **Browse mode**: previous/next chapter, chapter picker, book picker, persistent location
+### V1 Scope
 
-#### 4. Add Bible-specific state
-Track current browse location, recent references, and last-read location separately from reading-plan progress.
+**Included:**
 
-#### 5. Route reading-plan reads through the shared reader
-The plan feature should benefit from the reader cleanup without inheriting browse-only complexity.
+- Canonical Bible book metadata (66 books with names, abbreviations, testament, chapter counts)
+- Typed Bible reference/location models
+- Parsing/formatting/query utility functions
+- Bottom sheet book/chapter picker
+- Bible tab as reader-first root screen with browse state
+- Previous/next chapter navigation via ESV metadata
+- Last-read location persistence (AsyncStorage)
+- `bibleSlice` Redux state
+- "Open in Bible" affordance from plan mode
+- Resources tab removal + Resources link on This Week screen
+- Reading-plan regression coverage
+
+**Deferred to V2+:**
+
+- Direct typed reference entry (jump box: "John 3:16")
+- Bookmarks
+- Verse selection / copy
+- Search
+- Recents UI (data persisted in V1, no UI)
 
 ## Platform Impact
 
-| Platform | Affected | Key Files |
-| -------- | -------- | --------- |
-| iOS | Yes | `src/navigation/RootNavigator.ts`, `src/screens/RootScreen/RootScreen.tsx`, `src/screens/ReadScreen/ReadScreen.tsx`, new Bible screens, new Redux slice, Bible metadata/constants |
-| Android | Yes | Same shared React Native implementation |
-| Server | No | None |
+| Platform | Affected | Key Files                                                                                                                                                                         |
+| -------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| iOS      | Yes      | `src/navigation/RootNavigator.ts`, `src/screens/RootScreen/RootScreen.tsx`, `src/screens/ReadScreen/ReadScreen.tsx`, new Bible screens, new Redux slice, Bible metadata/constants |
+| Android  | Yes      | Same shared React Native implementation                                                                                                                                           |
+| Server   | No       | None                                                                                                                                                                              |
 
 ## Cross-Platform Parity Plan
 
@@ -95,6 +116,7 @@ Parity checks:
 - Same reading typography settings in plan mode and browse mode
 - Same persistence of last-read location
 - Same error handling when a passage fails to load
+- Same bottom sheet picker behavior
 
 Platform-specific differences should be limited to existing header APIs (`unstable_headerRightItems` vs `headerRight`) and not product behavior.
 
@@ -115,7 +137,7 @@ None beyond existing app minimums. No new native permissions or capabilities are
 - `src/constants/bibleBooks.ts`
 - `src/types/bible.ts`
 
-**Suggested metadata shape**
+**Bible book metadata shape**
 
 ```ts
 export type BibleBook = {
@@ -129,7 +151,7 @@ export type BibleBook = {
 };
 ```
 
-**Suggested reference shapes**
+**Reference and location types**
 
 ```ts
 export type BibleReference = {
@@ -173,53 +195,55 @@ Current `parsePassageString()` is good enough for plan ingestion but not for rob
 - `buildEsvQueryFromRange()`
 - `getBookByNameOrAbbreviation()`
 
-### C. Add a dedicated Bible navigation stack
+### C. Tab bar restructure and Bible navigation stack
 
-**Primary files**
+**Modified files**
 
 - `src/navigation/RootNavigator.ts`
 - `src/screens/RootScreen/RootScreen.tsx`
+- `src/screens/TodayScreen/TodayScreen.tsx` (add Resources link)
+
+**Changes**
+
+1. Rename "Reading Plan" tab to "Bible" with the book icon
+2. Remove "Resources" tab from the tab navigator
+3. Add a "Resources" navigation link on the This Week / Today screen
+4. The Bible tab's root screen is `BibleScreen` (the reader-first browse screen)
+5. Reading Plan is a pushed screen within the Bible stack
 
 **New screens**
 
-- `src/screens/BibleHomeScreen/BibleHomeScreen.tsx`
-- `src/screens/BibleBookPickerScreen/BibleBookPickerScreen.tsx`
-- `src/screens/BibleChapterPickerScreen/BibleChapterPickerScreen.tsx`
+- `src/screens/BibleScreen/BibleScreen.tsx` — reader-first Bible tab root
+- `src/screens/BibleScreen/BibleScreen.styles.ts`
+- `src/components/BiblePicker/BiblePicker.tsx` — bottom sheet book/chapter picker
+- `src/components/BiblePicker/BiblePicker.styles.ts`
 
-**Decision to make early**
-
-Choose one of these product shapes:
-
-1. **Rename existing Reading tab to Bible** and place reading-plan access inside that stack
-2. **Keep Reading Plan tab and add a new Bible route elsewhere**
-
-**Recommendation:** rename the tab to **Bible** and expose Reading Plan as a nested screen/action inside that section. That matches user expectation better and makes the Bible the first-class concept.
-
-### D. Refactor `ReadScreen` into shared reader + mode-specific containers
+### D. Extract shared reader presentation (`PassageReader`)
 
 **Primary file**
 
-- `src/screens/ReadScreen/ReadScreen.tsx`
+- `src/screens/ReadScreen/ReadScreen.tsx` (refactor source)
 
-Current assumptions baked into `ReadScreen`:
+**New files**
 
-- receives `passages: Array<Passage>`
-- owns sequence navigation within that array
-- always finishes with `onComplete`
+- `src/components/PassageReader/PassageReader.tsx`
+- `src/components/PassageReader/PassageReader.styles.ts`
 
-That model is wrong for open-ended Bible use.
+**What moves into `PassageReader`:**
 
-**Recommended refactor**
+- Scripture HTML/text rendering
+- Audio playback button and track-player integration
+- Commentary display
+- Font size settings integration
+- Scroll behavior and `ReadScrollView` usage
+- Memory-mode button
+- Safe-area and mini-player layout handling
+- Light/dark theme rendering
 
-Split responsibilities into:
+**What stays in container screens:**
 
-- **Shared presentation**: passage rendering, audio action, font size, commentary, memory-mode behavior, scroll behavior
-- **Plan-mode container**: current multi-passage sequence logic
-- **Browse-mode container**: current location, chapter navigation, pickers, no completion requirement
-
-This can be done either in one file with an explicit `mode` route param or by extracting a shared reader component and keeping thin container screens.
-
-**Recommendation:** extract shared reader presentation and keep thin plan/browse containers. Cleaner seam, less future pain.
+- `BibleScreen`: browse state, location management, prev/next chapter, picker sheet, header with tappable location
+- `PlanReadScreen` (refactored `ReadScreen`): passage array, passage index, sequence navigation, onComplete callback, "Open in Bible" affordance
 
 ### E. Add a dedicated Bible Redux slice
 
@@ -227,23 +251,28 @@ This can be done either in one file with an explicit `mode` route param or by ex
 
 - `src/redux/bibleSlice.ts`
 
-**Suggested state**
+**State shape**
 
 ```ts
 export interface BibleState {
-  currentLocation?: BibleLocation;
-  lastReadLocation?: BibleLocation;
+  currentLocation: BibleLocation;
+  lastReadLocation: BibleLocation;
   recentLocations: BibleLocation[];
   isLoading: boolean;
   hasError: boolean;
 }
 ```
 
-**Persistence**
+**Initial state default:** `{ bookId: "GEN", chapter: 1 }` (Genesis 1)
 
-Store `lastReadLocation` and optionally `recentLocations` in AsyncStorage.
+**Persistence:** Store `lastReadLocation` and `recentLocations` in AsyncStorage. Restore on app launch.
 
-This gives the app an obvious “open where I left off” behavior and removes browse state from ad hoc screen-local state.
+**Thunks:**
+
+- `navigateToChapter(location)` — set current location, trigger ESV fetch, persist
+- `navigateToNextChapter()` — use ESV `next_chapter` metadata
+- `navigateToPreviousChapter()` — use ESV `prev_chapter` metadata
+- `restoreLastReadLocation()` — load from AsyncStorage on app init
 
 ### F. Reuse `esvSlice` more effectively
 
@@ -251,18 +280,14 @@ This gives the app an obvious “open where I left off” behavior and removes b
 
 - `src/redux/esvSlice.ts`
 
-The ESV response already includes chapter adjacency metadata:
+The ESV response already includes chapter adjacency metadata (`prev_chapter`, `next_chapter`). Browse mode should use this directly for chapter navigation.
 
-- `prev_chapter`
-- `next_chapter`
+Changes:
 
-This should drive previous/next chapter navigation in browse mode instead of recreating edge behavior manually.
-
-Potential follow-up cleanup:
-
-- make the ESV thunk accept structured range input rather than only the current `Passage` type
-- centralize ESV query construction in one utility
-- better preserve current content if a fetch for adjacent chapter fails
+- Expose `prev_chapter` and `next_chapter` from ESV response in the slice state or selector
+- Make the ESV thunk accept a `BibleLocation` in addition to the current `Passage` type
+- Centralize ESV query construction via `buildEsvQueryFromRange()`
+- Preserve current content until replacement content is confirmed loaded (avoid blank flash)
 
 ### G. Keep reading plan integration thin and safe
 
@@ -270,93 +295,122 @@ Potential follow-up cleanup:
 
 - `src/screens/ReadingPlanScreen/ReadingPlanScreen.tsx`
 
-Reading plan should continue to:
+Reading plan continues to:
 
 - parse its configured strings
 - build a daily sequence
-- navigate into the shared reader in plan mode
+- navigate into the shared reader via `PlanReadScreen`
 - mark the day complete on final done action
 
-Possible small enhancement after parity is stable:
+**New in V1:**
 
-- add “Open in Bible” affordance from plan reading to jump into browse mode at the current passage
+- "Open in Bible" button/affordance in `PlanReadScreen` header or footer
+- Tapping it navigates to the Bible tab at the chapter containing the current plan passage
+- Implementation: dispatch `navigateToChapter()` with the chapter extracted from the current passage, then switch to the Bible tab
 
 ## Data Model / Route Changes
 
 ### Navigation updates
 
-Add routes for:
-
-- `Bible Home`
-- `Bible Book Picker`
-- `Bible Chapter Picker`
-- `Read` (extended to support browse mode) or separate `Bible Read`
-
-### Route param recommendation
-
-If keeping one reader route, make params explicit:
-
 ```ts
-Read:
-  | {
-      mode: "plan";
-      passages: Array<Passage>;
-      onComplete?: () => void;
-    }
-  | {
-      mode: "browse";
-      location: BibleLocation;
-    };
+export type RootStackParamList = {
+  Home: undefined;
+  "Reading Plan": undefined;
+  "Available Plans": undefined;
+  "This Week": undefined;
+  Church: undefined;
+  Members: undefined;
+  "Member Directory": undefined;
+  "Daily Prayer": undefined;
+  Read: {
+    passages: Array<Passage>;
+    onComplete: () => void;
+  };
+  Settings: undefined;
+  "Account Sign In": undefined;
+  SettingsView: undefined;
+  "Font Size": undefined;
+  "Ambient Sounds": undefined;
+  Schedule: undefined;
+  Signups: undefined;
+  Sundays: undefined;
+};
 ```
 
-That explicit union is better than optional loose params.
+Key changes to the above:
+
+- `Read` route params may be updated to reflect `PlanReadScreen` specifically
+- Bible browsing does not use a pushed route — `BibleScreen` is the Bible tab root
+- Resources route removed from tab navigator (remains accessible via push from This Week)
+
+### Tab structure
+
+```
+Tabs:
+  This Week → WeekStack (includes Resources link)
+  Bible → BibleStack
+    BibleScreen (root — reader + picker sheet)
+    Reading Plan
+    Available Plans
+    Read (plan mode)
+    Font Size
+  Church → ChurchStack
+  Members → MemberStack (conditional)
+```
 
 ## Acceptance Criteria
 
 ### V1 core
 
-- [ ] Users can open a Bible browsing flow from the app UI
-- [ ] Users can choose a book from a canonical ordered list of all Bible books
-- [ ] Users can choose a chapter valid for the selected book
-- [ ] Users can read the selected chapter/passage in the existing app reading surface
-- [ ] Users can move to previous and next chapters from the reader
-- [ ] Users can reopen book/chapter selection from the reader
+- [ ] Bible tab shows reader at last-read location immediately on tap
+- [ ] Default location is Genesis 1 when no saved state exists
+- [ ] Tapping the header opens a bottom sheet with all 66 books grouped by testament
+- [ ] Tapping a book in the sheet shows a chapter number grid
+- [ ] Tapping a chapter navigates to that chapter and dismisses the sheet
+- [ ] Previous/next chapter controls work from the reader
 - [ ] Last-read Bible location persists across app restarts
-- [ ] Existing reading-plan flow still works and uses the shared reader without regression
+- [ ] Existing reading-plan flow works without regression using shared `PassageReader`
+- [ ] "Open in Bible" from plan mode navigates to the Bible tab at the relevant chapter
+- [ ] Resources tab is removed; Resources accessible from This Week screen
 - [ ] Numbered books and single-chapter books parse and display correctly
-- [ ] Audio, commentary, and font-size features still work in the shared reader
+- [ ] Audio, commentary, and font-size features work in both plan and browse modes
 
 ### Quality / UX
 
-- [ ] Loading transitions between adjacent chapters are stable and do not leave the reader blank on failure
+- [ ] Loading transitions between adjacent chapters are stable (no blank flash on failure)
 - [ ] Browse mode does not show plan-only completion UI
 - [ ] Plan mode still shows plan sequence controls and completion behavior
-- [ ] Accessibility labels are present for book/chapter picker actions and chapter navigation controls
+- [ ] Bottom sheet picker is accessible (labels, focus management)
+- [ ] Accessibility labels are present for chapter navigation controls
 
 ## Implementation Order
 
 ### Milestone 1 — Bible model foundation
-1. Add canonical Bible book metadata/constants
-2. Add typed Bible reference/location models
+
+1. Add canonical Bible book metadata in `src/constants/bibleBooks.ts`
+2. Add typed Bible reference/location models in `src/types/bible.ts`
 3. Add parsing/formatting/query helpers
 4. Expand parser tests
 
-### Milestone 2 — Bible navigation surfaces
-5. Add Bible routes and stack structure
-6. Build book picker screen
-7. Build chapter picker screen
-8. Add initial Bible home/entry screen
+### Milestone 2 — Shared reader extraction
 
-### Milestone 3 — Shared reader refactor
-9. Extract shared reader presentation from `ReadScreen`
-10. Implement plan-mode container using current flow
-11. Implement browse-mode container using location-based flow
-12. Hook browse-mode to ESV metadata for previous/next chapter
+5. Extract `PassageReader` from current `ReadScreen`
+6. Refactor `ReadScreen` into `PlanReadScreen` using `PassageReader`
+7. Verify reading-plan flow works identically with refactored reader
 
-### Milestone 4 — Persistence and integration
-13. Add `bibleSlice` with AsyncStorage persistence
-14. Restore last-read location on app open / Bible entry
-15. Wire Reading Plan into refactored plan-mode container
+### Milestone 3 — Bible tab and browse mode
+
+8. Add `bibleSlice` with initial state, thunks, and AsyncStorage persistence
+9. Build `BibleScreen` (reader-first tab root using `PassageReader` + browse state)
+10. Build `BiblePicker` bottom sheet (book list + chapter grid)
+11. Wire prev/next chapter navigation using ESV metadata
+12. Restore last-read location on app launch
+
+### Milestone 4 — Tab restructure and integration
+
+13. Rename Reading tab to Bible, restructure Bible stack
+14. Remove Resources tab, add Resources link to This Week screen
+15. Add "Open in Bible" affordance in `PlanReadScreen`
 16. Run regression QA across plan and browse flows
 
 ## Testing Notes
@@ -379,12 +433,14 @@ Add/expand tests for parsing and formatting:
 
 Core browse flow:
 
-- open Bible
-- select Genesis 1
-- move next chapter several times
-- move previous chapter back
+- open Bible tab — should show Genesis 1 (first use) or last-read chapter
+- tap header — bottom sheet opens with book list
+- select a book — chapter grid appears
+- select a chapter — reader shows that chapter
+- tap next chapter several times
+- tap previous chapter back
 - switch to a numbered NT book like 1 John
-- reopen app and verify last-read location restores
+- close and reopen app — verify last-read location restores
 
 Reading-plan regression:
 
@@ -392,14 +448,22 @@ Reading-plan regression:
 - move next/previous within plan mode
 - complete a day
 - verify browse-only controls do not leak into plan mode
+- verify "Open in Bible" navigates to correct chapter in Bible tab
+
+Tab restructure regression:
+
+- verify Resources is no longer in tab bar
+- verify Resources link on This Week screen navigates correctly
+- verify Bible tab appears with book icon and "Bible" label
 
 Reader regression:
 
-- audio still plays
+- audio still plays in both modes
 - commentary still loads when available
 - font-size picker still works
 - safe-area / mini-player layout remains intact
 - light/dark themes still render correctly
+- e-ink mode renders correctly
 
 ## Dependencies & Risks
 
@@ -408,52 +472,28 @@ Reader regression:
 - Existing ESV fetch pipeline in `src/redux/esvSlice.ts`
 - Existing commentary pipeline in `src/redux/commentarySlice.ts`
 - Existing reader rendering and typography settings
+- A bottom sheet library (evaluate `@gorhom/bottom-sheet` or existing project dependencies)
 
 ### Risks
 
 1. **Reader refactor causes reading-plan regressions**
+
    - The current reader is tightly coupled to plan-style passage sequences
+   - Mitigation: extract `PassageReader` first, verify plan mode works identically before building browse mode
+
 2. **Reference parsing remains partially stringly-typed**
+
    - Can create subtle bugs around numbered and single-chapter books
-3. **Tab architecture becomes confusing**
-   - If both Bible and Reading Plan remain top-level without a clear hierarchy
-4. **Adjacent chapter fetch failures create blank-state transitions**
+   - Mitigation: add parser test coverage before wiring browse mode
+
+3. **Adjacent chapter fetch failures create blank-state transitions**
+
    - Especially if current content is cleared too early
+   - Mitigation: preserve current content until replacement content is confirmed loaded
 
-### Mitigations
-
-- Keep the shared reader presentational and make mode-specific logic explicit
-- Add parser coverage before wiring browse mode deeply
-- Make the product IA decision early (Bible as first-class section)
-- Preserve current content until replacement content is confirmed loaded
-
-## Open Questions
-
-1. Should the current **Reading** tab become **Bible**, with Reading Plan nested inside it?
-2. In browse mode, should the reader always open at whole-chapter granularity for V1, or support direct verse-range jumps immediately?
-3. Should recents/history ship in V1 or wait until after core navigation is stable?
-4. Should “Open in Bible” from plan mode be part of initial scope or follow immediately after?
-
-## Recommended Scope Cut for First Ship
-
-If schedule pressure matters, ship this as the smallest credible V1:
-
-- canonical Bible book metadata
-- robust parsing/formatting
-- book picker
-- chapter picker
-- shared reader browse mode
-- previous/next chapter
-- last-read persistence
-- reading-plan regression coverage
-
-Defer:
-
-- direct typed reference entry (`John 3:16` jump box)
-- bookmarks
-- verse selection/copy
-- search
-- history/recents UI beyond basic persistence
+4. **Bottom sheet behavior differences across platforms**
+   - iOS and Android may handle sheet gestures differently
+   - Mitigation: use a well-maintained library, test on both platforms
 
 ## References & Research
 
@@ -463,6 +503,7 @@ Internal references:
 - `src/screens/ReadingPlanScreen/ReadingPlanScreen.tsx`
 - `src/navigation/RootNavigator.ts`
 - `src/screens/RootScreen/RootScreen.tsx`
+- `src/screens/TodayScreen/TodayScreen.tsx`
 - `src/redux/esvSlice.ts`
 - `src/redux/commentarySlice.ts`
 - `src/app/utils.ts`
@@ -474,3 +515,4 @@ Repo observations incorporated:
 - `esvSlice` already exposes chapter adjacency metadata worth leveraging
 - current parsing utilities are the weakest seam and should be fixed before browse flow expands
 - reading-plan completion logic should stay isolated from Bible browsing state
+- current tab bar has 4-5 tabs; removing Resources keeps it clean at 3-4
