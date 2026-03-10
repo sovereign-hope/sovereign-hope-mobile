@@ -17,6 +17,7 @@ import { colors } from "src/style/colors";
 import { header1, header3 } from "src/style/typography";
 import { Ionicons } from "@expo/vector-icons";
 import { selectCurrentPassage } from "src/redux/esvSlice";
+import type { EsvResponse } from "src/redux/esvSlice";
 import RenderHtml, {
   HTMLElementModel,
   HTMLContentModel,
@@ -55,6 +56,8 @@ export interface PassageReaderProps {
   renderFooter?: () => React.ReactNode;
   /** Optional close button in the top-right */
   onClose?: () => void;
+  /** Optional ESV response data — when provided, overrides the esvSlice selector */
+  passageData?: EsvResponse;
 }
 
 export const PassageReader: React.FunctionComponent<PassageReaderProps> = ({
@@ -68,6 +71,7 @@ export const PassageReader: React.FunctionComponent<PassageReaderProps> = ({
   adjustsForInsets = false,
   renderFooter,
   onClose,
+  passageData,
 }: PassageReaderProps) => {
   // State
   const [isPressingHideButton, setIsPressingHideButton] = useState(false);
@@ -77,7 +81,8 @@ export const PassageReader: React.FunctionComponent<PassageReaderProps> = ({
   // Custom hooks
   const theme = useTheme();
   const insets = useSafeAreaInsets();
-  const passageText = useAppSelector(selectCurrentPassage);
+  const reduxPassage = useAppSelector(selectCurrentPassage);
+  const passageText = passageData ?? reduxPassage;
   const commentaryHTML = useAppSelector(selectCurrentPassageCommentaryHTML);
   const fontSize = useAppSelector(selectReadingFontSize);
   const { width: windowWidth } = useWindowDimensions();
