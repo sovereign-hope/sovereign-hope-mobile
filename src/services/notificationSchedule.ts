@@ -3,13 +3,44 @@ import * as Notifications from "expo-notifications";
 import { SchedulableTriggerInputTypes } from "expo-notifications";
 
 const MEMORY_AUDIO_NOTIFICATION_ID_KEY = "@memoryAudio/reviewNotificationId";
+const DEFAULT_NOTIFICATION_HOUR = 8;
+const DEFAULT_NOTIFICATION_MINUTE = 0;
+
+const toNumberInRange = (
+  value: string,
+  min: number,
+  max: number
+): number | undefined => {
+  const parsed = Number.parseInt(value, 10);
+  if (Number.isNaN(parsed) || parsed < min || parsed > max) {
+    return undefined;
+  }
+  return parsed;
+};
 
 const parseNotificationTime = (
   time: string
 ): { hour: number; minute: number } => {
-  let hour = Number.parseInt(time.split(":")[0] ?? "8", 10);
-  const minute = Number.parseInt(time.split(":")[1]?.split(" ")[0] ?? "0", 10);
-  const ampm = time.split(":")[1]?.split(" ")[1] ?? "AM";
+  const match = /^(\d{1,2}):(\d{2})\s?(am|pm)$/i.exec(time.trim());
+  if (!match) {
+    return {
+      hour: DEFAULT_NOTIFICATION_HOUR,
+      minute: DEFAULT_NOTIFICATION_MINUTE,
+    };
+  }
+
+  const hourToken = toNumberInRange(match[1], 1, 12);
+  const minuteToken = toNumberInRange(match[2], 0, 59);
+  if (hourToken === undefined || minuteToken === undefined) {
+    return {
+      hour: DEFAULT_NOTIFICATION_HOUR,
+      minute: DEFAULT_NOTIFICATION_MINUTE,
+    };
+  }
+
+  let hour = hourToken;
+  const minute = minuteToken;
+  const ampm = match[3].toUpperCase();
 
   if (ampm === "PM" && hour !== 12) {
     hour += 12;
@@ -20,6 +51,33 @@ const parseNotificationTime = (
   }
 
   return { hour, minute };
+};
+
+const parseIsoDate = (
+  value: string
+): { year: number; month: number; day: number } | undefined => {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value.trim());
+  if (!match) {
+    return undefined;
+  }
+
+  const year = toNumberInRange(match[1], 1970, 9999);
+  const month = toNumberInRange(match[2], 1, 12);
+  const day = toNumberInRange(match[3], 1, 31);
+  if (year === undefined || month === undefined || day === undefined) {
+    return undefined;
+  }
+
+  const parsedDate = new Date(year, month - 1, day);
+  if (
+    parsedDate.getFullYear() !== year ||
+    parsedDate.getMonth() !== month - 1 ||
+    parsedDate.getDate() !== day
+  ) {
+    return undefined;
+  }
+
+  return { year, month, day };
 };
 
 export const applyNotificationSchedule = async (
@@ -67,11 +125,12 @@ export const scheduleMemoryAudioReviewNotification = async (args: {
     return;
   }
 
-  const dateParts = args.nextReviewDate.split("-");
-  if (dateParts.length < 3) {
+  const nextReviewDate = parseIsoDate(args.nextReviewDate);
+  if (!nextReviewDate) {
+    await AsyncStorage.removeItem(MEMORY_AUDIO_NOTIFICATION_ID_KEY);
     return;
   }
-  const [yearString, monthString, dayString] = dateParts;
+
   const { hour, minute } = parseNotificationTime(args.notificationTime);
 
   const notificationId = await Notifications.scheduleNotificationAsync({
@@ -81,9 +140,9 @@ export const scheduleMemoryAudioReviewNotification = async (args: {
     },
     trigger: {
       type: SchedulableTriggerInputTypes.CALENDAR,
-      year: Number.parseInt(yearString, 10),
-      month: Number.parseInt(monthString, 10),
-      day: Number.parseInt(dayString, 10),
+      year: nextReviewDate.year,
+      month: nextReviewDate.month,
+      day: nextReviewDate.day,
       hour,
       minute,
       repeats: false,
