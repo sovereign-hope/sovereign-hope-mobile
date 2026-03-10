@@ -175,6 +175,8 @@ export const styles = ({ theme, isEinkMode = false }: Props): Style =>
     },
     header: {
       ...header2,
+      fontSize: 28,
+      fontWeight: "600",
       margin: spacing.medium,
       color: theme.colors.text,
     },
