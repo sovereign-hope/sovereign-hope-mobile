@@ -358,8 +358,6 @@ export const PassageReader: React.FunctionComponent<PassageReaderProps> = ({
       automaticallyAdjustsScrollIndicatorInsets={adjustsForInsets}
       contentContainerStyle={{
         flexGrow: 1,
-        paddingBottom:
-          (adjustsForInsets ? insets.top : 0) + miniPlayerHeight + bottomInset,
       }}
       scrollIndicatorInsets={{
         bottom:
@@ -514,7 +512,16 @@ export const PassageReader: React.FunctionComponent<PassageReaderProps> = ({
             </Text>
           </Pressable>
         )}
-        {renderFooter?.()}
+        <View
+          style={{
+            paddingBottom:
+              (adjustsForInsets ? insets.top : 0) +
+              miniPlayerHeight +
+              bottomInset,
+          }}
+        >
+          {renderFooter?.()}
+        </View>
       </Animated.View>
     </Animated.ScrollView>
   );
