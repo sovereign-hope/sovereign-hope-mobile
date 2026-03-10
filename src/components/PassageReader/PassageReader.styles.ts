@@ -31,6 +31,7 @@ export const styles = ({ theme, isEinkMode = false }: Props): Style =>
     container: {
       flex: 1,
       paddingHorizontal: spacing.large,
+      backgroundColor: theme.dark ? theme.colors.background : colors.white,
     },
     closeButtonRow: {
       flexDirection: "row",
