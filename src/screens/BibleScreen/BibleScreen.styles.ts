@@ -46,6 +46,11 @@ export const styles = ({ theme, isEinkMode }: StyleProps) => {
       flexDirection: "row",
       alignItems: "center",
       gap: 4,
+      paddingVertical: spacing.small,
+      paddingHorizontal: spacing.medium,
+      borderRadius: radius.medium,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: theme.colors.border,
     },
     headerTitleText: {
       fontSize: 17,

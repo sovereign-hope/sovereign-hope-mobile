@@ -31,7 +31,7 @@ export const styles = ({ theme, isEinkMode }: StyleProps) => {
       paddingBottom: spacing.extraExtraLarge,
     },
     sectionHeader: {
-      paddingHorizontal: spacing.medium,
+      paddingHorizontal: spacing.large,
       paddingVertical: spacing.small,
       fontSize: 13,
       fontWeight: "600",
@@ -44,7 +44,7 @@ export const styles = ({ theme, isEinkMode }: StyleProps) => {
       flexDirection: "row",
       alignItems: "center",
       justifyContent: "space-between",
-      paddingHorizontal: spacing.medium,
+      paddingHorizontal: spacing.large,
       paddingVertical: 14,
       borderBottomWidth: StyleSheet.hairlineWidth,
       borderBottomColor: theme.colors.border,
@@ -77,7 +77,7 @@ export const styles = ({ theme, isEinkMode }: StyleProps) => {
       flexDirection: "row",
       alignItems: "center",
       justifyContent: "space-between",
-      paddingHorizontal: spacing.medium,
+      paddingHorizontal: spacing.large,
       paddingVertical: spacing.small,
       borderBottomWidth: StyleSheet.hairlineWidth,
       borderBottomColor: theme.colors.border,
@@ -102,7 +102,7 @@ export const styles = ({ theme, isEinkMode }: StyleProps) => {
     chapterGrid: {
       flexDirection: "row",
       flexWrap: "wrap",
-      padding: spacing.small,
+      padding: spacing.medium,
     },
     chapterCell: {
       width: "20%",
