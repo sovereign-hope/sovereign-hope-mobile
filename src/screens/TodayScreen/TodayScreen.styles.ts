@@ -107,6 +107,8 @@ export const styles = ({ theme, isEinkMode = false }: Props): Style =>
       justifyContent: "space-between",
       alignItems: "center",
       marginHorizontal: spacing.medium,
+      marginTop: spacing.medium,
+      marginBottom: spacing.small,
     },
     subHeader: {
       ...header3,
@@ -115,7 +117,7 @@ export const styles = ({ theme, isEinkMode = false }: Props): Style =>
       marginBottom: spacing.medium,
     },
     textButton: {
-      paddingVertical: spacing.small,
+      paddingVertical: spacing.medium,
       paddingHorizontal: spacing.lmedium,
       borderRadius: radius.medium,
       borderWidth: 1,

@@ -942,7 +942,9 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
                 >
                   <View style={themedStyles.headerRow}>
                     <Text style={themedStyles.header}>Reading</Text>
-                    <View style={{ flexDirection: "row", gap: spacing.medium }}>
+                    <View
+                      style={{ flexDirection: "row", gap: spacing.lmedium }}
+                    >
                       <Pressable
                         style={({ pressed }) => [
                           themedStyles.textButton,
