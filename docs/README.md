@@ -21,6 +21,7 @@ This directory contains internal planning and operational docs for Sovereign Hop
 ## Related Top-Level Docs
 
 - [Main Project README](../README.md): Onboarding, local development, and release workflow.
+- [Admin Dashboard README](../admin/README.md): Admin web app access, local dev, and deploy commands.
 - [PR Template](../PULL_REQUEST_TEMPLATE.md): Pull request checklist and release impact prompts.
 - [Comprehensive Testing Plan](../plans/comprehensive-testing-suite.md): Test strategy and quality goals.
 - [Solutions Archive](../plans/solutions/): Resolved issues and implementation notes.
