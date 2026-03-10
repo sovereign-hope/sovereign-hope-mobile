@@ -31,7 +31,7 @@ export const styles = ({ theme, isEinkMode }: Props): Style => {
     container: {
       position: "absolute",
       top: spacing.medium,
-      alignSelf: "center",
+      right: spacing.medium,
       borderRadius: radius.large,
       overflow: "hidden",
     },

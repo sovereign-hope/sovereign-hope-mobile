@@ -22,6 +22,7 @@ export interface ReadScrollViewProps {
   contentWidth?: number;
   adjustsForInsets?: boolean;
   onClose?: () => void;
+  onScrollDirectionChange?: (direction: "up" | "down") => void;
 }
 
 export const ReadScrollView: React.FunctionComponent<ReadScrollViewProps> = ({
@@ -39,6 +40,7 @@ export const ReadScrollView: React.FunctionComponent<ReadScrollViewProps> = ({
   contentWidth,
   adjustsForInsets = false,
   onClose,
+  onScrollDirectionChange,
 }: ReadScrollViewProps) => {
   const theme = useTheme();
   const uiPreferences = useUiPreferences();
@@ -111,6 +113,7 @@ export const ReadScrollView: React.FunctionComponent<ReadScrollViewProps> = ({
       adjustsForInsets={adjustsForInsets}
       renderFooter={renderFooter}
       onClose={onClose}
+      onScrollDirectionChange={onScrollDirectionChange}
     />
   );
 };

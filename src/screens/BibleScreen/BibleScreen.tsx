@@ -1,12 +1,12 @@
 import React, {
-  useEffect,
   useCallback,
+  useEffect,
   useLayoutEffect,
   useMemo,
   useRef,
+  useState,
 } from "react";
 import { Pressable, Text, View, ActivityIndicator } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   useTheme,
   useNavigation,
@@ -45,11 +45,15 @@ import { styles } from "./BibleScreen.styles";
 export const BibleScreen: React.FunctionComponent = () => {
   const dispatch = useAppDispatch();
   const theme = useTheme();
-  const insets = useSafeAreaInsets();
   const { height: tabBarHeight } = useTabBarHeightContext();
   const miniPlayerHeight = useMiniPlayerHeight();
   const uiPreferences = useUiPreferences();
   const pickerRef = useRef<BiblePickerHandle>(null);
+  const [toolbarVisible, setToolbarVisible] = useState(true);
+
+  const handleScrollDirection = useCallback((direction: "up" | "down") => {
+    setToolbarVisible(direction === "up");
+  }, []);
 
   const location = useAppSelector(selectBibleLocation);
   const chapter = useAppSelector(selectBibleChapter);
@@ -330,11 +334,12 @@ export const BibleScreen: React.FunctionComponent = () => {
         contentKey={`${location.bookId}-${location.chapter}`}
         isTransitioning={isLoading}
         miniPlayerHeight={miniPlayerHeight}
-        bottomInset={insets.bottom + tabBarHeight}
+        bottomInset={tabBarHeight}
         renderFooter={renderFooter}
         passageData={chapter}
+        onScrollDirectionChange={handleScrollDirection}
       />
-      <PassageToolbar actions={toolbarActions} />
+      <PassageToolbar actions={toolbarActions} visible={toolbarVisible} />
       <BiblePicker
         ref={pickerRef}
         currentLocation={location}

@@ -1,5 +1,5 @@
 /* eslint-disable react/prop-types */
-import React, { useCallback, useMemo } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import { ActivityIndicator, View } from "react-native";
 import {
   SafeAreaView,
@@ -47,6 +47,11 @@ export const ReadScreen: React.FunctionComponent<ReadScreenProps> = ({
   const isLoading = useAppSelector(selectIsLoading);
   const theme = useTheme();
   const uiPreferences = useUiPreferences();
+  const [toolbarVisible, setToolbarVisible] = useState(true);
+
+  const handleScrollDirection = useCallback((direction: "up" | "down") => {
+    setToolbarVisible(direction === "up");
+  }, []);
 
   const onDone = useCallback(() => {
     navigation.goBack();
@@ -144,8 +149,9 @@ export const ReadScreen: React.FunctionComponent<ReadScreenProps> = ({
             hasNextPassage={passageIndex < passages.length - 1}
             miniPlayerHeight={miniPlayerHeight}
             bottomInset={insets.bottom}
+            onScrollDirectionChange={handleScrollDirection}
           />
-          <PassageToolbar actions={toolbarActions} />
+          <PassageToolbar actions={toolbarActions} visible={toolbarVisible} />
         </>
       )}
     </SafeAreaView>

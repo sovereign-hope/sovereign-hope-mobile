@@ -60,6 +60,8 @@ export interface PassageReaderProps {
   showStudyQuestions?: boolean;
   /** Optional ESV response data — when provided, overrides the esvSlice selector */
   passageData?: EsvResponse;
+  /** Called when the user changes scroll direction */
+  onScrollDirectionChange?: (direction: "up" | "down") => void;
 }
 
 export const PassageReader: React.FunctionComponent<PassageReaderProps> = ({
@@ -75,6 +77,7 @@ export const PassageReader: React.FunctionComponent<PassageReaderProps> = ({
   renderFooter,
   onClose,
   passageData,
+  onScrollDirectionChange,
 }: PassageReaderProps) => {
   // State
   const [isPressingHideButton, setIsPressingHideButton] = useState(false);
@@ -101,6 +104,8 @@ export const PassageReader: React.FunctionComponent<PassageReaderProps> = ({
   const revealTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const prevContentKeyRef = useRef<number | string>(contentKey);
   const transitionStartKeyRef = useRef<number | string | null>(null);
+  const lastScrollOffsetRef = useRef(0);
+  const lastScrollDirectionRef = useRef<"up" | "down">("up");
 
   const runTiming = React.useCallback(
     (
@@ -205,15 +210,30 @@ export const PassageReader: React.FunctionComponent<PassageReaderProps> = ({
 
   const handleScroll = React.useCallback(
     (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+      const offsetY = event.nativeEvent.contentOffset.y;
+
+      // Scroll-direction detection (minimum 10px delta to avoid jitter)
+      if (onScrollDirectionChange) {
+        const delta = offsetY - lastScrollOffsetRef.current;
+        if (Math.abs(delta) > 10) {
+          const direction = delta > 0 ? "down" : "up";
+          if (direction !== lastScrollDirectionRef.current) {
+            lastScrollDirectionRef.current = direction;
+            onScrollDirectionChange(direction);
+          }
+          lastScrollOffsetRef.current = offsetY;
+        }
+      }
+
       if (isTransitioning || !pendingRevealRef.current) {
         return;
       }
 
-      if (event.nativeEvent.contentOffset.y <= 1) {
+      if (offsetY <= 1) {
         revealPassageAfterScrollReset();
       }
     },
-    [isTransitioning, revealPassageAfterScrollReset]
+    [isTransitioning, onScrollDirectionChange, revealPassageAfterScrollReset]
   );
 
   useEffect(() => {

@@ -1,5 +1,5 @@
-import React from "react";
-import { Platform, Pressable, Text, View } from "react-native";
+import React, { useEffect, useRef } from "react";
+import { Animated, Platform, Pressable, Text, View } from "react-native";
 import { useTheme } from "@react-navigation/native";
 import { BlurView } from "expo-blur";
 import {
@@ -24,14 +24,29 @@ export interface PassageToolbarAction {
 
 interface PassageToolbarProps {
   actions: PassageToolbarAction[];
+  /** When false, the toolbar slides off-screen. Defaults to true. */
+  visible?: boolean;
 }
+
+const ANIMATION_DURATION = 200;
 
 export const PassageToolbar: React.FunctionComponent<PassageToolbarProps> = ({
   actions,
+  visible = true,
 }) => {
   const theme = useTheme();
   const uiPreferences = useUiPreferences();
   const themedStyles = styles({ theme, isEinkMode: uiPreferences.isEinkMode });
+
+  const translateY = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.timing(translateY, {
+      toValue: visible ? 0 : -80,
+      duration: ANIMATION_DURATION,
+      useNativeDriver: true,
+    }).start();
+  }, [visible, translateY]);
 
   const shouldUseLiquidGlass = canUseLiquidGlass(Platform.OS, {
     isGlassEffectCheck: isGlassEffectAPIAvailable,
@@ -53,10 +68,11 @@ export const PassageToolbar: React.FunctionComponent<PassageToolbarProps> = ({
   const useGlassLayer = shouldUseLiquidGlass || shouldUseBlur;
 
   return (
-    <View
+    <Animated.View
       style={[
         themedStyles.container,
         !useGlassLayer && themedStyles.containerSolid,
+        { transform: [{ translateY }] },
       ]}
       pointerEvents="box-none"
     >
@@ -98,6 +114,6 @@ export const PassageToolbar: React.FunctionComponent<PassageToolbarProps> = ({
           </Pressable>
         ))}
       </View>
-    </View>
+    </Animated.View>
   );
 };
