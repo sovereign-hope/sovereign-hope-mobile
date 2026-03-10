@@ -92,9 +92,11 @@ export const styles = ({ theme, isEinkMode = false }: Props): Style =>
       flexDirection: "row",
       justifyContent: "space-between",
       alignItems: "center",
+      gap: spacing.medium,
     },
     contentCardHeader: {
       ...header3,
+      flexShrink: 1,
       color: theme.colors.text,
       marginBottom: spacing.medium,
     },
