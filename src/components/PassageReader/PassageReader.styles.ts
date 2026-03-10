@@ -81,6 +81,7 @@ export const styles = ({ theme, isEinkMode = false }: Props): Style =>
         height: 2,
       },
       shadowOpacity: isEinkMode ? 0 : 0.1,
+      elevation: isEinkMode ? 0 : 2,
     },
     contentCardColumn: {
       flex: 1,
