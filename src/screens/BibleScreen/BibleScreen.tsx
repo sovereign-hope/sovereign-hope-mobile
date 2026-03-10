@@ -334,7 +334,7 @@ export const BibleScreen: React.FunctionComponent = () => {
         contentKey={`${location.bookId}-${location.chapter}`}
         isTransitioning={isLoading}
         miniPlayerHeight={miniPlayerHeight}
-        bottomInset={tabBarHeight}
+        bottomInset={0}
         renderFooter={renderFooter}
         passageData={chapter}
         onScrollDirectionChange={handleScrollDirection}
