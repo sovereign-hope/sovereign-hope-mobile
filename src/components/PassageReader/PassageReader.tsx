@@ -214,8 +214,9 @@ export const PassageReader: React.FunctionComponent<PassageReaderProps> = ({
     (event: NativeSyntheticEvent<NativeScrollEvent>) => {
       const offsetY = event.nativeEvent.contentOffset.y;
 
-      // Scroll-direction detection (minimum 10px delta to avoid jitter)
-      if (onScrollDirectionChange) {
+      // Scroll-direction detection: ignore bounce region (offsetY <= 0)
+      // and require minimum 10px delta to avoid jitter
+      if (onScrollDirectionChange && offsetY > 0) {
         const delta = offsetY - lastScrollOffsetRef.current;
         if (Math.abs(delta) > 10) {
           const direction = delta > 0 ? "down" : "up";
@@ -358,10 +359,7 @@ export const PassageReader: React.FunctionComponent<PassageReaderProps> = ({
       contentContainerStyle={{
         flexGrow: 1,
         paddingBottom:
-          (adjustsForInsets ? insets.top : 0) +
-          miniPlayerHeight +
-          bottomInset +
-          spacing.medium,
+          (adjustsForInsets ? insets.top : 0) + miniPlayerHeight + bottomInset,
       }}
       scrollIndicatorInsets={{
         bottom:
