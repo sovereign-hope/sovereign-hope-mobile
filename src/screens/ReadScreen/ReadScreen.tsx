@@ -1,6 +1,6 @@
 /* eslint-disable react/prop-types */
-import React, { useCallback, useEffect, useLayoutEffect } from "react";
-import { ActivityIndicator, Platform, Pressable, View } from "react-native";
+import React, { useCallback } from "react";
+import { ActivityIndicator, Pressable, Text, View } from "react-native";
 import {
   SafeAreaView,
   useSafeAreaInsets,
@@ -24,12 +24,7 @@ import { ReadScrollView } from "src/components/ReadScrollView/ReadScrollView";
 import { fetchBibleChapter } from "src/redux/bibleSlice";
 import { passageToLocation } from "src/app/bibleUtils";
 import { styles } from "./ReadScreen.styles";
-import { spacing } from "src/style/layout";
 import { useUiPreferences } from "src/hooks/useUiPreferences";
-import { getPressFeedbackStyle } from "src/style/eink";
-
-const isIOS26OrNewer = (): boolean =>
-  Platform.OS === "ios" && Number.parseInt(String(Platform.Version), 10) >= 26;
 
 export type ReadScreenProps = NativeStackScreenProps<
   RootStackParamList,
@@ -82,13 +77,6 @@ export const ReadScreen: React.FunctionComponent<ReadScreenProps> = ({
     }
   }, [audioTitle, audioUrl]);
 
-  // Effect hooks
-  useLayoutEffect(() => {
-    navigation.setOptions({
-      headerRight: undefined,
-    });
-  }, [navigation]);
-
   const showSelectFontSize = useCallback(() => {
     navigation.push("Font Size");
   }, [navigation]);
@@ -104,115 +92,8 @@ export const ReadScreen: React.FunctionComponent<ReadScreenProps> = ({
     navigation.dispatch(CommonActions.navigate("Home", { screen: "Bible" }));
   }, [dispatch, navigation, passageIndex, passages]);
 
-  useEffect(() => {
-    if (isIOS26OrNewer()) {
-      navigation.setOptions({
-        headerRight: undefined,
-        unstable_headerRightItems: ({ tintColor }) => {
-          const items = [
-            {
-              type: "button" as const,
-              label: "Open in Bible",
-              icon: {
-                type: "sfSymbol" as const,
-                name: "book" as never,
-              },
-              onPress: handleOpenInBible,
-              tintColor: tintColor ?? actionColor,
-              sharesBackground: false,
-            },
-            {
-              type: "button" as const,
-              label: "Font Size",
-              icon: {
-                type: "sfSymbol" as const,
-                name: "textformat.size" as never,
-              },
-              onPress: showSelectFontSize,
-              tintColor: tintColor ?? actionColor,
-              sharesBackground: false,
-            },
-          ];
-
-          if (audioUrl && audioUrl !== "") {
-            items.push({
-              type: "button" as const,
-              label: "Play Audio",
-              icon: {
-                type: "sfSymbol" as const,
-                name: "speaker.wave.2" as never,
-              },
-              onPress: () => {
-                void playAudio();
-              },
-              tintColor: tintColor ?? actionColor,
-              sharesBackground: false,
-            });
-          }
-
-          return items;
-        },
-      });
-      return;
-    }
-
-    navigation.setOptions({
-      unstable_headerRightItems: undefined,
-      headerRight: () => (
-        <>
-          <Pressable
-            style={({ pressed }) => ({
-              marginRight: spacing.large,
-              ...getPressFeedbackStyle(pressed, uiPreferences.isEinkMode),
-            })}
-            accessibilityRole="button"
-            accessibilityLabel="Open in Bible"
-            accessibilityHint="Opens this chapter in the Bible tab"
-            onPress={handleOpenInBible}
-          >
-            <Ionicons name="book-outline" size={24} color={actionColor} />
-          </Pressable>
-          <Pressable
-            style={({ pressed }) => ({
-              marginRight: spacing.large,
-              ...getPressFeedbackStyle(pressed, uiPreferences.isEinkMode),
-            })}
-            accessibilityRole="button"
-            onPress={showSelectFontSize}
-          >
-            <Ionicons name="text-outline" size={24} color={actionColor} />
-          </Pressable>
-          {audioUrl && audioUrl !== "" && (
-            <Pressable
-              style={({ pressed }) => ({
-                marginRight: spacing.large,
-                ...getPressFeedbackStyle(pressed, uiPreferences.isEinkMode),
-              })}
-              accessibilityRole="button"
-              onPress={() => void playAudio()}
-            >
-              <Ionicons
-                name="volume-high-outline"
-                size={24}
-                color={actionColor}
-              />
-            </Pressable>
-          )}
-        </>
-      ),
-    });
-  }, [
-    actionColor,
-    audioUrl,
-    handleOpenInBible,
-    navigation,
-    playAudio,
-    showSelectFontSize,
-    uiPreferences.isEinkMode,
-  ]);
-
   // Constants
-  const themedStyles = styles({ theme });
+  const themedStyles = styles({ theme, isEinkMode: uiPreferences.isEinkMode });
 
   return (
     <SafeAreaView style={themedStyles.screen} edges={["left", "right"]}>
@@ -233,8 +114,57 @@ export const ReadScreen: React.FunctionComponent<ReadScreenProps> = ({
             onNextPassage={handleNextPassage}
             hasNextPassage={passageIndex < passages.length - 1}
             miniPlayerHeight={miniPlayerHeight}
-            bottomInset={insets.bottom}
+            bottomInset={insets.bottom + themedStyles.toolbar.height}
           />
+          <View
+            style={[themedStyles.toolbar, { paddingBottom: insets.bottom }]}
+          >
+            <Pressable
+              style={({ pressed }) => [
+                themedStyles.toolbarButton,
+                pressed && themedStyles.toolbarButtonPressed,
+              ]}
+              accessibilityRole="button"
+              accessibilityLabel="Open in Bible"
+              accessibilityHint="Opens this chapter in the Bible tab"
+              onPress={handleOpenInBible}
+            >
+              <Ionicons name="book-outline" size={22} color={actionColor} />
+              <Text style={themedStyles.toolbarButtonText}>Bible</Text>
+            </Pressable>
+            <Pressable
+              style={({ pressed }) => [
+                themedStyles.toolbarButton,
+                pressed && themedStyles.toolbarButtonPressed,
+              ]}
+              accessibilityRole="button"
+              accessibilityLabel="Font Size"
+              accessibilityHint="Adjust reading font size"
+              onPress={showSelectFontSize}
+            >
+              <Ionicons name="text-outline" size={22} color={actionColor} />
+              <Text style={themedStyles.toolbarButtonText}>Font</Text>
+            </Pressable>
+            {audioUrl && audioUrl !== "" && (
+              <Pressable
+                style={({ pressed }) => [
+                  themedStyles.toolbarButton,
+                  pressed && themedStyles.toolbarButtonPressed,
+                ]}
+                accessibilityRole="button"
+                accessibilityLabel="Play Audio"
+                accessibilityHint="Listen to this passage"
+                onPress={() => void playAudio()}
+              >
+                <Ionicons
+                  name="volume-high-outline"
+                  size={22}
+                  color={actionColor}
+                />
+                <Text style={themedStyles.toolbarButtonText}>Listen</Text>
+              </Pressable>
+            )}
+          </View>
         </>
       )}
     </SafeAreaView>

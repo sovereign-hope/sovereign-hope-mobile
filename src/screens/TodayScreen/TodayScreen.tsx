@@ -79,7 +79,7 @@ import Animated, {
   FadeOutRight,
   LinearTransition,
 } from "react-native-reanimated";
-import { selectCurrentEpisode } from "src/redux/podcastSlice";
+import { getEpisodes, selectCurrentEpisode } from "src/redux/podcastSlice";
 import {
   selectAuthIsInitialized,
   selectAuthIsSyncing,
@@ -224,6 +224,7 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
         void dispatch(getReadingPlan());
         void dispatch(getReadingPlanProgressState());
         void dispatch(getNotifications());
+        void dispatch(getEpisodes());
       }
       appState.current = nextAppState;
     };
@@ -243,6 +244,7 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
     void dispatch(getReadingPlan());
     void dispatch(getReadingPlanProgressState());
     void dispatch(getNotifications());
+    void dispatch(getEpisodes());
   }, [dispatch]);
 
   useEffect(() => {
@@ -940,7 +942,7 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
                 >
                   <View style={themedStyles.headerRow}>
                     <Text style={themedStyles.header}>Reading</Text>
-                    {!useWideLayout && (
+                    <View style={{ flexDirection: "row", gap: spacing.medium }}>
                       <Pressable
                         style={({ pressed }) => [
                           themedStyles.textButton,
@@ -950,15 +952,36 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
                           ),
                         ]}
                         accessibilityRole="button"
+                        accessibilityLabel="Reading Plan"
+                        accessibilityHint="Opens the full reading plan"
                         onPress={() => {
-                          scrollToToday();
+                          navigation.navigate("Reading Plan");
                         }}
                       >
                         <Text style={{ color: actionColor, fontSize: 18 }}>
-                          Show Today
+                          Plan
                         </Text>
                       </Pressable>
-                    )}
+                      {!useWideLayout && (
+                        <Pressable
+                          style={({ pressed }) => [
+                            themedStyles.textButton,
+                            getPressFeedbackStyle(
+                              pressed,
+                              uiPreferences.isEinkMode
+                            ),
+                          ]}
+                          accessibilityRole="button"
+                          onPress={() => {
+                            scrollToToday();
+                          }}
+                        >
+                          <Text style={{ color: actionColor, fontSize: 18 }}>
+                            Show Today
+                          </Text>
+                        </Pressable>
+                      )}
+                    </View>
                   </View>
 
                   {/* Week Grid (wide tablet) or Horizontal FlatList (phone / narrow) */}
