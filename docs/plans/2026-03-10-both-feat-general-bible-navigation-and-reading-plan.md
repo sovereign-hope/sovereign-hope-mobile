@@ -3,7 +3,7 @@ title: "both: Add General-Purpose Bible Navigation and Reading"
 type: feat
 platform: both
 date: 2026-03-10
-status: approved
+status: completed
 ---
 
 # Add General-Purpose Bible Navigation and Reading
@@ -362,26 +362,26 @@ Tabs:
 
 ### V1 core
 
-- [ ] Bible tab shows reader at last-read location immediately on tap
-- [ ] Default location is Genesis 1 when no saved state exists
-- [ ] Tapping the header opens a bottom sheet with all 66 books grouped by testament
-- [ ] Tapping a book in the sheet shows a chapter number grid
-- [ ] Tapping a chapter navigates to that chapter and dismisses the sheet
-- [ ] Previous/next chapter controls work from the reader
-- [ ] Last-read Bible location persists across app restarts
-- [ ] Existing reading-plan flow works without regression using shared `PassageReader`
-- [ ] "Open in Bible" from plan mode navigates to the Bible tab at the relevant chapter
-- [ ] Resources tab is removed; Resources accessible from This Week screen
-- [ ] Numbered books and single-chapter books parse and display correctly
-- [ ] Audio, commentary, and font-size features work in both plan and browse modes
+- [x] Bible tab shows reader at last-read location immediately on tap
+- [x] Default location is Genesis 1 when no saved state exists
+- [x] Tapping the header opens a bottom sheet with all 66 books grouped by testament
+- [x] Tapping a book in the sheet shows a chapter number grid
+- [x] Tapping a chapter navigates to that chapter and dismisses the sheet
+- [x] Previous/next chapter controls work from the reader
+- [x] Last-read Bible location persists across app restarts
+- [x] Existing reading-plan flow works without regression using shared `PassageReader`
+- [x] "Open in Bible" from plan mode navigates to the Bible tab at the relevant chapter
+- [x] Resources tab is removed; Resources accessible from This Week screen
+- [x] Numbered books and single-chapter books parse and display correctly
+- [x] Audio, commentary, and font-size features work in both plan and browse modes
 
 ### Quality / UX
 
-- [ ] Loading transitions between adjacent chapters are stable (no blank flash on failure)
-- [ ] Browse mode does not show plan-only completion UI
-- [ ] Plan mode still shows plan sequence controls and completion behavior
-- [ ] Bottom sheet picker is accessible (labels, focus management)
-- [ ] Accessibility labels are present for chapter navigation controls
+- [x] Loading transitions between adjacent chapters are stable (no blank flash on failure)
+- [x] Browse mode does not show plan-only completion UI
+- [x] Plan mode still shows plan sequence controls and completion behavior
+- [x] Bottom sheet picker is accessible (labels, focus management)
+- [x] Accessibility labels are present for chapter navigation controls
 
 ## Implementation Order
 
