@@ -6,12 +6,11 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { Pressable, ScrollView, Text, View, Platform } from "react-native";
+import { Pressable, Text, View, Platform } from "react-native";
 import * as Haptics from "expo-haptics";
 import {
   BottomSheetModal,
   BottomSheetFlatList,
-  BottomSheetView,
   BottomSheetBackdrop,
 } from "@gorhom/bottom-sheet";
 import type { BottomSheetBackdropProps } from "@gorhom/bottom-sheet";
@@ -211,11 +210,24 @@ export const BiblePicker = forwardRef<BiblePickerHandle, BiblePickerProps>(
       bottomSheetRef.current?.snapToIndex(0);
     }, []);
 
+    const NUM_COLUMNS = 5;
+
     const chapterNumbers = useMemo(() => {
       if (!selectedBook) {
         return [];
       }
-      return Array.from({ length: selectedBook.chapterCount }, (_, i) => i + 1);
+      const chapters = Array.from(
+        { length: selectedBook.chapterCount },
+        (_, i) => i + 1
+      );
+      const remainder = chapters.length % NUM_COLUMNS;
+      if (remainder > 0) {
+        const fillers = NUM_COLUMNS - remainder;
+        for (let i = 0; i < fillers; i++) {
+          chapters.push(-(i + 1));
+        }
+      }
+      return chapters;
     }, [selectedBook]);
 
     const renderBackdrop = useCallback(
@@ -236,73 +248,74 @@ export const BiblePicker = forwardRef<BiblePickerHandle, BiblePickerProps>(
       setSelectedBook(null);
     }, []);
 
-    const renderChapterGrid = () => {
-      if (!selectedBook) {
-        // eslint-disable-next-line unicorn/no-null
-        return null;
-      }
+    const chapterKeyExtractor = useCallback((item: number) => `ch-${item}`, []);
 
-      return (
-        <BottomSheetView style={themedStyles.chapterContainer}>
-          <View style={themedStyles.chapterHeader}>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Back to book list"
-              accessibilityHint="Returns to the list of Bible books"
-              onPress={handleBackToBooks}
-              style={({ pressed }) => [
-                themedStyles.backButton,
-                pressed && themedStyles.backButtonPressed,
+    const renderChapterHeader = useCallback(
+      () => (
+        <View style={themedStyles.chapterHeader}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Back to book list"
+            accessibilityHint="Returns to the list of Bible books"
+            onPress={handleBackToBooks}
+            style={({ pressed }) => [
+              themedStyles.backButton,
+              pressed && themedStyles.backButtonPressed,
+            ]}
+          >
+            <View style={themedStyles.backButtonRow}>
+              {Platform.OS === "ios" && (
+                <Ionicons
+                  name="chevron-back"
+                  size={20}
+                  color={themedStyles.backButtonText.color}
+                />
+              )}
+              <Text style={themedStyles.backButtonText}>Books</Text>
+            </View>
+          </Pressable>
+          <Text style={themedStyles.chapterTitle}>{selectedBook?.name}</Text>
+          <View style={themedStyles.backButton} />
+        </View>
+      ),
+      [handleBackToBooks, selectedBook?.name, themedStyles]
+    );
+
+    const renderChapterItem = useCallback(
+      ({ item: ch }: { item: number }) => {
+        if (ch < 0) {
+          return <View style={themedStyles.chapterCellSpacer} />;
+        }
+
+        const isSelected =
+          selectedBook?.id === currentLocation.bookId &&
+          ch === currentLocation.chapter;
+
+        return (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`Chapter ${ch}`}
+            accessibilityHint={`Opens ${selectedBook?.name} chapter ${ch}`}
+            onPress={() => handleChapterPress(ch)}
+            style={({ pressed }) => [
+              themedStyles.chapterCell,
+              isSelected && themedStyles.chapterCellSelected,
+              pressed && themedStyles.chapterCellPressed,
+            ]}
+          >
+            <Text
+              style={[
+                themedStyles.chapterNumber,
+                isSelected && themedStyles.chapterNumberSelected,
               ]}
             >
-              <View style={themedStyles.backButtonRow}>
-                {Platform.OS === "ios" && (
-                  <Ionicons
-                    name="chevron-back"
-                    size={20}
-                    color={themedStyles.backButtonText.color}
-                  />
-                )}
-                <Text style={themedStyles.backButtonText}>Books</Text>
-              </View>
-            </Pressable>
-            <Text style={themedStyles.chapterTitle}>{selectedBook.name}</Text>
-            <View style={themedStyles.backButton} />
-          </View>
-          <ScrollView contentContainerStyle={themedStyles.chapterGrid}>
-            {chapterNumbers.map((ch) => {
-              const isSelected =
-                selectedBook.id === currentLocation.bookId &&
-                ch === currentLocation.chapter;
-
-              return (
-                <Pressable
-                  key={ch}
-                  accessibilityRole="button"
-                  accessibilityLabel={`Chapter ${ch}`}
-                  accessibilityHint={`Opens ${selectedBook.name} chapter ${ch}`}
-                  onPress={() => handleChapterPress(ch)}
-                  style={({ pressed }) => [
-                    themedStyles.chapterCell,
-                    isSelected && themedStyles.chapterCellSelected,
-                    pressed && themedStyles.chapterCellPressed,
-                  ]}
-                >
-                  <Text
-                    style={[
-                      themedStyles.chapterNumber,
-                      isSelected && themedStyles.chapterNumberSelected,
-                    ]}
-                  >
-                    {ch}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </ScrollView>
-        </BottomSheetView>
-      );
-    };
+              {ch}
+            </Text>
+          </Pressable>
+        );
+      },
+      [selectedBook, currentLocation, handleChapterPress, themedStyles]
+    );
 
     return (
       <BottomSheetModal
@@ -315,9 +328,19 @@ export const BiblePicker = forwardRef<BiblePickerHandle, BiblePickerProps>(
         handleIndicatorStyle={themedStyles.handleIndicator}
       >
         {selectedBook ? (
-          renderChapterGrid()
+          <BottomSheetFlatList
+            key="chapters"
+            data={chapterNumbers}
+            keyExtractor={chapterKeyExtractor}
+            renderItem={renderChapterItem}
+            numColumns={NUM_COLUMNS}
+            ListHeaderComponent={renderChapterHeader}
+            stickyHeaderIndices={[0]}
+            contentContainerStyle={themedStyles.chapterGrid}
+          />
         ) : (
           <BottomSheetFlatList
+            key="books"
             data={bookListData}
             keyExtractor={bookKeyExtractor}
             renderItem={renderBookItem}

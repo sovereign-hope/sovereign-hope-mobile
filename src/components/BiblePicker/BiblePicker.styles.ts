@@ -70,17 +70,15 @@ export const styles = ({ theme, isEinkMode }: StyleProps) => {
       color: theme.dark ? "rgba(255,255,255,0.4)" : "rgba(0,0,0,0.35)",
     },
     // ── Chapter grid ──────────────────────────────
-    chapterContainer: {
-      flex: 1,
-    },
     chapterHeader: {
       flexDirection: "row",
       alignItems: "center",
       justifyContent: "space-between",
       paddingHorizontal: spacing.large,
-      paddingVertical: spacing.small,
+      paddingVertical: spacing.medium,
       borderBottomWidth: StyleSheet.hairlineWidth,
       borderBottomColor: theme.colors.border,
+      backgroundColor: theme.colors.card,
     },
     chapterTitle: {
       fontSize: 17,
@@ -104,16 +102,23 @@ export const styles = ({ theme, isEinkMode }: StyleProps) => {
       color: actionColor,
     },
     chapterGrid: {
-      flexDirection: "row",
-      flexWrap: "wrap",
       padding: spacing.medium,
     },
     chapterCell: {
-      width: "20%",
+      flex: 1,
       aspectRatio: 1,
       alignItems: "center",
       justifyContent: "center",
       borderRadius: radius.medium,
+      backgroundColor: theme.dark
+        ? "rgba(255,255,255,0.08)"
+        : "rgba(0,0,0,0.05)",
+      margin: spacing.small,
+    },
+    chapterCellSpacer: {
+      flex: 1,
+      aspectRatio: 1,
+      margin: spacing.small,
     },
     chapterCellSelected: {
       backgroundColor: actionColor,
