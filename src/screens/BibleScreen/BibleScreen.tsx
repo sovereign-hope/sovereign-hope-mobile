@@ -298,9 +298,12 @@ export const BibleScreen: React.FunctionComponent = () => {
     return actions;
   }, [audioUrl, handleFontSize, handlePlayAudio]);
 
-  // Error state
+  // Determine content based on state
+  let content: React.JSX.Element;
+
   if (hasError && !chapter) {
-    return (
+    // Error state
+    content = (
       <View style={themedStyles.centered}>
         <Text style={themedStyles.errorText}>
           Unable to load this chapter. Check your connection and try again.
@@ -319,18 +322,11 @@ export const BibleScreen: React.FunctionComponent = () => {
         >
           <Text style={themedStyles.retryButtonText}>Retry</Text>
         </Pressable>
-        <BiblePicker
-          ref={pickerRef}
-          currentLocation={location}
-          onSelectLocation={handlePickerSelect}
-        />
       </View>
     );
-  }
-
-  // Loading state (initial load only)
-  if (isLoading && !chapter) {
-    return (
+  } else if (isLoading && !chapter) {
+    // Loading state (initial load only)
+    content = (
       <View style={themedStyles.centered}>
         <ActivityIndicator
           size="large"
@@ -338,22 +334,28 @@ export const BibleScreen: React.FunctionComponent = () => {
         />
       </View>
     );
+  } else {
+    content = (
+      <>
+        <PassageReader
+          heading=""
+          showMemoryButton={false}
+          contentKey={`${location.bookId}-${location.chapter}`}
+          isTransitioning={isLoading}
+          miniPlayerHeight={miniPlayerHeight}
+          bottomInset={tabBarHeight}
+          renderFooter={renderFooter}
+          passageData={chapter}
+          onScrollDirectionChange={handleScrollDirection}
+        />
+        <PassageToolbar actions={toolbarActions} visible={toolbarVisible} />
+      </>
+    );
   }
 
   return (
     <>
-      <PassageReader
-        heading=""
-        showMemoryButton={false}
-        contentKey={`${location.bookId}-${location.chapter}`}
-        isTransitioning={isLoading}
-        miniPlayerHeight={miniPlayerHeight}
-        bottomInset={tabBarHeight}
-        renderFooter={renderFooter}
-        passageData={chapter}
-        onScrollDirectionChange={handleScrollDirection}
-      />
-      <PassageToolbar actions={toolbarActions} visible={toolbarVisible} />
+      {content}
       <BiblePicker
         ref={pickerRef}
         currentLocation={location}

@@ -543,6 +543,8 @@ const BibleStack = (): React.JSX.Element => {
         component={ReadingPlanScreen}
         options={{ headerLargeTitle: false }}
       />
+      <Stack.Screen name="Read" component={ReadScreen} />
+      <Stack.Screen name="Font Size" component={FontSizePickerScreen} />
     </Stack.Navigator>
   );
 };
