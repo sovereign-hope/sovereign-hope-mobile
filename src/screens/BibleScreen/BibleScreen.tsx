@@ -1,7 +1,7 @@
-import React, { useEffect, useCallback } from "react";
+import React, { useEffect, useCallback, useLayoutEffect, useRef } from "react";
 import { Pressable, Text, View, ActivityIndicator } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useTheme } from "@react-navigation/native";
+import { useTheme, useNavigation } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 import { useAppDispatch, useAppSelector } from "src/hooks/store";
 import {
@@ -12,9 +12,15 @@ import {
   selectBibleIsLoading,
   selectBibleLocation,
 } from "src/redux/bibleSlice";
-import { formatBibleLocation } from "src/app/bibleUtils";
-import { getNextChapter, getPreviousChapter } from "src/app/bibleUtils";
+import {
+  formatBibleLocation,
+  getNextChapter,
+  getPreviousChapter,
+} from "src/app/bibleUtils";
 import { PassageReader } from "src/components/PassageReader/PassageReader";
+import { BiblePicker } from "src/components/BiblePicker/BiblePicker";
+import type { BiblePickerHandle } from "src/components/BiblePicker/BiblePicker";
+import type { BibleLocation } from "src/types/bible";
 import { useMiniPlayerHeight } from "src/hooks/useMiniPlayerHeight";
 import { useUiPreferences } from "src/hooks/useUiPreferences";
 import { getPressFeedbackStyle } from "src/style/eink";
@@ -27,6 +33,7 @@ export const BibleScreen: React.FunctionComponent = () => {
   const insets = useSafeAreaInsets();
   const miniPlayerHeight = useMiniPlayerHeight();
   const uiPreferences = useUiPreferences();
+  const pickerRef = useRef<BiblePickerHandle>(null);
 
   const location = useAppSelector(selectBibleLocation);
   const chapter = useAppSelector(selectBibleChapter);
@@ -51,6 +58,44 @@ export const BibleScreen: React.FunctionComponent = () => {
 
     void init();
   }, [dispatch]);
+
+  const handlePickerSelect = useCallback(
+    (newLocation: BibleLocation) => {
+      void dispatch(fetchBibleChapter(newLocation));
+    },
+    [dispatch]
+  );
+
+  const handleOpenPicker = useCallback(() => {
+    pickerRef.current?.present();
+  }, []);
+
+  const navigation = useNavigation();
+  const actionColor = uiPreferences.isEinkMode
+    ? theme.dark
+      ? colors.white
+      : colors.black
+    : colors.accent;
+
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerTitle: () => (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`${locationLabel}. Tap to choose a book and chapter.`}
+          accessibilityHint="Opens the book and chapter picker"
+          onPress={handleOpenPicker}
+          style={({ pressed }) => [
+            themedStyles.headerTitleButton,
+            pressed && { opacity: 0.65 },
+          ]}
+        >
+          <Text style={themedStyles.headerTitleText}>{locationLabel}</Text>
+          <Ionicons name="chevron-down" size={16} color={actionColor} />
+        </Pressable>
+      ),
+    });
+  }, [actionColor, handleOpenPicker, locationLabel, navigation, themedStyles]);
 
   const handlePreviousChapter = useCallback(() => {
     if (prevChapter) {
@@ -169,6 +214,11 @@ export const BibleScreen: React.FunctionComponent = () => {
         >
           <Text style={themedStyles.retryButtonText}>Retry</Text>
         </Pressable>
+        <BiblePicker
+          ref={pickerRef}
+          currentLocation={location}
+          onSelectLocation={handlePickerSelect}
+        />
       </View>
     );
   }
@@ -186,15 +236,25 @@ export const BibleScreen: React.FunctionComponent = () => {
   }
 
   return (
-    <PassageReader
-      heading={locationLabel}
-      showMemoryButton={false}
-      contentKey={`${location.bookId}-${location.chapter}`}
-      isTransitioning={isLoading}
-      miniPlayerHeight={miniPlayerHeight}
-      bottomInset={insets.bottom}
-      renderFooter={renderFooter}
-      passageData={chapter}
-    />
+    <>
+      <PassageReader
+        heading={locationLabel}
+        showMemoryButton={false}
+        contentKey={`${location.bookId}-${location.chapter}`}
+        isTransitioning={isLoading}
+        miniPlayerHeight={miniPlayerHeight}
+        bottomInset={insets.bottom}
+        renderFooter={renderFooter}
+        passageData={chapter}
+      />
+      <BiblePicker
+        ref={pickerRef}
+        currentLocation={location}
+        onSelectLocation={handlePickerSelect}
+      />
+    </>
   );
 };
+
+/** Exposed for the navigation header to open the picker */
+export type { BiblePickerHandle } from "src/components/BiblePicker/BiblePicker";

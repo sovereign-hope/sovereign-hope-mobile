@@ -9,4 +9,6 @@ export { PassageReader } from "./PassageReader/PassageReader";
 export type { PassageReaderProps } from "./PassageReader/PassageReader";
 export { ReadScrollView } from "./ReadScrollView/ReadScrollView";
 export type { ReadScrollViewProps } from "./ReadScrollView/ReadScrollView";
+export { BiblePicker } from "./BiblePicker/BiblePicker";
+export type { BiblePickerHandle } from "./BiblePicker/BiblePicker";
 export { WeekGrid } from "./WeekGrid/WeekGrid";

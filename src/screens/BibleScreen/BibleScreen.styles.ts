@@ -42,6 +42,16 @@ export const styles = ({ theme, isEinkMode }: StyleProps) => {
       color: colors.white,
       fontWeight: "600",
     },
+    headerTitleButton: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 4,
+    },
+    headerTitleText: {
+      fontSize: 17,
+      fontWeight: "600",
+      color: theme.colors.text,
+    },
     buttonRow: {
       flexDirection: "row",
       justifyContent: "space-between",
