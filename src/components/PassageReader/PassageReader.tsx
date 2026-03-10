@@ -358,6 +358,8 @@ export const PassageReader: React.FunctionComponent<PassageReaderProps> = ({
       automaticallyAdjustsScrollIndicatorInsets={adjustsForInsets}
       contentContainerStyle={{
         flexGrow: 1,
+        paddingBottom:
+          (adjustsForInsets ? insets.top : 0) + miniPlayerHeight + bottomInset,
       }}
       scrollIndicatorInsets={{
         bottom:
@@ -471,7 +473,6 @@ export const PassageReader: React.FunctionComponent<PassageReaderProps> = ({
             </View>
           </View>
         )}
-        <View style={themedStyles.spacer} />
         {showMemoryButton && (
           <Pressable
             accessibilityRole="button"
@@ -512,16 +513,7 @@ export const PassageReader: React.FunctionComponent<PassageReaderProps> = ({
             </Text>
           </Pressable>
         )}
-        <View
-          style={{
-            paddingBottom:
-              (adjustsForInsets ? insets.top : 0) +
-              miniPlayerHeight +
-              bottomInset,
-          }}
-        >
-          {renderFooter?.()}
-        </View>
+        {renderFooter?.()}
       </Animated.View>
     </Animated.ScrollView>
   );
