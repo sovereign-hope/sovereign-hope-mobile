@@ -93,6 +93,8 @@ export const PassageReader: React.FunctionComponent<PassageReaderProps> = ({
   const fontSize = useAppSelector(selectReadingFontSize);
   const { width: windowWidth } = useWindowDimensions();
   const width = contentWidthProp ?? windowWidth;
+  // Commentary sits inside contentCard (padding: lmedium) inside container (padding: large)
+  const commentaryWidth = width - 2 * spacing.large - 2 * spacing.lmedium;
   const uiPreferences = useUiPreferences();
 
   // Ref Hooks
@@ -359,7 +361,7 @@ export const PassageReader: React.FunctionComponent<PassageReaderProps> = ({
           (adjustsForInsets ? insets.top : 0) +
           miniPlayerHeight +
           bottomInset +
-          spacing.large,
+          spacing.medium,
       }}
       scrollIndicatorInsets={{
         bottom:
@@ -424,7 +426,7 @@ export const PassageReader: React.FunctionComponent<PassageReaderProps> = ({
                   duration={uiPreferences.disableAnimations ? 0 : 300}
                 >
                   <RenderHtml
-                    contentWidth={width}
+                    contentWidth={commentaryWidth}
                     source={{ html: commentaryHTMLTags }}
                     tagsStyles={tagsStyles}
                     classesStyles={commentaryClassesStyles}

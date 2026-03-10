@@ -55,6 +55,7 @@ export const styles = ({ theme, isEinkMode }: StyleProps) => {
     buttonRow: {
       flexDirection: "row",
       justifyContent: "space-between",
+      gap: spacing.medium,
       paddingHorizontal: spacing.medium,
       paddingTop: spacing.medium,
       paddingBottom: spacing.small,
@@ -62,6 +63,7 @@ export const styles = ({ theme, isEinkMode }: StyleProps) => {
     navButton: {
       flexDirection: "row",
       alignItems: "center",
+      flexShrink: 1,
       gap: 6,
       paddingVertical: spacing.medium,
       paddingHorizontal: spacing.large,
@@ -79,6 +81,7 @@ export const styles = ({ theme, isEinkMode }: StyleProps) => {
       color: actionColor,
       fontWeight: "600",
       fontSize: 16,
+      flexShrink: 1,
     },
     navButtonTextDisabled: {
       color: disabledColor,
