@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo, useRef, useState } from "react";
-import { Platform, Pressable } from "react-native";
+import { Alert, Platform, Pressable } from "react-native";
 import * as Haptics from "expo-haptics";
 import type { CustomBlockRenderer } from "react-native-render-html";
 import { useAppDispatch, useAppSelector } from "src/hooks/store";
@@ -79,7 +79,15 @@ export const useHighlightRenderer = (
 
   const createHighlight = useCallback(
     async (startVerse: number, endVerse: number) => {
-      if (!user?.uid) return;
+      if (!user?.uid) {
+        console.warn(
+          "[Highlights] Cannot create highlight — user not signed in"
+        );
+        Alert.alert("Sign In Required", "Sign in to highlight verses.", [
+          { text: "OK" },
+        ]);
+        return;
+      }
 
       const now = Date.now();
       const data: Omit<Highlight, "id"> = {
@@ -101,7 +109,11 @@ export const useHighlightRenderer = (
         // Replace temp with real ID
         dispatch(removeHighlightAction(tempId));
         dispatch(addHighlightAction({ ...data, id: firestoreId }));
-      } catch {
+      } catch (error) {
+        console.warn(
+          "[Highlights] Failed to save highlight to Firestore:",
+          error
+        );
         // Revert on failure
         dispatch(removeHighlightAction(tempId));
       }
@@ -113,9 +125,21 @@ export const useHighlightRenderer = (
     (parsed: ParsedVerse) => {
       const current = tapStateRef.current;
       if (current.mode === "idle") {
+        console.log(
+          "[Highlights] First tap: verse %d (book=%s, ch=%d)",
+          parsed.verse,
+          parsed.bookId,
+          parsed.chapter
+        );
         if (Platform.OS === "ios") void Haptics.selectionAsync();
         setTapState({ mode: "first-selected", verse: parsed });
       } else if (current.mode === "first-selected") {
+        console.log(
+          "[Highlights] Second tap: verse %d → creating highlight %d–%d",
+          parsed.verse,
+          current.verse.verse,
+          parsed.verse
+        );
         // Second tap — create range highlight
         if (Platform.OS === "ios")
           void Haptics.notificationAsync(
@@ -198,6 +222,10 @@ export const useHighlightRenderer = (
 
         const parsed = parseVerseId(id);
         if (!parsed) {
+          console.log(
+            "[Highlights] p renderer: id=%s — parseVerseId returned undefined",
+            id
+          );
           return <TDefaultRenderer tnode={tnode} {...props} />;
         }
 
@@ -207,6 +235,14 @@ export const useHighlightRenderer = (
           parsed.verse
         );
         const highlightColor = highlightLookup[verseKey];
+
+        if (__DEV__ && highlightColor) {
+          console.log(
+            "[Highlights] Rendering verse %s with color %s",
+            verseKey,
+            highlightColor
+          );
+        }
 
         const bgColor = highlightColor
           ? HIGHLIGHT_COLORS[highlightColor][colorMode]
