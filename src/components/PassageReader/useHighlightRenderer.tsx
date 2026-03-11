@@ -10,10 +10,12 @@ import {
   addHighlight as addHighlightAction,
   removeHighlight as removeHighlightAction,
   updateHighlightColor as updateHighlightColorAction,
+  updateHighlightRange as updateHighlightRangeAction,
 } from "src/redux/highlightsSlice";
 import {
   setHighlightDoc,
   updateHighlightColorDoc,
+  updateHighlightRangeDoc,
   deleteHighlightDoc,
 } from "src/services/highlights";
 import {
@@ -25,18 +27,10 @@ import { generateLocalId } from "src/utils/generateLocalId";
 import { parseVerseId, buildVerseKey } from "./highlightUtils";
 import type { ParsedVerse } from "./highlightUtils";
 
-type TapState =
-  | { mode: "idle" }
-  | { mode: "first-selected"; verse: ParsedVerse };
-
 export type HighlightRendererResult = {
   renderers: Record<string, CustomBlockRenderer>;
   /** Stable key that changes when highlights change — use as RenderHtml `key` */
   highlightKey: string;
-  /** The first-selected verse (if any), for UI feedback */
-  pendingVerse: ParsedVerse | undefined;
-  /** Cancel the pending first-verse selection */
-  cancelSelection: () => void;
   /** Open the color picker for a highlighted verse */
   colorPickerTarget: Highlight | undefined;
   /** Dismiss the color picker */
@@ -58,14 +52,11 @@ export const useHighlightRenderer = (
     selectHighlightsForChapter(state, bookId, chapter)
   );
 
-  const [tapState, setTapState] = useState<TapState>({ mode: "idle" });
   const [colorPickerTarget, setColorPickerTarget] = useState<
     Highlight | undefined
   >();
 
   // Stable refs for callbacks used in memoized renderer
-  const tapStateRef = useRef(tapState);
-  tapStateRef.current = tapState;
   const chapterHighlightsRef = useRef(chapterHighlights);
   chapterHighlightsRef.current = chapterHighlights;
 
@@ -78,24 +69,104 @@ export const useHighlightRenderer = (
 
   const colorMode = isDarkMode ? "dark" : "light";
 
+  /** Find a highlight that contains the given verse. */
+  const findHighlightForVerse = useCallback(
+    (verse: number): Highlight | undefined =>
+      chapterHighlightsRef.current.find(
+        (h) =>
+          h.bookId === bookId &&
+          h.chapter === chapter &&
+          verse >= h.startVerse &&
+          verse <= h.endVerse
+      ),
+    [bookId, chapter]
+  );
+
+  /** Find a highlight where the given verse is directly adjacent (±1). */
+  const findAdjacentHighlight = useCallback(
+    (verse: number): Highlight | undefined =>
+      chapterHighlightsRef.current.find(
+        (h) =>
+          h.bookId === bookId &&
+          h.chapter === chapter &&
+          (verse === h.startVerse - 1 || verse === h.endVerse + 1)
+      ),
+    [bookId, chapter]
+  );
+
+  /** Expand an existing highlight to include a new verse and merge if it bridges two highlights. */
+  const expandHighlight = useCallback(
+    (existing: Highlight, verse: number) => {
+      const newStart = Math.min(existing.startVerse, verse);
+      const newEnd = Math.max(existing.endVerse, verse);
+
+      // Check if expanding bridges to another adjacent highlight
+      const otherAdjacent = chapterHighlightsRef.current.find(
+        (h) =>
+          h.id !== existing.id &&
+          h.bookId === bookId &&
+          h.chapter === chapter &&
+          (newEnd + 1 === h.startVerse || newStart - 1 === h.endVerse)
+      );
+
+      if (otherAdjacent) {
+        // Merge: expand to cover both highlights, delete the other
+        const mergedStart = Math.min(newStart, otherAdjacent.startVerse);
+        const mergedEnd = Math.max(newEnd, otherAdjacent.endVerse);
+
+        dispatch(
+          updateHighlightRangeAction({
+            id: existing.id,
+            startVerse: mergedStart,
+            endVerse: mergedEnd,
+          })
+        );
+        dispatch(removeHighlightAction(otherAdjacent.id));
+
+        if (user?.uid) {
+          void updateHighlightRangeDoc(
+            user.uid,
+            existing.id,
+            mergedStart,
+            mergedEnd
+          );
+          void deleteHighlightDoc(user.uid, otherAdjacent.id);
+        }
+      } else {
+        // Simple expand
+        dispatch(
+          updateHighlightRangeAction({
+            id: existing.id,
+            startVerse: newStart,
+            endVerse: newEnd,
+          })
+        );
+
+        if (user?.uid) {
+          void updateHighlightRangeDoc(user.uid, existing.id, newStart, newEnd);
+        }
+      }
+    },
+    [bookId, chapter, dispatch, user?.uid]
+  );
+
+  /** Create a brand-new single-verse highlight. */
   const createHighlight = useCallback(
-    (startVerse: number, endVerse: number) => {
+    (verse: number) => {
       const now = Date.now();
       const highlight: Highlight = {
         id: generateLocalId(),
         bookId,
         chapter,
-        startVerse: Math.min(startVerse, endVerse),
-        endVerse: Math.max(startVerse, endVerse),
+        startVerse: verse,
+        endVerse: verse,
         color: DEFAULT_HIGHLIGHT_COLOR,
         createdAt: now,
         updatedAt: now,
       };
 
-      // Local-first: dispatch immediately (useHighlightsSync persists to AsyncStorage)
       dispatch(addHighlightAction(highlight));
 
-      // Write-through to Firestore if authenticated
       if (user?.uid) {
         void setHighlightDoc(user.uid, highlight).catch((error) => {
           console.warn("[Highlights] Firestore write-through failed:", error);
@@ -105,47 +176,47 @@ export const useHighlightRenderer = (
     [bookId, chapter, dispatch, user?.uid]
   );
 
+  /**
+   * Single-tap handler:
+   * - Tapping a highlighted verse → open color picker
+   * - Tapping an unhighlighted verse adjacent to existing highlight → expand it
+   * - Tapping an unhighlighted verse → create new single-verse highlight
+   */
   const handleVerseTap = useCallback(
     (parsed: ParsedVerse) => {
-      const current = tapStateRef.current;
-      if (current.mode === "idle") {
-        if (Platform.OS === "ios") void Haptics.selectionAsync();
-        setTapState({ mode: "first-selected", verse: parsed });
-      } else if (current.mode === "first-selected") {
+      const { verse } = parsed;
+
+      // 1. Already highlighted → open color picker
+      const existingHighlight = findHighlightForVerse(verse);
+      if (existingHighlight) {
+        if (Platform.OS === "ios")
+          void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+        setColorPickerTarget(existingHighlight);
+        return;
+      }
+
+      // 2. Adjacent to existing highlight → expand
+      const adjacent = findAdjacentHighlight(verse);
+      if (adjacent) {
         if (Platform.OS === "ios")
           void Haptics.notificationAsync(
             Haptics.NotificationFeedbackType.Success
           );
-        createHighlight(current.verse.verse, parsed.verse);
-        setTapState({ mode: "idle" });
+        expandHighlight(adjacent, verse);
+        return;
       }
+
+      // 3. New standalone highlight
+      if (Platform.OS === "ios") void Haptics.selectionAsync();
+      createHighlight(verse);
     },
-    [createHighlight]
+    [
+      createHighlight,
+      expandHighlight,
+      findAdjacentHighlight,
+      findHighlightForVerse,
+    ]
   );
-
-  const handleVerseLongPress = useCallback((parsed: ParsedVerse) => {
-    const key = buildVerseKey(parsed.bookId, parsed.chapter, parsed.verse);
-    const color = highlightLookupRef.current[key];
-    if (!color) return;
-
-    // Find the highlight that contains this verse
-    const highlight = chapterHighlightsRef.current.find(
-      (h) =>
-        parsed.verse >= h.startVerse &&
-        parsed.verse <= h.endVerse &&
-        h.bookId === parsed.bookId &&
-        h.chapter === parsed.chapter
-    );
-    if (highlight) {
-      if (Platform.OS === "ios")
-        void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      setColorPickerTarget(highlight);
-    }
-  }, []);
-
-  const cancelSelection = useCallback(() => {
-    setTapState({ mode: "idle" });
-  }, []);
 
   const dismissColorPicker = useCallback(() => {
     setColorPickerTarget(undefined);
@@ -177,18 +248,14 @@ export const useHighlightRenderer = (
   }, [colorPickerTarget, dispatch, user?.uid]);
 
   // Stable key that changes when highlights for this chapter change.
-  // Used as RenderHtml's `key` prop to force a full re-mount, since
-  // react-native-render-html v6 caches the parsed tree based on `source`
-  // and doesn't re-render individual nodes when only `renderers` changes.
   const highlightKey = useMemo(
-    () => chapterHighlights.map((h) => `${h.id}:${h.color}`).join("|"),
+    () =>
+      chapterHighlights
+        .map((h) => `${h.id}:${h.color}:${h.startVerse}-${h.endVerse}`)
+        .join("|"),
     [chapterHighlights]
   );
 
-  // The renderers object is memoized but must update when highlights change
-  // so that verse background colors re-render. Including highlightLookup in
-  // the deps triggers a TRenderEngine rebuild only on user-initiated highlight
-  // actions, which is an acceptable trade-off.
   const renderers = useMemo(
     () => ({
       p: (({ TDefaultRenderer, tnode, ...props }) => {
@@ -216,11 +283,13 @@ export const useHighlightRenderer = (
         return (
           <Pressable
             onPress={() => handleVerseTap(parsed)}
-            onLongPress={() => handleVerseLongPress(parsed)}
-            delayLongPress={400}
             accessibilityRole="button"
             accessibilityLabel={`Verse ${parsed.verse}`}
-            accessibilityHint="Tap to select verse for highlighting, long press to edit existing highlight"
+            accessibilityHint={
+              highlightColor
+                ? "Tap to edit highlight color or delete"
+                : "Tap to highlight this verse"
+            }
           >
             <TDefaultRenderer
               tnode={tnode}
@@ -240,15 +309,12 @@ export const useHighlightRenderer = (
         );
       }) as CustomBlockRenderer,
     }),
-    [colorMode, handleVerseLongPress, handleVerseTap, highlightLookup]
+    [colorMode, handleVerseTap, highlightLookup]
   );
 
   return {
     renderers,
     highlightKey,
-    pendingVerse:
-      tapState.mode === "first-selected" ? tapState.verse : undefined,
-    cancelSelection,
     colorPickerTarget,
     dismissColorPicker,
     changeColor,

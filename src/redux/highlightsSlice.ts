@@ -42,6 +42,23 @@ export const highlightsSlice = createSlice({
         highlight.updatedAt = Date.now();
       }
     },
+    updateHighlightRange(
+      state,
+      action: PayloadAction<{
+        id: string;
+        startVerse: number;
+        endVerse: number;
+      }>
+    ) {
+      const highlight = state.highlights.find(
+        (h) => h.id === action.payload.id
+      );
+      if (highlight) {
+        highlight.startVerse = action.payload.startVerse;
+        highlight.endVerse = action.payload.endVerse;
+        highlight.updatedAt = Date.now();
+      }
+    },
   },
 });
 
@@ -50,6 +67,7 @@ export const {
   addHighlight,
   removeHighlight,
   updateHighlightColor,
+  updateHighlightRange,
 } = highlightsSlice.actions;
 
 // Selectors

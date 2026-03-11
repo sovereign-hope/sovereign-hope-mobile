@@ -28,7 +28,7 @@ import { spacing } from "src/style/layout";
 import { selectReadingFontSize } from "src/redux/settingsSlice";
 import { useHighlightRenderer } from "./useHighlightRenderer";
 import { HighlightColorPicker } from "./HighlightColorPicker";
-import { HighlightSelectionBanner } from "./HighlightSelectionBanner";
+
 import { selectCurrentPassageCommentaryHTML } from "src/redux/commentarySlice";
 import cheerio from "cheerio";
 import Collapsible from "react-native-collapsible";
@@ -559,14 +559,7 @@ export const PassageReader: React.FunctionComponent<PassageReaderProps> = ({
         />
       )}
 
-      {/* Pending verse selection banner */}
-      {highlightEnabled && highlightRenderer.pendingVerse && (
-        <HighlightSelectionBanner
-          verse={highlightRenderer.pendingVerse}
-          onCancel={highlightRenderer.cancelSelection}
-          bottomOffset={miniPlayerHeight + bottomInset}
-        />
-      )}
+      {/* Pending verse selection banner removed — single-tap now highlights immediately */}
     </View>
   );
 };

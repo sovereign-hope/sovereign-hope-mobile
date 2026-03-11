@@ -33,6 +33,22 @@ export const setHighlightDoc = async (
   await setDoc(ref, data);
 };
 
+export const updateHighlightRangeDoc = async (
+  uid: string,
+  highlightId: string,
+  startVerse: number,
+  endVerse: number
+): Promise<void> => {
+  const ref = doc(
+    getFirebaseFirestore(),
+    "users",
+    uid,
+    "highlights",
+    highlightId
+  );
+  await updateDoc(ref, { startVerse, endVerse, updatedAt: Date.now() });
+};
+
 export const updateHighlightColorDoc = async (
   uid: string,
   highlightId: string,
