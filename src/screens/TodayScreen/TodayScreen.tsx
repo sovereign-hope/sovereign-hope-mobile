@@ -102,6 +102,7 @@ import TrackPlayer, { Track } from "react-native-track-player";
 import { initializeTrackPlayer } from "src/services/trackPlayerSetup";
 import { playPassageAudio } from "src/services/passageAudio";
 import { store } from "src/app/store";
+import { passageToLocation } from "src/app/bibleUtils";
 import { stopMemoryAudioSession } from "src/redux/memoryAudioSlice";
 import {
   GlassView,
@@ -378,6 +379,15 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
     masterDetailPassages,
     onMasterDetailComplete,
     onMasterDetailDone
+  );
+
+  // Derive bookId/chapter for highlight support
+  const currentDetailLocation = useMemo(
+    () =>
+      masterDetailPassages.length > 0
+        ? passageToLocation(masterDetailPassages[passageLoader.passageIndex])
+        : undefined,
+    [masterDetailPassages, passageLoader.passageIndex]
   );
 
   const handleDetailLayout = useCallback((event: LayoutChangeEvent) => {
@@ -1318,6 +1328,8 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
                   bottomInset={insets.bottom}
                   contentWidth={detailContentWidth}
                   adjustsForInsets
+                  bookId={currentDetailLocation?.bookId}
+                  chapter={currentDetailLocation?.chapter}
                 />
               )}
             </Animated.View>

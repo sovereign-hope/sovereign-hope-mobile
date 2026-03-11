@@ -67,6 +67,12 @@ export const ReadScreen: React.FunctionComponent<ReadScreenProps> = ({
     handlePreviousPassage,
   } = usePassageLoader(passages, onComplete, onDone);
 
+  // Derive bookId/chapter for highlight support
+  const currentLocation = useMemo(
+    () => passageToLocation(passages[passageIndex]),
+    [passageIndex, passages]
+  );
+
   // Navbar handlers
   const playAudio = useCallback(async () => {
     if (!audioUrl) {
@@ -150,6 +156,8 @@ export const ReadScreen: React.FunctionComponent<ReadScreenProps> = ({
             miniPlayerHeight={miniPlayerHeight}
             bottomInset={insets.bottom}
             onScrollDirectionChange={handleScrollDirection}
+            bookId={currentLocation?.bookId}
+            chapter={currentLocation?.chapter}
           />
           <PassageToolbar actions={toolbarActions} visible={toolbarVisible} />
         </>

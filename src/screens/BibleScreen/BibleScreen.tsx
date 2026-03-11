@@ -348,6 +348,8 @@ export const BibleScreen: React.FunctionComponent = () => {
           renderFooter={renderFooter}
           passageData={chapter}
           onScrollDirectionChange={handleScrollDirection}
+          bookId={location.bookId}
+          chapter={location.chapter}
         />
         <PassageToolbar actions={toolbarActions} visible={toolbarVisible} />
       </>

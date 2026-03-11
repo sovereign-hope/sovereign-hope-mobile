@@ -26,6 +26,9 @@ import RenderHtml, {
 import { styles } from "./PassageReader.styles";
 import { spacing } from "src/style/layout";
 import { selectReadingFontSize } from "src/redux/settingsSlice";
+import { useHighlightRenderer } from "./useHighlightRenderer";
+import { HighlightColorPicker } from "./HighlightColorPicker";
+import { HighlightSelectionBanner } from "./HighlightSelectionBanner";
 import { selectCurrentPassageCommentaryHTML } from "src/redux/commentarySlice";
 import cheerio from "cheerio";
 import Collapsible from "react-native-collapsible";
@@ -62,6 +65,10 @@ export interface PassageReaderProps {
   passageData?: EsvResponse;
   /** Called when the user changes scroll direction */
   onScrollDirectionChange?: (direction: "up" | "down") => void;
+  /** ESV 3-letter book ID (e.g. "JHN") — enables verse highlighting when combined with chapter */
+  bookId?: string;
+  /** Chapter number — enables verse highlighting when combined with bookId */
+  chapter?: number;
 }
 
 export const PassageReader: React.FunctionComponent<PassageReaderProps> = ({
@@ -78,6 +85,8 @@ export const PassageReader: React.FunctionComponent<PassageReaderProps> = ({
   onClose,
   passageData,
   onScrollDirectionChange,
+  bookId,
+  chapter,
 }: PassageReaderProps) => {
   // State
   const [isPressingHideButton, setIsPressingHideButton] = useState(false);
@@ -96,6 +105,14 @@ export const PassageReader: React.FunctionComponent<PassageReaderProps> = ({
   // Commentary sits inside contentCard (padding: lmedium) inside container (padding: large)
   const commentaryWidth = width - 2 * spacing.large - 2 * spacing.lmedium;
   const uiPreferences = useUiPreferences();
+
+  // Highlight rendering — always call hook (hooks rules), use results only when both props are set
+  const highlightEnabled = bookId !== undefined && chapter !== undefined;
+  const highlightRenderer = useHighlightRenderer(
+    bookId ?? "",
+    chapter ?? 0,
+    theme.dark
+  );
 
   // Ref Hooks
   const scrollViewRef = useRef<ScrollView>(null);
@@ -350,172 +367,203 @@ export const PassageReader: React.FunctionComponent<PassageReaderProps> = ({
   );
 
   return (
-    <Animated.ScrollView
-      ref={scrollViewRef}
-      style={[themedStyles.container, { opacity: mountAnimation }]}
-      contentInsetAdjustmentBehavior={adjustsForInsets ? "automatic" : "never"}
-      automaticallyAdjustContentInsets={adjustsForInsets}
-      automaticallyAdjustsScrollIndicatorInsets={adjustsForInsets}
-      contentContainerStyle={{
-        flexGrow: 1,
-        paddingBottom:
-          (adjustsForInsets ? insets.top : 0) + miniPlayerHeight + bottomInset,
-      }}
-      scrollIndicatorInsets={{
-        bottom:
-          (adjustsForInsets ? insets.top : 0) + miniPlayerHeight + bottomInset,
-      }}
-      onScroll={handleScroll}
-      scrollEventThrottle={16}
-    >
-      {onClose && (
-        <View style={themedStyles.closeButtonRow}>
-          <Pressable
-            onPress={onClose}
-            accessibilityRole="button"
-            accessibilityLabel="Close reading"
-            accessibilityHint="Closes the reading detail pane"
-            style={({ pressed }) =>
-              getPressFeedbackStyle(pressed, uiPreferences.isEinkMode)
-            }
-          >
-            <Ionicons name="close" size={24} color={theme.colors.text} />
-          </Pressable>
-        </View>
-      )}
-      <Animated.View style={{ opacity: passageTransitionOpacity }}>
-        {heading.length > 0 && (
-          <Text style={themedStyles.title}>{heading}</Text>
-        )}
-        <Animated.View style={{ opacity: animation }}>
-          <RenderHtml
-            contentWidth={width}
-            source={{ html: passageText?.passages[0] ?? "" }}
-            tagsStyles={tagsStyles}
-            customHTMLElementModels={customHTMLElementModels}
-          />
-          {!showMemoryButton && !passageData && commentaryHTML !== "" && (
+    <View style={{ flex: 1 }}>
+      <Animated.ScrollView
+        ref={scrollViewRef}
+        style={[themedStyles.container, { opacity: mountAnimation }]}
+        contentInsetAdjustmentBehavior={
+          adjustsForInsets ? "automatic" : "never"
+        }
+        automaticallyAdjustContentInsets={adjustsForInsets}
+        automaticallyAdjustsScrollIndicatorInsets={adjustsForInsets}
+        contentContainerStyle={{
+          flexGrow: 1,
+          paddingBottom:
+            (adjustsForInsets ? insets.top : 0) +
+            miniPlayerHeight +
+            bottomInset,
+        }}
+        scrollIndicatorInsets={{
+          bottom:
+            (adjustsForInsets ? insets.top : 0) +
+            miniPlayerHeight +
+            bottomInset,
+        }}
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
+      >
+        {onClose && (
+          <View style={themedStyles.closeButtonRow}>
             <Pressable
-              onPress={() => setIsShowingCommentary(!isShowingCommentary)}
+              onPress={onClose}
               accessibilityRole="button"
-              style={({ pressed }) => [
-                themedStyles.contentCard,
-                getPressFeedbackStyle(pressed, uiPreferences.isEinkMode),
-              ]}
+              accessibilityLabel="Close reading"
+              accessibilityHint="Closes the reading detail pane"
+              style={({ pressed }) =>
+                getPressFeedbackStyle(pressed, uiPreferences.isEinkMode)
+              }
             >
-              <View style={themedStyles.contentCardColumn}>
-                <View style={themedStyles.contentCardRow}>
-                  <Text
-                    style={{
-                      ...themedStyles.contentCardHeader,
-                      marginTop: spacing.medium,
-                    }}
-                  >
-                    Matthew Henry&apos;s Concise Commentary
-                  </Text>
-                  <Ionicons
-                    name={isShowingCommentary ? "chevron-up" : "chevron-down"}
-                    size={24}
-                    color={theme.colors.border}
-                  />
-                </View>
-                <Collapsible
-                  collapsed={!isShowingCommentary}
-                  duration={uiPreferences.disableAnimations ? 0 : 300}
-                >
-                  <RenderHtml
-                    contentWidth={commentaryWidth}
-                    source={{ html: commentaryHTMLTags }}
-                    tagsStyles={tagsStyles}
-                    classesStyles={commentaryClassesStyles}
-                    customHTMLElementModels={customHTMLElementModels}
-                  />
-                </Collapsible>
-              </View>
+              <Ionicons name="close" size={24} color={theme.colors.text} />
             </Pressable>
-          )}
-        </Animated.View>
-        {showStudyQuestions && (
-          <View style={themedStyles.contentCard}>
-            <View style={themedStyles.contentCardColumn}>
-              <Text style={themedStyles.studyQuestionHeader}>
-                Study Questions
-              </Text>
-              <Text style={themedStyles.studyQuestionSubHeader}>Look Up</Text>
-              <Text style={themedStyles.studyQuestion}>
-                What does this passage teach us about the Triune God, his
-                character, and his plan to save us in the gospel?
-              </Text>
-              <Text style={themedStyles.studyQuestionSubHeader}>Look In</Text>
-              <Text style={themedStyles.studyQuestion}>
-                What does this passage teach us about our own hearts and lives,
-                and the world we live in?
-              </Text>
-              <Text style={themedStyles.studyQuestionSubHeader}>Look Out</Text>
-              <Text style={themedStyles.studyQuestion}>
-                How does this passage influence the way we should act and think
-                as Christians at home, at work, in relationships or as the
-                church?
-              </Text>
-              <Text
-                style={{
-                  ...themedStyles.studyQuestionHeader,
-                  marginTop: spacing.large,
-                }}
-              >
-                Thoughts for Reflection
-              </Text>
-              <Text style={themedStyles.studyQuestion}>
-                Write down one way this passage can influence our emotions and
-                prayer life and be sure to set aside time to pray for that
-                today.
-              </Text>
-            </View>
           </View>
         )}
-        {showMemoryButton && (
-          <Pressable
-            accessibilityRole="button"
-            onPressIn={() => {
-              setIsPressingHideButton(true);
-              runTiming(animation, 0, 500, false);
-            }}
-            onPressOut={() => {
-              setIsPressingHideButton(false);
-              runTiming(animation, 1, 500, false);
-            }}
-            style={[
-              themedStyles.memoryButton,
-              {
-                backgroundColor: isPressingHideButton
-                  ? uiPreferences.isEinkMode
-                    ? theme.colors.background
-                    : colors.green
-                  : uiPreferences.isEinkMode
-                  ? theme.colors.background
-                  : colors.red,
-                borderWidth: uiPreferences.isEinkMode ? 1 : 0,
-                borderColor: theme.colors.primary,
-              },
-            ]}
-          >
-            <Ionicons
-              name={isPressingHideButton ? "eye" : "eye-off"}
-              color={
-                uiPreferences.isEinkMode ? theme.colors.primary : colors.white
+        <Animated.View style={{ opacity: passageTransitionOpacity }}>
+          {heading.length > 0 && (
+            <Text style={themedStyles.title}>{heading}</Text>
+          )}
+          <Animated.View style={{ opacity: animation }}>
+            <RenderHtml
+              contentWidth={width}
+              source={{ html: passageText?.passages[0] ?? "" }}
+              tagsStyles={tagsStyles}
+              customHTMLElementModels={customHTMLElementModels}
+              renderers={
+                highlightEnabled ? highlightRenderer.renderers : undefined
               }
-              style={themedStyles.memoryButtonIcon}
             />
-            <Text style={themedStyles.memoryButtonText}>
-              {isPressingHideButton
-                ? "Release to show text"
-                : "Press to hide text"}
-            </Text>
-          </Pressable>
-        )}
-        {renderFooter?.()}
-      </Animated.View>
-    </Animated.ScrollView>
+            {!showMemoryButton && !passageData && commentaryHTML !== "" && (
+              <Pressable
+                onPress={() => setIsShowingCommentary(!isShowingCommentary)}
+                accessibilityRole="button"
+                style={({ pressed }) => [
+                  themedStyles.contentCard,
+                  getPressFeedbackStyle(pressed, uiPreferences.isEinkMode),
+                ]}
+              >
+                <View style={themedStyles.contentCardColumn}>
+                  <View style={themedStyles.contentCardRow}>
+                    <Text
+                      style={{
+                        ...themedStyles.contentCardHeader,
+                        marginTop: spacing.medium,
+                      }}
+                    >
+                      Matthew Henry&apos;s Concise Commentary
+                    </Text>
+                    <Ionicons
+                      name={isShowingCommentary ? "chevron-up" : "chevron-down"}
+                      size={24}
+                      color={theme.colors.border}
+                    />
+                  </View>
+                  <Collapsible
+                    collapsed={!isShowingCommentary}
+                    duration={uiPreferences.disableAnimations ? 0 : 300}
+                  >
+                    <RenderHtml
+                      contentWidth={commentaryWidth}
+                      source={{ html: commentaryHTMLTags }}
+                      tagsStyles={tagsStyles}
+                      classesStyles={commentaryClassesStyles}
+                      customHTMLElementModels={customHTMLElementModels}
+                    />
+                  </Collapsible>
+                </View>
+              </Pressable>
+            )}
+          </Animated.View>
+          {showStudyQuestions && (
+            <View style={themedStyles.contentCard}>
+              <View style={themedStyles.contentCardColumn}>
+                <Text style={themedStyles.studyQuestionHeader}>
+                  Study Questions
+                </Text>
+                <Text style={themedStyles.studyQuestionSubHeader}>Look Up</Text>
+                <Text style={themedStyles.studyQuestion}>
+                  What does this passage teach us about the Triune God, his
+                  character, and his plan to save us in the gospel?
+                </Text>
+                <Text style={themedStyles.studyQuestionSubHeader}>Look In</Text>
+                <Text style={themedStyles.studyQuestion}>
+                  What does this passage teach us about our own hearts and
+                  lives, and the world we live in?
+                </Text>
+                <Text style={themedStyles.studyQuestionSubHeader}>
+                  Look Out
+                </Text>
+                <Text style={themedStyles.studyQuestion}>
+                  How does this passage influence the way we should act and
+                  think as Christians at home, at work, in relationships or as
+                  the church?
+                </Text>
+                <Text
+                  style={{
+                    ...themedStyles.studyQuestionHeader,
+                    marginTop: spacing.large,
+                  }}
+                >
+                  Thoughts for Reflection
+                </Text>
+                <Text style={themedStyles.studyQuestion}>
+                  Write down one way this passage can influence our emotions and
+                  prayer life and be sure to set aside time to pray for that
+                  today.
+                </Text>
+              </View>
+            </View>
+          )}
+          {showMemoryButton && (
+            <Pressable
+              accessibilityRole="button"
+              onPressIn={() => {
+                setIsPressingHideButton(true);
+                runTiming(animation, 0, 500, false);
+              }}
+              onPressOut={() => {
+                setIsPressingHideButton(false);
+                runTiming(animation, 1, 500, false);
+              }}
+              style={[
+                themedStyles.memoryButton,
+                {
+                  backgroundColor: isPressingHideButton
+                    ? uiPreferences.isEinkMode
+                      ? theme.colors.background
+                      : colors.green
+                    : uiPreferences.isEinkMode
+                    ? theme.colors.background
+                    : colors.red,
+                  borderWidth: uiPreferences.isEinkMode ? 1 : 0,
+                  borderColor: theme.colors.primary,
+                },
+              ]}
+            >
+              <Ionicons
+                name={isPressingHideButton ? "eye" : "eye-off"}
+                color={
+                  uiPreferences.isEinkMode ? theme.colors.primary : colors.white
+                }
+                style={themedStyles.memoryButtonIcon}
+              />
+              <Text style={themedStyles.memoryButtonText}>
+                {isPressingHideButton
+                  ? "Release to show text"
+                  : "Press to hide text"}
+              </Text>
+            </Pressable>
+          )}
+          {renderFooter?.()}
+        </Animated.View>
+      </Animated.ScrollView>
+
+      {/* Highlight color picker overlay */}
+      {highlightEnabled && highlightRenderer.colorPickerTarget && (
+        <HighlightColorPicker
+          activeColor={highlightRenderer.colorPickerTarget.color}
+          onSelectColor={highlightRenderer.changeColor}
+          onDelete={highlightRenderer.deleteHighlight}
+          onDismiss={highlightRenderer.dismissColorPicker}
+        />
+      )}
+
+      {/* Pending verse selection banner */}
+      {highlightEnabled && highlightRenderer.pendingVerse && (
+        <HighlightSelectionBanner
+          verse={highlightRenderer.pendingVerse}
+          onCancel={highlightRenderer.cancelSelection}
+        />
+      )}
+    </View>
   );
 };
 /* eslint-enable react/prop-types */

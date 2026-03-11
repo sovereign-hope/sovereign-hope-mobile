@@ -24,4 +24,5 @@ export type RootStackParamList = {
   Schedule: undefined;
   Signups: undefined;
   Sundays: undefined;
+  Highlights: undefined;
 };

@@ -10,6 +10,7 @@ import { notificationsReducer } from "src/redux/notificationsSlice";
 import { commentaryReducer } from "src/redux/commentarySlice";
 import { memberReducer } from "src/redux/memberSlice";
 import { memoryAudioReducer } from "src/redux/memoryAudioSlice";
+import { highlightsReducer } from "src/redux/highlightsSlice";
 
 export const store = configureStore({
   reducer: {
@@ -24,6 +25,7 @@ export const store = configureStore({
     notifications: notificationsReducer,
     commentary: commentaryReducer,
     member: memberReducer,
+    highlights: highlightsReducer,
   },
 });
 

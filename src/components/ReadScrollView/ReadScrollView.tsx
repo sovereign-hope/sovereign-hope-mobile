@@ -23,6 +23,10 @@ export interface ReadScrollViewProps {
   adjustsForInsets?: boolean;
   onClose?: () => void;
   onScrollDirectionChange?: (direction: "up" | "down") => void;
+  /** ESV 3-letter book ID for verse highlighting */
+  bookId?: string;
+  /** Chapter number for verse highlighting */
+  chapter?: number;
 }
 
 export const ReadScrollView: React.FunctionComponent<ReadScrollViewProps> = ({
@@ -41,6 +45,8 @@ export const ReadScrollView: React.FunctionComponent<ReadScrollViewProps> = ({
   adjustsForInsets = false,
   onClose,
   onScrollDirectionChange,
+  bookId,
+  chapter,
 }: ReadScrollViewProps) => {
   const theme = useTheme();
   const uiPreferences = useUiPreferences();
@@ -114,6 +120,8 @@ export const ReadScrollView: React.FunctionComponent<ReadScrollViewProps> = ({
       renderFooter={renderFooter}
       onClose={onClose}
       onScrollDirectionChange={onScrollDirectionChange}
+      bookId={bookId}
+      chapter={chapter}
     />
   );
 };
