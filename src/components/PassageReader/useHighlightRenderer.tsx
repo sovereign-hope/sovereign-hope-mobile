@@ -30,6 +30,8 @@ type TapState =
 
 export type HighlightRendererResult = {
   renderers: Record<string, CustomBlockRenderer>;
+  /** Stable key that changes when highlights change — use as RenderHtml `key` */
+  highlightKey: string;
   /** The first-selected verse (if any), for UI feedback */
   pendingVerse: ParsedVerse | undefined;
   /** Cancel the pending first-verse selection */
@@ -173,6 +175,15 @@ export const useHighlightRenderer = (
     setColorPickerTarget(undefined);
   }, [colorPickerTarget, dispatch, user?.uid]);
 
+  // Stable key that changes when highlights for this chapter change.
+  // Used as RenderHtml's `key` prop to force a full re-mount, since
+  // react-native-render-html v6 caches the parsed tree based on `source`
+  // and doesn't re-render individual nodes when only `renderers` changes.
+  const highlightKey = useMemo(
+    () => chapterHighlights.map((h) => `${h.id}:${h.color}`).join("|"),
+    [chapterHighlights]
+  );
+
   // The renderers object is memoized but must update when highlights change
   // so that verse background colors re-render. Including highlightLookup in
   // the deps triggers a TRenderEngine rebuild only on user-initiated highlight
@@ -233,6 +244,7 @@ export const useHighlightRenderer = (
 
   return {
     renderers,
+    highlightKey,
     pendingVerse:
       tapState.mode === "first-selected" ? tapState.verse : undefined,
     cancelSelection,

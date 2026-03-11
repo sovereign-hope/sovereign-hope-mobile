@@ -413,6 +413,9 @@ export const PassageReader: React.FunctionComponent<PassageReaderProps> = ({
           )}
           <Animated.View style={{ opacity: animation }}>
             <RenderHtml
+              key={
+                highlightEnabled ? highlightRenderer.highlightKey : undefined
+              }
               contentWidth={width}
               source={{ html: passageText?.passages[0] ?? "" }}
               tagsStyles={tagsStyles}
