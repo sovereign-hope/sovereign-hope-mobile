@@ -561,6 +561,7 @@ export const PassageReader: React.FunctionComponent<PassageReaderProps> = ({
         <HighlightSelectionBanner
           verse={highlightRenderer.pendingVerse}
           onCancel={highlightRenderer.cancelSelection}
+          bottomOffset={miniPlayerHeight + bottomInset}
         />
       )}
     </View>

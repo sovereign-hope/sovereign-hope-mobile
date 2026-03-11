@@ -11,6 +11,8 @@ interface HighlightSelectionBannerProps {
   verse: ParsedVerse;
   /** Cancel the pending selection */
   onCancel: () => void;
+  /** Extra bottom offset to clear tab bar / mini player */
+  bottomOffset?: number;
 }
 
 const getBookName = (bookId: string): string =>
@@ -41,7 +43,7 @@ const bannerStyles = StyleSheet.create({
 });
 
 export const HighlightSelectionBanner: React.FunctionComponent<HighlightSelectionBannerProps> =
-  ({ verse, onCancel }) => {
+  ({ verse, onCancel, bottomOffset = 0 }) => {
     const theme = useTheme();
 
     const handleCancel = () => {
@@ -56,6 +58,7 @@ export const HighlightSelectionBanner: React.FunctionComponent<HighlightSelectio
         style={[
           bannerStyles.container,
           {
+            bottom: 16 + bottomOffset,
             backgroundColor: theme.dark ? "#444444" : "#FFFFFF",
             shadowColor: "#000000",
           },

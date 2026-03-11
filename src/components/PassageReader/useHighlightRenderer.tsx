@@ -173,8 +173,10 @@ export const useHighlightRenderer = (
     setColorPickerTarget(undefined);
   }, [colorPickerTarget, dispatch, user?.uid]);
 
-  // The renderers object must be memoized to prevent TRenderEngine rebuilds.
-  // We use refs inside the renderer so the object identity stays stable.
+  // The renderers object is memoized but must update when highlights change
+  // so that verse background colors re-render. Including highlightLookup in
+  // the deps triggers a TRenderEngine rebuild only on user-initiated highlight
+  // actions, which is an acceptable trade-off.
   const renderers = useMemo(
     () => ({
       p: (({ TDefaultRenderer, tnode, ...props }) => {
@@ -193,7 +195,7 @@ export const useHighlightRenderer = (
           parsed.chapter,
           parsed.verse
         );
-        const highlightColor = highlightLookupRef.current[verseKey];
+        const highlightColor = highlightLookup[verseKey];
 
         const bgColor = highlightColor
           ? HIGHLIGHT_COLORS[highlightColor][colorMode]
@@ -226,7 +228,7 @@ export const useHighlightRenderer = (
         );
       }) as CustomBlockRenderer,
     }),
-    [colorMode, handleVerseLongPress, handleVerseTap]
+    [colorMode, handleVerseLongPress, handleVerseTap, highlightLookup]
   );
 
   return {
