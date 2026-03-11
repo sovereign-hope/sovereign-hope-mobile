@@ -301,6 +301,7 @@ export const clearLocalSyncedData = async (): Promise<void> => {
     ...Object.values(SETTINGS_STORAGE_KEYS),
     ...LOCAL_ONLY_SETTINGS_KEYS,
     "@dismissedNotifications",
+    "@highlights",
     STORAGE_KEYS.settingsMeta,
     STORAGE_KEYS.dismissedNotificationsUpdatedAt,
     STORAGE_KEYS.pendingPush,

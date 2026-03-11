@@ -5,6 +5,7 @@ import {
   doc,
   onSnapshot,
   query,
+  setDoc,
   updateDoc,
 } from "firebase/firestore";
 import type { Unsubscribe } from "firebase/firestore";
@@ -20,6 +21,16 @@ export const addHighlightDoc = async (
 ): Promise<string> => {
   const ref = await addDoc(getHighlightsCollection(uid), data);
   return ref.id;
+};
+
+/** Write a highlight with an explicit ID (preserves local ID as Firestore doc ID). */
+export const setHighlightDoc = async (
+  uid: string,
+  highlight: Highlight
+): Promise<void> => {
+  const { id, ...data } = highlight;
+  const ref = doc(getFirebaseFirestore(), "users", uid, "highlights", id);
+  await setDoc(ref, data);
 };
 
 export const updateHighlightColorDoc = async (

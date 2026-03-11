@@ -1,7 +1,7 @@
 export type HighlightColor = "yellow" | "green" | "blue" | "pink" | "orange";
 
 export type Highlight = {
-  /** Firestore document ID */
+  /** Locally-generated ID (becomes Firestore document ID on sync) */
   id: string;
   /** ESV book ID, e.g. "JHN" */
   bookId: string;

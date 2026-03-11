@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo, useRef, useState } from "react";
-import { Alert, Platform, Pressable } from "react-native";
+import { Platform, Pressable } from "react-native";
 import * as Haptics from "expo-haptics";
 import type { CustomBlockRenderer } from "react-native-render-html";
 import { useAppDispatch, useAppSelector } from "src/hooks/store";
@@ -12,7 +12,7 @@ import {
   updateHighlightColor as updateHighlightColorAction,
 } from "src/redux/highlightsSlice";
 import {
-  addHighlightDoc,
+  setHighlightDoc,
   updateHighlightColorDoc,
   deleteHighlightDoc,
 } from "src/services/highlights";
@@ -21,6 +21,7 @@ import {
   DEFAULT_HIGHLIGHT_COLOR,
 } from "src/constants/highlights";
 import type { Highlight, HighlightColor } from "src/types/highlights";
+import { generateLocalId } from "src/utils/generateLocalId";
 import { parseVerseId, buildVerseKey } from "./highlightUtils";
 import type { ParsedVerse } from "./highlightUtils";
 
@@ -78,19 +79,10 @@ export const useHighlightRenderer = (
   const colorMode = isDarkMode ? "dark" : "light";
 
   const createHighlight = useCallback(
-    async (startVerse: number, endVerse: number) => {
-      if (!user?.uid) {
-        console.warn(
-          "[Highlights] Cannot create highlight — user not signed in"
-        );
-        Alert.alert("Sign In Required", "Sign in to highlight verses.", [
-          { text: "OK" },
-        ]);
-        return;
-      }
-
+    (startVerse: number, endVerse: number) => {
       const now = Date.now();
-      const data: Omit<Highlight, "id"> = {
+      const highlight: Highlight = {
+        id: generateLocalId(),
         bookId,
         chapter,
         startVerse: Math.min(startVerse, endVerse),
@@ -100,22 +92,14 @@ export const useHighlightRenderer = (
         updatedAt: now,
       };
 
-      // Optimistic update with temp ID
-      const tempId = `temp_${now}`;
-      dispatch(addHighlightAction({ ...data, id: tempId }));
+      // Local-first: dispatch immediately (useHighlightsSync persists to AsyncStorage)
+      dispatch(addHighlightAction(highlight));
 
-      try {
-        const firestoreId = await addHighlightDoc(user.uid, data);
-        // Replace temp with real ID
-        dispatch(removeHighlightAction(tempId));
-        dispatch(addHighlightAction({ ...data, id: firestoreId }));
-      } catch (error) {
-        console.warn(
-          "[Highlights] Failed to save highlight to Firestore:",
-          error
-        );
-        // Revert on failure
-        dispatch(removeHighlightAction(tempId));
+      // Write-through to Firestore if authenticated
+      if (user?.uid) {
+        void setHighlightDoc(user.uid, highlight).catch((error) => {
+          console.warn("[Highlights] Firestore write-through failed:", error);
+        });
       }
     },
     [bookId, chapter, dispatch, user?.uid]
@@ -125,27 +109,14 @@ export const useHighlightRenderer = (
     (parsed: ParsedVerse) => {
       const current = tapStateRef.current;
       if (current.mode === "idle") {
-        console.log(
-          "[Highlights] First tap: verse %d (book=%s, ch=%d)",
-          parsed.verse,
-          parsed.bookId,
-          parsed.chapter
-        );
         if (Platform.OS === "ios") void Haptics.selectionAsync();
         setTapState({ mode: "first-selected", verse: parsed });
       } else if (current.mode === "first-selected") {
-        console.log(
-          "[Highlights] Second tap: verse %d → creating highlight %d–%d",
-          parsed.verse,
-          current.verse.verse,
-          parsed.verse
-        );
-        // Second tap — create range highlight
         if (Platform.OS === "ios")
           void Haptics.notificationAsync(
             Haptics.NotificationFeedbackType.Success
           );
-        void createHighlight(current.verse.verse, parsed.verse);
+        createHighlight(current.verse.verse, parsed.verse);
         setTapState({ mode: "idle" });
       }
     },
@@ -182,20 +153,26 @@ export const useHighlightRenderer = (
 
   const changeColor = useCallback(
     (color: HighlightColor) => {
-      if (!colorPickerTarget || !user?.uid) return;
+      if (!colorPickerTarget) return;
 
       dispatch(updateHighlightColorAction({ id: colorPickerTarget.id, color }));
-      void updateHighlightColorDoc(user.uid, colorPickerTarget.id, color);
+
+      if (user?.uid) {
+        void updateHighlightColorDoc(user.uid, colorPickerTarget.id, color);
+      }
       setColorPickerTarget(undefined);
     },
     [colorPickerTarget, dispatch, user?.uid]
   );
 
   const deleteHighlight = useCallback(() => {
-    if (!colorPickerTarget || !user?.uid) return;
+    if (!colorPickerTarget) return;
 
     dispatch(removeHighlightAction(colorPickerTarget.id));
-    void deleteHighlightDoc(user.uid, colorPickerTarget.id);
+
+    if (user?.uid) {
+      void deleteHighlightDoc(user.uid, colorPickerTarget.id);
+    }
     setColorPickerTarget(undefined);
   }, [colorPickerTarget, dispatch, user?.uid]);
 
@@ -222,10 +199,6 @@ export const useHighlightRenderer = (
 
         const parsed = parseVerseId(id);
         if (!parsed) {
-          console.log(
-            "[Highlights] p renderer: id=%s — parseVerseId returned undefined",
-            id
-          );
           return <TDefaultRenderer tnode={tnode} {...props} />;
         }
 
@@ -235,14 +208,6 @@ export const useHighlightRenderer = (
           parsed.verse
         );
         const highlightColor = highlightLookup[verseKey];
-
-        if (__DEV__ && highlightColor) {
-          console.log(
-            "[Highlights] Rendering verse %s with color %s",
-            verseKey,
-            highlightColor
-          );
-        }
 
         const bgColor = highlightColor
           ? HIGHLIGHT_COLORS[highlightColor][colorMode]
