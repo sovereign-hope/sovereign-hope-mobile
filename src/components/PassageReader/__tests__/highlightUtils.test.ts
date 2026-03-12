@@ -24,13 +24,18 @@ describe("highlightUtils", () => {
   });
 
   describe("parseVerseId", () => {
-    it("parses standard ESV paragraph ID", () => {
+    it("parses poetry ID with p prefix", () => {
       const result = parseVerseId("p43003016_01-1");
       expect(result).toEqual({ bookId: "JHN", chapter: 3, verse: 16 });
     });
 
+    it("parses prose ID with v prefix", () => {
+      const result = parseVerseId("v43003016_01-1");
+      expect(result).toEqual({ bookId: "JHN", chapter: 3, verse: 16 });
+    });
+
     it("parses Genesis 1:1", () => {
-      const result = parseVerseId("p01001001_01-1");
+      const result = parseVerseId("v01001001_01-1");
       expect(result).toEqual({ bookId: "GEN", chapter: 1, verse: 1 });
     });
 
@@ -40,7 +45,7 @@ describe("highlightUtils", () => {
     });
 
     it("handles IDs without segment suffix", () => {
-      const result = parseVerseId("p43003016");
+      const result = parseVerseId("v43003016");
       expect(result).toEqual({ bookId: "JHN", chapter: 3, verse: 16 });
     });
 

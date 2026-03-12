@@ -26,6 +26,8 @@ interface PassageToolbarProps {
   actions: PassageToolbarAction[];
   /** When false, the toolbar slides off-screen. Defaults to true. */
   visible?: boolean;
+  /** Distance from the bottom edge to account for tab bar. Defaults to 0. */
+  bottomInset?: number;
 }
 
 const ANIMATION_DURATION = 200;
@@ -33,19 +35,25 @@ const ANIMATION_DURATION = 200;
 export const PassageToolbar: React.FunctionComponent<PassageToolbarProps> = ({
   actions,
   visible = true,
+  bottomInset = 0,
 }) => {
   const theme = useTheme();
   const uiPreferences = useUiPreferences();
   const themedStyles = useMemo(
-    () => styles({ theme, isEinkMode: uiPreferences.isEinkMode }),
-    [theme, uiPreferences.isEinkMode]
+    () =>
+      styles({
+        theme,
+        isEinkMode: uiPreferences.isEinkMode,
+        bottomInset: Platform.OS === "android" ? 0 : bottomInset,
+      }),
+    [theme, uiPreferences.isEinkMode, bottomInset]
   );
 
   const translateY = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     Animated.timing(translateY, {
-      toValue: visible ? 0 : -80,
+      toValue: visible ? 0 : 160,
       duration: ANIMATION_DURATION,
       useNativeDriver: true,
     }).start();

@@ -1,4 +1,4 @@
-import { createSlice } from "@reduxjs/toolkit";
+import { createSelector, createSlice } from "@reduxjs/toolkit";
 import type { PayloadAction } from "@reduxjs/toolkit";
 import type { RootState } from "src/app/store";
 import type {
@@ -74,14 +74,15 @@ export const {
 export const selectAllHighlights = (state: RootState): Highlight[] =>
   state.highlights.highlights;
 
-export const selectHighlightsForChapter = (
-  state: RootState,
-  bookId: string,
-  chapter: number
-): Highlight[] =>
-  state.highlights.highlights.filter(
-    (h) => h.bookId === bookId && h.chapter === chapter
-  );
+export const selectHighlightsForChapter = createSelector(
+  [
+    (state: RootState) => state.highlights.highlights,
+    (_state: RootState, bookId: string) => bookId,
+    (_state: RootState, _bookId: string, chapter: number) => chapter,
+  ],
+  (highlights, bookId, chapter) =>
+    highlights.filter((h) => h.bookId === bookId && h.chapter === chapter)
+);
 
 /**
  * Build a lookup map for a specific chapter: "BOOKID:chapter:verse" → color.

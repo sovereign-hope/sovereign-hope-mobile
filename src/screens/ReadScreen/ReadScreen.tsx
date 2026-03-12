@@ -122,6 +122,14 @@ export const ReadScreen: React.FunctionComponent<ReadScreenProps> = ({
         onPress: showSelectFontSize,
       },
     ];
+    actions.push({
+      key: "highlights",
+      icon: "star-outline",
+      label: "Highlights",
+      accessibilityLabel: "View Highlights",
+      accessibilityHint: "View all your saved highlights",
+      onPress: () => navigation.push("Highlights"),
+    });
     if (audioUrl) {
       actions.push({
         key: "listen",
@@ -133,7 +141,7 @@ export const ReadScreen: React.FunctionComponent<ReadScreenProps> = ({
       });
     }
     return actions;
-  }, [audioUrl, handleOpenInBible, playAudio, showSelectFontSize]);
+  }, [audioUrl, handleOpenInBible, navigation, playAudio, showSelectFontSize]);
 
   return (
     <SafeAreaView style={themedStyles.screen} edges={["left", "right"]}>
@@ -159,7 +167,11 @@ export const ReadScreen: React.FunctionComponent<ReadScreenProps> = ({
             bookId={currentLocation?.bookId}
             chapter={currentLocation?.chapter}
           />
-          <PassageToolbar actions={toolbarActions} visible={toolbarVisible} />
+          <PassageToolbar
+            actions={toolbarActions}
+            visible={toolbarVisible}
+            bottomInset={insets.bottom}
+          />
         </>
       )}
     </SafeAreaView>

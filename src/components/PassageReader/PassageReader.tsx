@@ -1,5 +1,11 @@
 /* eslint-disable react/prop-types */
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   Pressable,
   ScrollView,
@@ -9,6 +15,7 @@ import {
   View,
   NativeScrollEvent,
   NativeSyntheticEvent,
+  LayoutChangeEvent,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAppSelector } from "src/hooks/store";
@@ -26,7 +33,10 @@ import RenderHtml, {
 import { styles } from "./PassageReader.styles";
 import { spacing } from "src/style/layout";
 import { selectReadingFontSize } from "src/redux/settingsSlice";
+import { DragPreviewContext } from "./useHighlightRenderer";
+import type { GestureResponderEvent } from "react-native";
 import { useHighlightRenderer } from "./useHighlightRenderer";
+import { wrapVerseHtml } from "./wrapVerseHtml";
 import { HighlightColorPicker } from "./HighlightColorPicker";
 
 import { selectCurrentPassageCommentaryHTML } from "src/redux/commentarySlice";
@@ -106,16 +116,40 @@ export const PassageReader: React.FunctionComponent<PassageReaderProps> = ({
   const commentaryWidth = width - 2 * spacing.large - 2 * spacing.lmedium;
   const uiPreferences = useUiPreferences();
 
+  // Track container position, scroll offset, and dimensions (needed by highlight hook)
+  const containerYRef = useRef(0);
+  const lastScrollOffsetRef = useRef(0);
+  const containerHeightRef = useRef(0);
+  const scrollViewRef = useRef<ScrollView>(null);
+
   // Highlight rendering — always call hook (hooks rules), use results only when both props are set
   const highlightEnabled = bookId !== undefined && chapter !== undefined;
   const highlightRenderer = useHighlightRenderer(
     bookId ?? "",
     chapter ?? 0,
-    theme.dark
+    theme.dark,
+    containerYRef,
+    lastScrollOffsetRef,
+    fontSize,
+    scrollViewRef,
+    containerHeightRef
+  );
+  const handleContainerLayout = useCallback((event: LayoutChangeEvent) => {
+    containerHeightRef.current = event.nativeEvent.layout.height;
+    event.target.measureInWindow((_x, y) => {
+      containerYRef.current = y;
+    });
+  }, []);
+
+  // Pre-process ESV HTML so each verse is in its own <p> tag for
+  // accurate per-verse highlighting and tap targets.
+  const rawHtml = passageText?.passages[0] ?? "";
+  const passageHtml = useMemo(
+    () => (highlightEnabled ? wrapVerseHtml(rawHtml) : rawHtml),
+    [highlightEnabled, rawHtml]
   );
 
   // Ref Hooks
-  const scrollViewRef = useRef<ScrollView>(null);
   const animation = useRef(new Animated.Value(1)).current;
   const passageTransitionOpacity = useRef(new Animated.Value(1)).current;
   const mountAnimation = useRef(new Animated.Value(0)).current;
@@ -123,7 +157,6 @@ export const PassageReader: React.FunctionComponent<PassageReaderProps> = ({
   const revealTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const prevContentKeyRef = useRef<number | string>(contentKey);
   const transitionStartKeyRef = useRef<number | string | null>(null);
-  const lastScrollOffsetRef = useRef(0);
   const lastScrollDirectionRef = useRef<"up" | "down">("up");
 
   const runTiming = React.useCallback(
@@ -232,18 +265,21 @@ export const PassageReader: React.FunctionComponent<PassageReaderProps> = ({
       const offsetY = event.nativeEvent.contentOffset.y;
 
       // Scroll-direction detection: ignore bounce region (offsetY <= 0)
-      // and require minimum 10px delta to avoid jitter
+      // and require minimum 4px delta to avoid jitter
       if (onScrollDirectionChange && offsetY > 0) {
         const delta = offsetY - lastScrollOffsetRef.current;
-        if (Math.abs(delta) > 10) {
+        if (Math.abs(delta) > 4) {
           const direction = delta > 0 ? "down" : "up";
           if (direction !== lastScrollDirectionRef.current) {
             lastScrollDirectionRef.current = direction;
             onScrollDirectionChange(direction);
           }
-          lastScrollOffsetRef.current = offsetY;
         }
       }
+
+      // Always track scroll offset for highlight drag calculations
+      // (must be after direction-change delta check above)
+      lastScrollOffsetRef.current = offsetY;
 
       if (isTransitioning || !pendingRevealRef.current) {
         return;
@@ -345,6 +381,10 @@ export const PassageReader: React.FunctionComponent<PassageReaderProps> = ({
         tagName: "note",
         contentModel: HTMLContentModel.block,
       }),
+      "verse-text": HTMLElementModel.fromCustomModel({
+        tagName: "verse-text",
+        contentModel: HTMLContentModel.textual,
+      }),
     }),
     []
   );
@@ -366,8 +406,91 @@ export const PassageReader: React.FunctionComponent<PassageReaderProps> = ({
     [theme.colors.primary, uiPreferences.isEinkMode]
   );
 
+  // ---------- Long-press + drag via raw touch events ----------
+  // Raw onTouchStart/Move/End fire before the responder system,
+  // so they coexist with ScrollView without conflict.
+  const onDragStartRef = useRef(highlightRenderer.onDragStart);
+  onDragStartRef.current = highlightRenderer.onDragStart;
+  const onDragUpdateRef = useRef(highlightRenderer.onDragUpdate);
+  onDragUpdateRef.current = highlightRenderer.onDragUpdate;
+  const onDragEndRef = useRef(highlightRenderer.onDragEnd);
+  onDragEndRef.current = highlightRenderer.onDragEnd;
+
+  // eslint-disable-next-line unicorn/no-null -- React ref API requires null
+  const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const touchStartYRef = useRef(0);
+  const lastTouchYRef = useRef(0);
+  const isDragActiveRef = useRef(false);
+  const [isDragActive, setIsDragActive] = useState(false);
+
+  const handleTouchStart = useCallback(
+    (event: GestureResponderEvent) => {
+      if (!highlightEnabled) return;
+      const { pageY } = event.nativeEvent;
+      touchStartYRef.current = pageY;
+      lastTouchYRef.current = pageY;
+
+      longPressTimerRef.current = setTimeout(() => {
+        // eslint-disable-next-line unicorn/no-null
+        longPressTimerRef.current = null;
+        isDragActiveRef.current = true;
+        setIsDragActive(true);
+        onDragStartRef.current(lastTouchYRef.current);
+      }, 400);
+    },
+    [highlightEnabled]
+  );
+
+  const handleTouchMove = useCallback((event: GestureResponderEvent) => {
+    const { pageY } = event.nativeEvent;
+    lastTouchYRef.current = pageY;
+
+    if (!isDragActiveRef.current) {
+      // Not in drag mode — cancel timer if finger moved (user is scrolling)
+      if (
+        longPressTimerRef.current &&
+        Math.abs(pageY - touchStartYRef.current) > 10
+      ) {
+        clearTimeout(longPressTimerRef.current);
+        // eslint-disable-next-line unicorn/no-null
+        longPressTimerRef.current = null;
+      }
+      return;
+    }
+
+    onDragUpdateRef.current(pageY);
+  }, []);
+
+  const handleTapRef = useRef(highlightRenderer.handleTapAtPageY);
+  handleTapRef.current = highlightRenderer.handleTapAtPageY;
+
+  const handleTouchEnd = useCallback(() => {
+    // If long-press timer is still pending, the user did a quick tap
+    // (lifted before the 400ms threshold).
+    const wasTap = longPressTimerRef.current !== null; // eslint-disable-line unicorn/no-null
+
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      // eslint-disable-next-line unicorn/no-null
+      longPressTimerRef.current = null;
+    }
+    if (isDragActiveRef.current) {
+      isDragActiveRef.current = false;
+      setIsDragActive(false);
+      onDragEndRef.current(lastTouchYRef.current);
+      return;
+    }
+
+    // Quick tap: use coordinate-based hit testing to find the verse.
+    // This bypasses nested Text onPress which is unreliable in Fabric
+    // for inline elements inside a TPhrasing context.
+    if (wasTap && highlightEnabled) {
+      handleTapRef.current(lastTouchYRef.current);
+    }
+  }, [highlightEnabled]);
+
   return (
-    <View style={{ flex: 1 }}>
+    <View style={{ flex: 1 }} onLayout={handleContainerLayout}>
       <Animated.ScrollView
         ref={scrollViewRef}
         style={[themedStyles.container, { opacity: mountAnimation }]}
@@ -391,6 +514,7 @@ export const PassageReader: React.FunctionComponent<PassageReaderProps> = ({
         }}
         onScroll={handleScroll}
         scrollEventThrottle={16}
+        scrollEnabled={!isDragActive}
       >
         {onClose && (
           <View style={themedStyles.closeButtonRow}>
@@ -411,60 +535,75 @@ export const PassageReader: React.FunctionComponent<PassageReaderProps> = ({
           {heading.length > 0 && (
             <Text style={themedStyles.title}>{heading}</Text>
           )}
-          <Animated.View style={{ opacity: animation }}>
-            <RenderHtml
-              key={
-                highlightEnabled ? highlightRenderer.highlightKey : undefined
-              }
-              contentWidth={width}
-              source={{ html: passageText?.passages[0] ?? "" }}
-              tagsStyles={tagsStyles}
-              customHTMLElementModels={customHTMLElementModels}
-              renderers={
-                highlightEnabled ? highlightRenderer.renderers : undefined
-              }
-            />
-            {!showMemoryButton && !passageData && commentaryHTML !== "" && (
-              <Pressable
-                onPress={() => setIsShowingCommentary(!isShowingCommentary)}
-                accessibilityRole="button"
-                style={({ pressed }) => [
-                  themedStyles.contentCard,
-                  getPressFeedbackStyle(pressed, uiPreferences.isEinkMode),
-                ]}
+          <View
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
+            onTouchCancel={handleTouchEnd}
+          >
+            <Animated.View style={{ opacity: animation }}>
+              <DragPreviewContext.Provider
+                value={highlightRenderer.dragPreviewRange}
               >
-                <View style={themedStyles.contentCardColumn}>
-                  <View style={themedStyles.contentCardRow}>
-                    <Text
-                      style={{
-                        ...themedStyles.contentCardHeader,
-                        marginTop: spacing.medium,
-                      }}
+                <RenderHtml
+                  key={
+                    highlightEnabled
+                      ? highlightRenderer.highlightKey
+                      : undefined
+                  }
+                  contentWidth={width}
+                  source={{ html: passageHtml }}
+                  tagsStyles={tagsStyles}
+                  customHTMLElementModels={customHTMLElementModels}
+                  renderers={
+                    highlightEnabled ? highlightRenderer.renderers : undefined
+                  }
+                />
+              </DragPreviewContext.Provider>
+              {!showMemoryButton && !passageData && commentaryHTML !== "" && (
+                <Pressable
+                  onPress={() => setIsShowingCommentary(!isShowingCommentary)}
+                  accessibilityRole="button"
+                  style={({ pressed }) => [
+                    themedStyles.contentCard,
+                    getPressFeedbackStyle(pressed, uiPreferences.isEinkMode),
+                  ]}
+                >
+                  <View style={themedStyles.contentCardColumn}>
+                    <View style={themedStyles.contentCardRow}>
+                      <Text
+                        style={{
+                          ...themedStyles.contentCardHeader,
+                          marginTop: spacing.medium,
+                        }}
+                      >
+                        Matthew Henry&apos;s Concise Commentary
+                      </Text>
+                      <Ionicons
+                        name={
+                          isShowingCommentary ? "chevron-up" : "chevron-down"
+                        }
+                        size={24}
+                        color={theme.colors.border}
+                      />
+                    </View>
+                    <Collapsible
+                      collapsed={!isShowingCommentary}
+                      duration={uiPreferences.disableAnimations ? 0 : 300}
                     >
-                      Matthew Henry&apos;s Concise Commentary
-                    </Text>
-                    <Ionicons
-                      name={isShowingCommentary ? "chevron-up" : "chevron-down"}
-                      size={24}
-                      color={theme.colors.border}
-                    />
+                      <RenderHtml
+                        contentWidth={commentaryWidth}
+                        source={{ html: commentaryHTMLTags }}
+                        tagsStyles={tagsStyles}
+                        classesStyles={commentaryClassesStyles}
+                        customHTMLElementModels={customHTMLElementModels}
+                      />
+                    </Collapsible>
                   </View>
-                  <Collapsible
-                    collapsed={!isShowingCommentary}
-                    duration={uiPreferences.disableAnimations ? 0 : 300}
-                  >
-                    <RenderHtml
-                      contentWidth={commentaryWidth}
-                      source={{ html: commentaryHTMLTags }}
-                      tagsStyles={tagsStyles}
-                      classesStyles={commentaryClassesStyles}
-                      customHTMLElementModels={customHTMLElementModels}
-                    />
-                  </Collapsible>
-                </View>
-              </Pressable>
-            )}
-          </Animated.View>
+                </Pressable>
+              )}
+            </Animated.View>
+          </View>
           {showStudyQuestions && (
             <View style={themedStyles.contentCard}>
               <View style={themedStyles.contentCardColumn}>
@@ -553,6 +692,11 @@ export const PassageReader: React.FunctionComponent<PassageReaderProps> = ({
       {highlightEnabled && highlightRenderer.colorPickerTarget && (
         <HighlightColorPicker
           activeColor={highlightRenderer.colorPickerTarget.color}
+          anchorY={
+            highlightRenderer.colorPickerPageY === undefined
+              ? undefined
+              : highlightRenderer.colorPickerPageY - containerYRef.current
+          }
           onSelectColor={highlightRenderer.changeColor}
           onDelete={highlightRenderer.deleteHighlight}
           onDismiss={highlightRenderer.dismissColorPicker}

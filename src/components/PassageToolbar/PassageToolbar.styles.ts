@@ -1,4 +1,4 @@
-import { StyleSheet, ViewStyle, TextStyle } from "react-native";
+import { Platform, StyleSheet, ViewStyle, TextStyle } from "react-native";
 import { Theme } from "@react-navigation/native";
 import { colors } from "src/style/colors";
 import { spacing, radius } from "src/style/layout";
@@ -6,6 +6,7 @@ import { spacing, radius } from "src/style/layout";
 type Props = {
   theme: Theme;
   isEinkMode: boolean;
+  bottomInset: number;
 };
 
 interface Style {
@@ -20,19 +21,24 @@ interface Style {
   label: TextStyle;
 }
 
-export const styles = ({ theme, isEinkMode }: Props): Style => {
+const PILL_RADIUS = 24;
+
+export const styles = ({ theme, isEinkMode, bottomInset }: Props): Style => {
   const actionColor = isEinkMode
     ? theme.dark
       ? colors.white
       : colors.black
     : colors.accent;
 
+  const cornerRadius = Platform.OS === "ios" ? PILL_RADIUS : radius.large;
+
   return StyleSheet.create({
     container: {
       position: "absolute",
-      top: spacing.medium,
+      bottom: bottomInset + spacing.medium,
+      left: spacing.medium,
       right: spacing.medium,
-      borderRadius: radius.large,
+      borderRadius: cornerRadius,
       overflow: "hidden",
     },
     containerSolid: {
@@ -42,36 +48,36 @@ export const styles = ({ theme, isEinkMode }: Props): Style => {
     },
     glassBackground: {
       ...StyleSheet.absoluteFillObject,
-      borderRadius: radius.large,
+      borderRadius: cornerRadius,
     },
     blurBackground: {
       ...StyleSheet.absoluteFillObject,
-      borderRadius: radius.large,
+      borderRadius: cornerRadius,
     },
     blurOverlay: {
       ...StyleSheet.absoluteFillObject,
       backgroundColor: theme.dark
         ? "rgba(0,0,0,0.15)"
         : "rgba(255,255,255,0.15)",
-      borderRadius: radius.large,
+      borderRadius: cornerRadius,
     },
     row: {
       flexDirection: "row",
       alignItems: "center",
-      gap: spacing.large,
       paddingVertical: spacing.medium,
-      paddingHorizontal: spacing.large,
+      paddingHorizontal: spacing.medium,
     },
     button: {
+      flex: 1,
       alignItems: "center",
       justifyContent: "center",
-      paddingHorizontal: spacing.small,
+      paddingVertical: spacing.small,
     },
     buttonPressed: {
       opacity: 0.5,
     },
     label: {
-      fontSize: 10,
+      fontSize: 12,
       marginTop: 2,
       color: actionColor,
     },

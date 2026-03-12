@@ -296,8 +296,45 @@ export const BibleScreen: React.FunctionComponent = () => {
         onPress: () => void handlePlayAudio(),
       });
     }
+    actions.push({
+      key: "highlights",
+      icon: "star-outline",
+      label: "Highlights",
+      accessibilityLabel: "View Highlights",
+      accessibilityHint: "View all your saved highlights",
+      onPress: () => navigation.navigate("Highlights"),
+    });
+    if (prevChapter) {
+      actions.push({
+        key: "prev",
+        icon: "chevron-back-outline",
+        label: "Prev.",
+        accessibilityLabel: "Previous Chapter",
+        accessibilityHint: "Go to the previous chapter",
+        onPress: handlePreviousChapter,
+      });
+    }
+    if (nextChapter) {
+      actions.push({
+        key: "next",
+        icon: "chevron-forward-outline",
+        label: "Next",
+        accessibilityLabel: "Next Chapter",
+        accessibilityHint: "Go to the next chapter",
+        onPress: handleNextChapter,
+      });
+    }
     return actions;
-  }, [audioUrl, handleFontSize, handlePlayAudio]);
+  }, [
+    audioUrl,
+    handleFontSize,
+    handleNextChapter,
+    handlePlayAudio,
+    handlePreviousChapter,
+    navigation,
+    nextChapter,
+    prevChapter,
+  ]);
 
   // Determine content based on state
   let content: React.JSX.Element;
@@ -351,7 +388,11 @@ export const BibleScreen: React.FunctionComponent = () => {
           bookId={location.bookId}
           chapter={location.chapter}
         />
-        <PassageToolbar actions={toolbarActions} visible={toolbarVisible} />
+        <PassageToolbar
+          actions={toolbarActions}
+          visible={toolbarVisible}
+          bottomInset={tabBarHeight}
+        />
       </>
     );
   }

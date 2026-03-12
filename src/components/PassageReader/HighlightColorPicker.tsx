@@ -9,9 +9,14 @@ import {
 } from "src/constants/highlights";
 import type { HighlightColor } from "src/types/highlights";
 
+const TOOLBAR_HEIGHT = 48;
+const TOOLBAR_GAP = 12;
+
 interface HighlightColorPickerProps {
   /** Currently selected color (shown with a checkmark) */
   activeColor: HighlightColor;
+  /** Y-offset within the container to position the toolbar above */
+  anchorY?: number;
   /** Called when user taps a color swatch */
   onSelectColor: (color: HighlightColor) => void;
   /** Called when user taps the delete/remove button */
@@ -66,7 +71,7 @@ const pickerStyles = StyleSheet.create({
 });
 
 export const HighlightColorPicker: React.FunctionComponent<HighlightColorPickerProps> =
-  ({ activeColor, onSelectColor, onDelete, onDismiss }) => {
+  ({ activeColor, anchorY, onSelectColor, onDelete, onDismiss }) => {
     const theme = useTheme();
     const colorMode = theme.dark ? "dark" : "light";
 
@@ -102,6 +107,12 @@ export const HighlightColorPicker: React.FunctionComponent<HighlightColorPickerP
             {
               backgroundColor: theme.dark ? "#444444" : "#FFFFFF",
               shadowColor: theme.dark ? "#000000" : "#000000",
+            },
+            anchorY !== undefined && {
+              top: Math.max(
+                TOOLBAR_GAP,
+                anchorY - TOOLBAR_HEIGHT - TOOLBAR_GAP
+              ),
             },
           ]}
         >

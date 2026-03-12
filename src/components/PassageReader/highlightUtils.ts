@@ -14,12 +14,14 @@ export const bookNumberToId = (bookNumber: number): string | undefined =>
   BIBLE_BOOKS[bookNumber - 1]?.id;
 
 /**
- * Parse the ESV paragraph ID to extract verse info.
- * Format: `p{BB}{CCC}{VVV}_{segment}-{part}`
- * e.g. "p43003016_01-1" → { bookId: "JHN", chapter: 3, verse: 16 }
+ * Parse a verse-text element ID to extract verse info.
+ * Accepts both prose IDs (`v{BB}{CCC}{VVV}_...`) and poetry IDs
+ * (`p{BB}{CCC}{VVV}_...`).
+ * e.g. "v43003016_01-1" → { bookId: "JHN", chapter: 3, verse: 16 }
+ *      "p30001002_05-1" → { bookId: "AMO", chapter: 1, verse: 2 }
  */
 export const parseVerseId = (pId: string): ParsedVerse | undefined => {
-  const match = pId.match(/^p(\d{2})(\d{3})(\d{3})/);
+  const match = pId.match(/^[pv](\d{2})(\d{3})(\d{3})/);
   if (!match) {
     return undefined;
   }
