@@ -422,6 +422,14 @@ export const PassageReader: React.FunctionComponent<PassageReaderProps> = ({
   const lastTouchYRef = useRef(0);
   const isDragActiveRef = useRef(false);
   const [isDragActive, setIsDragActive] = useState(false);
+  // Scroll offset captured at touch-start — if it changes meaningfully
+  // by touch-end the gesture was a scroll, not a tap.
+  const scrollAtTouchStartRef = useRef(0);
+  // Whether any touchMove events fired during this gesture.
+  const didMoveRef = useRef(false);
+  // Whether the scroll view is decelerating (momentum scroll). A tap
+  // during momentum is a "tap to stop", not a highlight tap.
+  const isMomentumScrollingRef = useRef(false);
 
   const handleTouchStart = useCallback(
     (event: GestureResponderEvent) => {
@@ -429,6 +437,8 @@ export const PassageReader: React.FunctionComponent<PassageReaderProps> = ({
       const { pageY } = event.nativeEvent;
       touchStartYRef.current = pageY;
       lastTouchYRef.current = pageY;
+      scrollAtTouchStartRef.current = lastScrollOffsetRef.current;
+      didMoveRef.current = false;
 
       longPressTimerRef.current = setTimeout(() => {
         // eslint-disable-next-line unicorn/no-null
@@ -444,6 +454,7 @@ export const PassageReader: React.FunctionComponent<PassageReaderProps> = ({
   const handleTouchMove = useCallback((event: GestureResponderEvent) => {
     const { pageY } = event.nativeEvent;
     lastTouchYRef.current = pageY;
+    didMoveRef.current = true;
 
     if (!isDragActiveRef.current) {
       // Not in drag mode — cancel timer if finger moved (user is scrolling)
@@ -477,14 +488,26 @@ export const PassageReader: React.FunctionComponent<PassageReaderProps> = ({
     if (isDragActiveRef.current) {
       isDragActiveRef.current = false;
       setIsDragActive(false);
-      onDragEndRef.current(lastTouchYRef.current);
+      onDragEndRef.current();
       return;
     }
 
     // Quick tap: use coordinate-based hit testing to find the verse.
-    // This bypasses nested Text onPress which is unreliable in Fabric
-    // for inline elements inside a TPhrasing context.
-    if (wasTap && highlightEnabled) {
+    // Reject if the finger moved at all (any touchMove event), the scroll
+    // position changed, or the finger drifted from its start position.
+    // On Android especially, even small scrolls can trigger false taps.
+    const scrollDelta = Math.abs(
+      lastScrollOffsetRef.current - scrollAtTouchStartRef.current
+    );
+    const fingerDelta = Math.abs(
+      lastTouchYRef.current - touchStartYRef.current
+    );
+    const isCleanTap =
+      !didMoveRef.current &&
+      !isMomentumScrollingRef.current &&
+      scrollDelta < 2 &&
+      fingerDelta < 8;
+    if (wasTap && highlightEnabled && isCleanTap) {
       handleTapRef.current(lastTouchYRef.current);
     }
   }, [highlightEnabled]);
@@ -513,6 +536,12 @@ export const PassageReader: React.FunctionComponent<PassageReaderProps> = ({
             bottomInset,
         }}
         onScroll={handleScroll}
+        onMomentumScrollBegin={() => {
+          isMomentumScrollingRef.current = true;
+        }}
+        onMomentumScrollEnd={() => {
+          isMomentumScrollingRef.current = false;
+        }}
         scrollEventThrottle={16}
         scrollEnabled={!isDragActive}
       >
@@ -688,22 +717,15 @@ export const PassageReader: React.FunctionComponent<PassageReaderProps> = ({
         </Animated.View>
       </Animated.ScrollView>
 
-      {/* Highlight color picker overlay */}
+      {/* Highlight color picker — positioned above the PassageToolbar */}
       {highlightEnabled && highlightRenderer.colorPickerTarget && (
         <HighlightColorPicker
           activeColor={highlightRenderer.colorPickerTarget.color}
-          anchorY={
-            highlightRenderer.colorPickerPageY === undefined
-              ? undefined
-              : highlightRenderer.colorPickerPageY - containerYRef.current
-          }
           onSelectColor={highlightRenderer.changeColor}
           onDelete={highlightRenderer.deleteHighlight}
           onDismiss={highlightRenderer.dismissColorPicker}
         />
       )}
-
-      {/* Pending verse selection banner removed — single-tap now highlights immediately */}
     </View>
   );
 };

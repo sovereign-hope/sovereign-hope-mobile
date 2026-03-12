@@ -1,5 +1,5 @@
-import React, { useCallback } from "react";
-import { Platform, Pressable, StyleSheet, View } from "react-native";
+import React, { useCallback, useEffect, useRef } from "react";
+import { Animated, Platform, Pressable, StyleSheet, View } from "react-native";
 import * as Haptics from "expo-haptics";
 import { useTheme } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
@@ -8,15 +8,15 @@ import {
   HIGHLIGHT_COLOR_ORDER,
 } from "src/constants/highlights";
 import type { HighlightColor } from "src/types/highlights";
+import { useAppSelector } from "src/hooks/store";
+import { selectHighlightPickerSide } from "src/redux/settingsSlice";
 
-const TOOLBAR_HEIGHT = 48;
-const TOOLBAR_GAP = 12;
+const SLIDE_DURATION = 200;
+const PANEL_WIDTH = 48;
 
 interface HighlightColorPickerProps {
   /** Currently selected color (shown with a checkmark) */
   activeColor: HighlightColor;
-  /** Y-offset within the container to position the toolbar above */
-  anchorY?: number;
   /** Called when user taps a color swatch */
   onSelectColor: (color: HighlightColor) => void;
   /** Called when user taps the delete/remove button */
@@ -26,19 +26,29 @@ interface HighlightColorPickerProps {
 }
 
 const pickerStyles = StyleSheet.create({
-  toolbar: {
+  container: {
     position: "absolute",
-    top: 60,
-    alignSelf: "center",
-    flexDirection: "row",
+    top: 0,
+    bottom: 0,
+    justifyContent: "center",
+  },
+  panel: {
+    flexDirection: "column",
     alignItems: "center",
-    paddingHorizontal: 12,
     paddingVertical: 8,
-    borderRadius: 28,
+    paddingHorizontal: 6,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 8,
     elevation: 6,
+  },
+  panelLeft: {
+    borderTopRightRadius: 24,
+    borderBottomRightRadius: 24,
+  },
+  panelRight: {
+    borderTopLeftRadius: 24,
+    borderBottomLeftRadius: 24,
   },
   swatch: {
     padding: 4,
@@ -47,9 +57,9 @@ const pickerStyles = StyleSheet.create({
     opacity: 0.6,
   },
   swatchCircle: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
     justifyContent: "center",
     alignItems: "center",
   },
@@ -58,22 +68,34 @@ const pickerStyles = StyleSheet.create({
     borderColor: "#FFFFFF",
   },
   divider: {
-    width: 1,
-    height: 24,
-    marginHorizontal: 8,
+    height: 1,
+    width: 24,
+    marginVertical: 4,
   },
-  deleteButton: {
+  actionButton: {
     padding: 6,
   },
-  deleteButtonPressed: {
+  actionButtonPressed: {
     opacity: 0.6,
   },
 });
 
 export const HighlightColorPicker: React.FunctionComponent<HighlightColorPickerProps> =
-  ({ activeColor, anchorY, onSelectColor, onDelete, onDismiss }) => {
+  ({ activeColor, onSelectColor, onDelete, onDismiss }) => {
     const theme = useTheme();
     const colorMode = theme.dark ? "dark" : "light";
+    const side = useAppSelector(selectHighlightPickerSide);
+
+    // Slide animation: starts off-screen, slides to 0
+    const slideAnim = useRef(new Animated.Value(-PANEL_WIDTH)).current;
+
+    useEffect(() => {
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: SLIDE_DURATION,
+        useNativeDriver: true,
+      }).start();
+    }, [slideAnim]);
 
     const handleColorPress = useCallback(
       (color: HighlightColor) => {
@@ -89,30 +111,32 @@ export const HighlightColorPicker: React.FunctionComponent<HighlightColorPickerP
       onDelete();
     }, [onDelete]);
 
-    return (
-      <>
-        {/* Backdrop — tapping dismisses the picker */}
-        <Pressable
-          style={StyleSheet.absoluteFill}
-          onPress={onDismiss}
-          accessibilityRole="button"
-          accessibilityLabel="Dismiss color picker"
-          accessibilityHint="Closes the highlight color picker"
-        />
+    const isLeft = side === "left";
 
-        {/* Floating toolbar */}
+    return (
+      <Animated.View
+        style={[
+          pickerStyles.container,
+          isLeft ? { left: 0 } : { right: 0 },
+          {
+            transform: [
+              {
+                translateX: isLeft
+                  ? slideAnim
+                  : Animated.multiply(slideAnim, -1),
+              },
+            ],
+          },
+        ]}
+        pointerEvents="box-none"
+      >
         <View
           style={[
-            pickerStyles.toolbar,
+            pickerStyles.panel,
+            isLeft ? pickerStyles.panelLeft : pickerStyles.panelRight,
             {
               backgroundColor: theme.dark ? "#444444" : "#FFFFFF",
-              shadowColor: theme.dark ? "#000000" : "#000000",
-            },
-            anchorY !== undefined && {
-              top: Math.max(
-                TOOLBAR_GAP,
-                anchorY - TOOLBAR_HEIGHT - TOOLBAR_GAP
-              ),
+              shadowColor: "#000000",
             },
           ]}
         >
@@ -142,7 +166,7 @@ export const HighlightColorPicker: React.FunctionComponent<HighlightColorPickerP
                   {isActive && (
                     <Ionicons
                       name="checkmark"
-                      size={16}
+                      size={14}
                       color={theme.dark ? "#FFFFFF" : "#333333"}
                     />
                   )}
@@ -166,13 +190,39 @@ export const HighlightColorPicker: React.FunctionComponent<HighlightColorPickerP
             accessibilityLabel="Remove highlight"
             accessibilityHint="Deletes this highlight"
             style={({ pressed }) => [
-              pickerStyles.deleteButton,
-              pressed && pickerStyles.deleteButtonPressed,
+              pickerStyles.actionButton,
+              pressed && pickerStyles.actionButtonPressed,
             ]}
           >
-            <Ionicons name="trash-outline" size={20} color="#C94B41" />
+            <Ionicons name="trash-outline" size={18} color="#C94B41" />
+          </Pressable>
+
+          {/* Divider */}
+          <View
+            style={[
+              pickerStyles.divider,
+              { backgroundColor: theme.dark ? "#666666" : "#E0E0E0" },
+            ]}
+          />
+
+          {/* Close button */}
+          <Pressable
+            onPress={onDismiss}
+            accessibilityRole="button"
+            accessibilityLabel="Close color picker"
+            accessibilityHint="Closes the highlight color picker"
+            style={({ pressed }) => [
+              pickerStyles.actionButton,
+              pressed && pickerStyles.actionButtonPressed,
+            ]}
+          >
+            <Ionicons
+              name="close"
+              size={18}
+              color={theme.dark ? "#AAAAAA" : "#888888"}
+            />
           </Pressable>
         </View>
-      </>
+      </Animated.View>
     );
   };

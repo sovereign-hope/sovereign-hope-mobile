@@ -48,6 +48,7 @@ import {
   getEnableChurchCenterDeepLink,
   getEnableEinkMode,
   storeEnableEinkMode,
+  getHighlightPickerSide,
   getDarkModeEnabled,
   getDarkModeScheduleEnabled,
   getDarkModeScheduleEndMinutes,
@@ -712,6 +713,7 @@ const HomeScreen = (): React.JSX.Element => {
     const initializeSettings = async () => {
       void dispatch(getEnableChurchCenterDeepLink());
       void dispatch(getEnableEinkMode());
+      void dispatch(getHighlightPickerSide());
       void dispatch(getOverrideSystemTheme());
       void dispatch(getDarkModeEnabled());
       void dispatch(getDarkModeScheduleEnabled());

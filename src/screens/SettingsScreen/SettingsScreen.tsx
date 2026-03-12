@@ -31,6 +31,9 @@ import {
   getEnableEinkMode,
   selectEnableEinkMode,
   storeEnableEinkMode,
+  getHighlightPickerSide,
+  selectHighlightPickerSide,
+  storeHighlightPickerSide,
   getOverrideSystemTheme,
   selectOverrideSystemTheme,
   storeOverrideSystemTheme,
@@ -97,6 +100,7 @@ export const SettingsScreen: React.FunctionComponent<Props> = ({
     selectEnableChurchCenterDeepLink
   );
   const enableEinkMode = useAppSelector(selectEnableEinkMode);
+  const highlightPickerSide = useAppSelector(selectHighlightPickerSide);
   const overrideSystemTheme = useAppSelector(selectOverrideSystemTheme);
   const darkModeEnabled = useAppSelector(selectDarkModeEnabled);
   const darkModeScheduleEnabled = useAppSelector(selectDarkModeScheduleEnabled);
@@ -134,6 +138,7 @@ export const SettingsScreen: React.FunctionComponent<Props> = ({
     void dispatch(getShowChildrensPlan());
     void dispatch(getEnableChurchCenterDeepLink());
     void dispatch(getEnableEinkMode());
+    void dispatch(getHighlightPickerSide());
     void dispatch(getOverrideSystemTheme());
     void dispatch(getDarkModeEnabled());
     void dispatch(getDarkModeScheduleEnabled());
@@ -157,6 +162,14 @@ export const SettingsScreen: React.FunctionComponent<Props> = ({
 
   const handleToggleEinkMode = (value: boolean) => {
     void dispatch(storeEnableEinkMode(value));
+  };
+
+  const handleToggleHighlightPickerSide = () => {
+    void dispatch(
+      storeHighlightPickerSide(
+        highlightPickerSide === "left" ? "right" : "left"
+      )
+    );
   };
 
   const handleToggleOverrideSystemTheme = (value: boolean) => {
@@ -497,7 +510,6 @@ export const SettingsScreen: React.FunctionComponent<Props> = ({
               style={[
                 themedStyles.settingsRow,
                 useInsetSettingsGroups && themedStyles.settingsRowGrouped,
-                useInsetSettingsGroups && themedStyles.settingsRowGroupedLast,
               ]}
             >
               <View style={themedStyles.settingsRowTextContainer}>
@@ -512,6 +524,30 @@ export const SettingsScreen: React.FunctionComponent<Props> = ({
                 value={enableEinkMode}
               />
             </View>
+
+            <Pressable
+              onPress={handleToggleHighlightPickerSide}
+              accessibilityRole="button"
+              accessibilityLabel="Highlight Picker Side"
+              accessibilityHint="Toggles highlight color picker between left and right side"
+              style={[
+                themedStyles.settingsRow,
+                useInsetSettingsGroups && themedStyles.settingsRowGrouped,
+                useInsetSettingsGroups && themedStyles.settingsRowGroupedLast,
+              ]}
+            >
+              <View style={themedStyles.settingsRowTextContainer}>
+                <Text style={themedStyles.settingsRowText}>
+                  Highlight Picker Side
+                </Text>
+                <Text style={themedStyles.settingsRowSubtext}>
+                  Which side the color picker slides out from when highlighting.
+                </Text>
+              </View>
+              <Text style={themedStyles.settingsRowText}>
+                {highlightPickerSide === "left" ? "Left" : "Right"}
+              </Text>
+            </Pressable>
           </View>
           <DateTimePickerModal
             isVisible={isDarkModeStartPickerVisible}

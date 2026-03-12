@@ -68,8 +68,6 @@ export type HighlightRendererResult = {
   highlightKey: string;
   /** Open the color picker for a highlighted verse */
   colorPickerTarget: Highlight | undefined;
-  /** Page-Y coordinate of the tap that opened the color picker */
-  colorPickerPageY: number | undefined;
   /** Dismiss the color picker */
   dismissColorPicker: () => void;
   /** Change color of the picker target */
@@ -81,7 +79,7 @@ export type HighlightRendererResult = {
   handleTapAtPageY: (pageY: number) => void;
   onDragStart: (pageY: number) => void;
   onDragUpdate: (pageY: number) => void;
-  onDragEnd: (lastPageY: number) => void;
+  onDragEnd: () => void;
   /** Whether a drag selection is in progress (disable scroll) */
   isDragSelecting: boolean;
   /** Verse range currently being drag-selected (for context provider) */
@@ -109,9 +107,6 @@ export const useHighlightRenderer = (
 
   const [colorPickerTarget, setColorPickerTarget] = useState<
     Highlight | undefined
-  >();
-  const [colorPickerPageY, setColorPickerPageY] = useState<
-    number | undefined
   >();
 
   // Stable refs for callbacks used in memoized renderer
@@ -166,6 +161,10 @@ export const useHighlightRenderer = (
   const versePositionRef = useRef<Map<number, { pId: string; relY: number }>>(
     new Map()
   );
+  // Verse → paragraph mapping populated during render (not onLayout).
+  // Inline Text children in Fabric don't fire onLayout, so this is the
+  // only reliable way to know which paragraph each verse belongs to.
+  const verseToParagraphRef = useRef<Map<number, string>>(new Map());
   // Snapshot of absolute verse Y positions, computed once at drag start
   const verseAbsoluteYRef = useRef<[number, number][]>([]); // sorted [verse, y][]
   // Auto-scroll RAF handle
@@ -184,6 +183,7 @@ export const useHighlightRenderer = (
     knownVersesRef.current = [];
     paragraphYRef.current = new Map();
     versePositionRef.current = new Map();
+    verseToParagraphRef.current = new Map();
     verseAbsoluteYRef.current = [];
   }
 
@@ -296,14 +296,14 @@ export const useHighlightRenderer = (
     [bookId, chapter, dispatch, user?.uid]
   );
 
-  /** Show the color picker anchored near the tapped verse. */
-  const openColorPicker = useCallback((highlight: Highlight, pageY: number) => {
+  /** Show the color picker for a highlight. */
+  const openColorPicker = useCallback((highlight: Highlight) => {
     setColorPickerTarget(highlight);
-    setColorPickerPageY(pageY);
   }, []);
 
   /**
    * Single-tap handler:
+   * - Color picker open → extend that highlight to include the tapped verse
    * - Tapping a highlighted verse → open color picker
    * - Tapping an unhighlighted verse adjacent to existing highlight → expand + open picker
    * - Tapping an unhighlighted verse → create highlight + open picker
@@ -318,12 +318,58 @@ export const useHighlightRenderer = (
         pageY,
       });
 
+      // 0. Color picker is open → extend that highlight to include the tapped verse
+      if (colorPickerTarget) {
+        const lo = Math.min(colorPickerTarget.startVerse, verse);
+        const hi = Math.max(colorPickerTarget.endVerse, verse);
+        if (
+          lo !== colorPickerTarget.startVerse ||
+          hi !== colorPickerTarget.endVerse
+        ) {
+          if (Platform.OS === "ios")
+            void Haptics.notificationAsync(
+              Haptics.NotificationFeedbackType.Success
+            );
+
+          dispatch(
+            updateHighlightRangeAction({
+              id: colorPickerTarget.id,
+              startVerse: lo,
+              endVerse: hi,
+            })
+          );
+          if (user?.uid) {
+            void updateHighlightRangeDoc(
+              user.uid,
+              colorPickerTarget.id,
+              lo,
+              hi
+            );
+          }
+
+          // Update the picker target to reflect the new range and reposition
+          // the picker above the (possibly new) start verse
+          const updated = {
+            ...colorPickerTarget,
+            startVerse: lo,
+            endVerse: hi,
+          };
+          setColorPickerTarget(updated);
+          // Re-open to recalculate anchor position
+          openColorPicker(updated);
+          return;
+        }
+        // Tapped same verse range — dismiss the picker
+        setColorPickerTarget(undefined);
+        return;
+      }
+
       // 1. Already highlighted → open color picker
       const existingHighlight = findHighlightForVerse(verse);
       if (existingHighlight) {
         if (Platform.OS === "ios")
           void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-        openColorPicker(existingHighlight, pageY);
+        openColorPicker(existingHighlight);
         return;
       }
 
@@ -335,28 +381,30 @@ export const useHighlightRenderer = (
             Haptics.NotificationFeedbackType.Success
           );
         expandHighlight(adjacent, verse);
-        openColorPicker(adjacent, pageY);
+        openColorPicker(adjacent);
         return;
       }
 
       // 3. New standalone highlight + open picker
       if (Platform.OS === "ios") void Haptics.selectionAsync();
       const newHighlight = createHighlight(verse);
-      openColorPicker(newHighlight, pageY);
+      openColorPicker(newHighlight);
     },
     [
+      colorPickerTarget,
       createHighlight,
+      dispatch,
       expandHighlight,
       findAdjacentHighlight,
       findHighlightForVerse,
       openColorPicker,
+      user?.uid,
     ]
   );
   handleVerseTapRef.current = handleVerseTap;
 
   const dismissColorPicker = useCallback(() => {
     setColorPickerTarget(undefined);
-    setColorPickerPageY(undefined);
   }, []);
 
   const changeColor = useCallback(
@@ -415,41 +463,65 @@ export const useHighlightRenderer = (
 
   /**
    * Build a sorted [verse, absoluteY][] snapshot from the two-level
-   * position data (paragraph Y + verse relative Y). Interpolates
-   * missing verses whose onLayout didn't fire (common in Fabric for
-   * inline Text children).
+   * position data (paragraph Y + verse relative Y). For verses whose
+   * onLayout never fired (inline Text in Fabric), estimates positions
+   * by distributing verses evenly within their paragraph's Y span.
    */
   const buildVerseAbsoluteY = useCallback((): [number, number][] => {
     const entries: [number, number][] = [];
+    const measured = new Set<number>();
+
+    // 1. Collect verses that have direct onLayout measurements
     for (const [verse, pos] of versePositionRef.current) {
       const pY = paragraphYRef.current.get(pos.pId) ?? 0;
       entries.push([verse, pY + pos.relY]);
+      measured.add(verse);
     }
-    entries.sort(([, a], [, b]) => a - b);
 
+    // 2. For unmeasured verses, estimate from paragraph membership.
+    //    Group unmeasured verses by their paragraph, then distribute
+    //    evenly across that paragraph's Y span.
     const sorted = [...knownVersesRef.current].sort((a, b) => a - b);
-    const measured = new Set(entries.map(([v]) => v));
+    const paragraphYs = [...paragraphYRef.current.entries()].sort(
+      ([, a], [, b]) => a - b
+    );
+
+    // Build paragraph → [unmeasured verses] groups
+    const unmeasuredByParagraph = new Map<string, number[]>();
     for (const v of sorted) {
       if (measured.has(v)) continue;
-      let prevEntry: [number, number] | undefined;
-      let nextEntry: [number, number] | undefined;
-      for (const entry of entries) {
-        if (entry[0] < v) prevEntry = entry;
-        if (entry[0] > v && !nextEntry) nextEntry = entry;
+      const pId = verseToParagraphRef.current.get(v);
+      if (!pId) continue;
+      let group = unmeasuredByParagraph.get(pId);
+      if (!group) {
+        group = [];
+        unmeasuredByParagraph.set(pId, group);
       }
-      let y: number;
-      if (prevEntry && nextEntry) {
-        const frac = (v - prevEntry[0]) / (nextEntry[0] - prevEntry[0]);
-        y = prevEntry[1] + frac * (nextEntry[1] - prevEntry[1]);
-      } else if (prevEntry) {
-        y = prevEntry[1] + 1;
-      } else if (nextEntry) {
-        y = nextEntry[1] - 1;
-      } else {
-        continue;
-      }
-      entries.push([v, y]);
+      group.push(v);
     }
+
+    for (const [pId, verses] of unmeasuredByParagraph) {
+      const pY = paragraphYRef.current.get(pId);
+      if (pY === undefined) continue;
+
+      // Find the next paragraph's Y to compute this paragraph's height
+      let nextPY: number | undefined;
+      for (const [, y] of paragraphYs) {
+        if (y > pY) {
+          nextPY = y;
+          break;
+        }
+      }
+      const pHeight = nextPY === undefined ? 200 : nextPY - pY; // fallback
+
+      // Distribute verses evenly within the paragraph
+      const total = verses.length;
+      for (let index = 0; index < total; index++) {
+        const y = pY + (index / total) * pHeight;
+        entries.push([verses[index], y]);
+      }
+    }
+
     entries.sort(([, a], [, b]) => a - b);
     return entries;
   }, []);
@@ -663,6 +735,10 @@ export const useHighlightRenderer = (
       // of relying on onPressIn (which doesn't fire reliably in Fabric
       // for inline Text elements inside a TPhrasing context).
       const snapshot = buildVerseAbsoluteY();
+      console.log(
+        "[HL-DEBUG] onDragStart snapshot",
+        snapshot.map(([v, y]) => `v${v}@${Math.round(y)}`).join(", ")
+      );
       const anchorVerse =
         findVerseAtPageY(pageY, snapshot) ?? lastPressedVerseRef.current;
       if (anchorVerse === null || anchorVerse === undefined) return;
@@ -747,31 +823,28 @@ export const useHighlightRenderer = (
     ]
   );
 
-  const onDragEnd = useCallback(
-    (lastPageY: number) => {
-      stopAutoScroll();
-      dragEndTimeRef.current = Date.now();
+  const onDragEnd = useCallback(() => {
+    stopAutoScroll();
+    dragEndTimeRef.current = Date.now();
 
-      const sel = dragSelectionRef.current;
-      /* eslint-disable unicorn/no-null */
-      dragSelectionRef.current = null;
-      lastDragVerseRef.current = null;
-      setIsDragSelecting(false);
-      setDragPreviewRange(null);
-      /* eslint-enable unicorn/no-null */
+    const sel = dragSelectionRef.current;
+    /* eslint-disable unicorn/no-null */
+    dragSelectionRef.current = null;
+    lastDragVerseRef.current = null;
+    setIsDragSelecting(false);
+    setDragPreviewRange(null);
+    /* eslint-enable unicorn/no-null */
 
-      if (!sel) return;
+    if (!sel) return;
 
-      const lo = Math.min(sel.anchorVerse, sel.currentVerse);
-      const hi = Math.max(sel.anchorVerse, sel.currentVerse);
-      const created = createRangeHighlight(lo, hi);
-      if (created) {
-        // Place color picker near where the user's finger ended
-        openColorPicker(created, lastPageY);
-      }
-    },
-    [createRangeHighlight, openColorPicker, stopAutoScroll]
-  );
+    const lo = Math.min(sel.anchorVerse, sel.currentVerse);
+    const hi = Math.max(sel.anchorVerse, sel.currentVerse);
+    const created = createRangeHighlight(lo, hi);
+    if (created) {
+      // Place color picker near where the user's finger ended
+      openColorPicker(created);
+    }
+  }, [createRangeHighlight, openColorPicker, stopAutoScroll]);
 
   // Stable key that changes when highlights for this chapter change.
   const highlightKey = useMemo(
@@ -825,6 +898,11 @@ export const useHighlightRenderer = (
 
         // Determine parent paragraph ID for two-level position tracking
         const pId = tnode.parent?.id || `p-${tnode.parent?.nodeIndex ?? 0}`;
+
+        // Track verse→paragraph mapping during render (always fires).
+        // onLayout won't fire for inline Text in Fabric, so this is
+        // the only reliable source for paragraph membership.
+        verseToParagraphRef.current.set(parsed.verse, pId);
 
         // eslint-disable-next-line react-hooks/rules-of-hooks -- always called (early return above is before any hooks)
         const dragRange = useContext(DragPreviewContext);
@@ -901,7 +979,6 @@ export const useHighlightRenderer = (
     renderers,
     highlightKey,
     colorPickerTarget,
-    colorPickerPageY,
     dismissColorPicker,
     changeColor,
     deleteHighlight,
