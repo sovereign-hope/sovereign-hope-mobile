@@ -41,7 +41,7 @@ npm run member:bulk-sync -- --dry-run
 Then apply:
 
 ```bash
-npm run member:bulk-sync --
+npm run member:bulk-sync
 ```
 
 ## Useful options
