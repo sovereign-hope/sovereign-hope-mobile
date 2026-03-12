@@ -24,6 +24,23 @@ npm run admin:set-admin -- --email "admin@example.com" --remove
 
 ## Local Development
 
+Install dependencies once before running admin commands:
+
+From the repository root:
+
+```bash
+npm ci
+npm --prefix admin ci
+```
+
+Or inside this directory:
+
+```bash
+npm ci
+```
+
+Then start the dev server.
+
 From the repository root:
 
 ```bash

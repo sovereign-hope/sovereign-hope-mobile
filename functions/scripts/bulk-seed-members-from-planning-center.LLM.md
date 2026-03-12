@@ -35,7 +35,7 @@ npm run member:bulk-seed -- --dry-run
 Then apply:
 
 ```bash
-npm run member:bulk-seed --
+npm run member:bulk-seed
 ```
 
 ## Useful options

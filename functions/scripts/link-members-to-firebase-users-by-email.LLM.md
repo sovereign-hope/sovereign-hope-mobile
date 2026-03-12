@@ -35,7 +35,7 @@ npm run member:link-by-email -- --dry-run
 Apply:
 
 ```bash
-npm run member:link-by-email --
+npm run member:link-by-email
 ```
 
 ## Useful options

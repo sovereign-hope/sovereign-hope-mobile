@@ -136,6 +136,7 @@ describe("memorySlice", () => {
       await store.dispatch(getMemoryPassageText({ passage: testPassage }));
 
       expect(store.getState().memory.currentPassage).toBeUndefined();
+      expect(store.getState().memory.hasError).toBe(true);
     });
   });
 

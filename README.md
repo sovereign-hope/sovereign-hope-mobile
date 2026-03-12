@@ -188,6 +188,12 @@ With Node active in this directory, install dependencies with:
 npm ci
 ```
 
+If you also work on the admin dashboard, install its dependencies too:
+
+```bash
+npm --prefix admin ci
+```
+
 #### 🏗 Expo and EAS CLI
 
 ```bash
