@@ -101,7 +101,7 @@ export const getMemoryPassageText = createAsyncThunk(
       };
     } catch (error) {
       console.error(error);
-      return {};
+      throw error;
     }
   }
 );
