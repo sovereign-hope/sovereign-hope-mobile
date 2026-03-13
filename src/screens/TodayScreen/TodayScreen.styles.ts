@@ -106,7 +106,7 @@ export const styles = ({ theme, isEinkMode = false }: Props): Style =>
       flexDirection: "row",
       justifyContent: "space-between",
       alignItems: "center",
-      marginHorizontal: spacing.medium,
+      marginHorizontal: spacing.large,
       marginTop: spacing.medium,
       marginBottom: spacing.small,
     },
