@@ -1,11 +1,9 @@
 import { Platform, StyleSheet, ViewStyle, TextStyle } from "react-native";
 import { Theme } from "@react-navigation/native";
-import { colors } from "src/style/colors";
 import { spacing, radius } from "src/style/layout";
 
 type Props = {
   theme: Theme;
-  isEinkMode: boolean;
   bottomInset: number;
 };
 
@@ -24,13 +22,7 @@ interface Style {
 
 const PILL_RADIUS = 24;
 
-export const styles = ({ theme, isEinkMode, bottomInset }: Props): Style => {
-  const actionColor = isEinkMode
-    ? theme.dark
-      ? colors.white
-      : colors.black
-    : colors.accent;
-
+export const styles = ({ theme, bottomInset }: Props): Style => {
   const cornerRadius = Platform.OS === "ios" ? PILL_RADIUS : radius.large;
 
   return StyleSheet.create({
