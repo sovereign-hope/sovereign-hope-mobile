@@ -19,7 +19,7 @@ In addition to using the React Native framework, we leverage Expo to simplify ou
 
 More information on Expo is available in the [official docs](https://docs.expo.dev/).
 
-We use Github Actions for our CI/CD pipelines; more info on those later.
+We use GitHub Actions for our CI/CD pipelines; more info on those later.
 
 If you're here to quickly get the app up and running, for whatever reason, head over to [the Quick Start guide.](#quick-start)
 Otherwise, if you're onboarding as a new mobile engineer or simply want to be thorough, head over to [the Full Mobile Onboarding guide.](#full-mobile-onboarding)
@@ -180,7 +180,7 @@ Since we've already installed `nvm`, all that is necessary is:
 nvm install && nvm use
 ```
 
-When that's completed, you'll have the correct version of Node installed and configured to run in the project directory.
+When that's completed, you'll have the correct version of Node (from `.nvmrc`) installed and configured to run in the project directory.
 
 With Node active in this directory, install dependencies with:
 
@@ -225,9 +225,9 @@ Simply scan the QR code in Expo Go to work with the build, or if you've already 
 
 From here you can simply begin updating code and receive live updates on your device.
 
-### 🦾 Github Workflows
+### 🦾 GitHub Workflows
 
-We use Github Action Workflows to manage our CI/CD processes.
+We use GitHub Action workflows to manage our CI/CD processes.
 
 These workflows are managed by workflow YAML files in the `.github/workflows` directory. A little more color will be added to this in the [Release Cycle](#release-cycle) and [Development Process](#development-process) sections.
 
@@ -254,6 +254,8 @@ For pull requests into `main`, `ci.yml` runs typecheck/lint/test and generates P
 When a PR passes required checks and review, it can be merged into `main`.
 
 After merge to `main`, `development.yml` publishes the development update.
+
+For long-lived integration work on `develop`, `dev-build.yml` runs quality checks, stages a development update, and triggers development builds for both platforms.
 
 You can read more about EAS update branches and builds [here](https://docs.expo.dev/eas-update/eas-cli/) and [here](https://docs.expo.dev/build/introduction/).
 
@@ -284,8 +286,9 @@ Current workflow triggers:
 
 1. Pushes and PRs run `ci.yml`; PRs also get EAS preview updates.
 2. Pushes to `main` run `development.yml` to publish the development channel update.
-3. Pushes to `production` run `release.yml` for production staging and platform build jobs.
-4. Monitor Sentry after release and cut hotfixes as needed.
+3. Pushes to `develop` run `dev-build.yml` for development-channel staging and development builds.
+4. Pushes to `production` run `release.yml` for production staging and platform build jobs.
+5. Monitor Sentry after release and cut hotfixes as needed.
 
 ### 📚 Helpful Reading
 

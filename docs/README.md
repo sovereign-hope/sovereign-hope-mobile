@@ -22,6 +22,8 @@ This directory contains internal planning and operational docs for Sovereign Hop
 
 - [Main Project README](../README.md): Onboarding, local development, and release workflow.
 - [Admin Dashboard README](../admin/README.md): Admin web app access, local dev, and deploy commands.
+- [AGENTS](../AGENTS.md): Automation and coding-agent operating guidance for this repository.
+- [CLAUDE](../CLAUDE.md): Concise architecture and command reference for contributors and agents.
 - [PR Template](../PULL_REQUEST_TEMPLATE.md): Pull request checklist and release impact prompts.
 - [Comprehensive Testing Plan](../plans/comprehensive-testing-suite.md): Test strategy and quality goals.
 - [Solutions Archive](../plans/solutions/): Resolved issues and implementation notes.
