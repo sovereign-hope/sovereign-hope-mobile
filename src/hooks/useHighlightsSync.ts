@@ -57,8 +57,8 @@ export const useHighlightsSync = (): void => {
   // uses the current value (avoids stale closure in the auth effect).
   const highlightsRef = useRef(highlights);
   highlightsRef.current = highlights;
-  // eslint-disable-next-line unicorn/no-useless-undefined -- useRef requires initial value in strict mode
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(
+    // eslint-disable-next-line unicorn/no-useless-undefined -- useRef requires initial value in strict mode
     undefined
   );
 

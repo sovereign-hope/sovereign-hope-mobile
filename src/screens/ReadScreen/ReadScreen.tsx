@@ -167,11 +167,7 @@ export const ReadScreen: React.FunctionComponent<ReadScreenProps> = ({
             bookId={currentLocation?.bookId}
             chapter={currentLocation?.chapter}
           />
-          <PassageToolbar
-            actions={toolbarActions}
-            visible={toolbarVisible}
-            bottomInset={insets.bottom}
-          />
+          <PassageToolbar actions={toolbarActions} visible={toolbarVisible} />
         </>
       )}
     </SafeAreaView>

@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef } from "react";
 import { Animated, Platform, Pressable, Text, View } from "react-native";
 import { useTheme } from "@react-navigation/native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { BlurView } from "expo-blur";
 import {
   GlassView,
@@ -26,8 +27,8 @@ interface PassageToolbarProps {
   actions: PassageToolbarAction[];
   /** When false, the toolbar slides off-screen. Defaults to true. */
   visible?: boolean;
-  /** Distance from the bottom edge to account for tab bar. Defaults to 0. */
-  bottomInset?: number;
+  /** Extra offset above the safe area (e.g. for a tab bar overlay). Defaults to 0. */
+  bottomOffset?: number;
 }
 
 const ANIMATION_DURATION = 200;
@@ -35,18 +36,20 @@ const ANIMATION_DURATION = 200;
 export const PassageToolbar: React.FunctionComponent<PassageToolbarProps> = ({
   actions,
   visible = true,
-  bottomInset = 0,
+  bottomOffset = 0,
 }) => {
   const theme = useTheme();
+  const insets = useSafeAreaInsets();
   const uiPreferences = useUiPreferences();
   const themedStyles = useMemo(
     () =>
       styles({
         theme,
         isEinkMode: uiPreferences.isEinkMode,
-        bottomInset: Platform.OS === "android" ? 0 : bottomInset,
+        bottomInset:
+          Platform.OS === "android" ? 0 : insets.bottom + bottomOffset,
       }),
-    [theme, uiPreferences.isEinkMode, bottomInset]
+    [theme, uiPreferences.isEinkMode, insets.bottom, bottomOffset]
   );
 
   const translateY = useRef(new Animated.Value(0)).current;

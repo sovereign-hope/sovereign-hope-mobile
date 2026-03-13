@@ -37,10 +37,27 @@ const wrapProseVerses = (html: string): string =>
 
     const parts: string[] = [];
 
-    // Content before the first verse marker (leave unwrapped)
+    // Content before the first verse marker — this is a verse continuation
+    // when the <p> tag's ID encodes a different verse than the first marker.
+    // e.g. <p id="p01003001_03-1">...continuation of v1... <b id="v01003002-1">2 </b>...
     const firstMarkerIndex = markers[0].index;
     if (firstMarkerIndex > 0) {
-      parts.push(inner.slice(0, firstMarkerIndex));
+      const pIdMatch = attrs.match(/id="p(\d{8})_(\d+)-(\d+)"/);
+      const firstMarkerRef = markers[0][1]; // e.g. "01003002"
+      if (pIdMatch && pIdMatch[1] !== firstMarkerRef) {
+        // The <p> tag's verse differs from the first marker → wrap as continuation
+        const verseRef = pIdMatch[1];
+        const part = pIdMatch[3];
+        const verseId = `v${verseRef}_01-${part}`;
+        parts.push(
+          `<verse-text id="${verseId}">${inner.slice(
+            0,
+            firstMarkerIndex
+          )}</verse-text>`
+        );
+      } else {
+        parts.push(inner.slice(0, firstMarkerIndex));
+      }
     }
 
     for (let index = 0; index < markers.length; index++) {

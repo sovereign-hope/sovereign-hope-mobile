@@ -21,6 +21,7 @@ import {
   useRoute,
   RouteProp,
 } from "@react-navigation/native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { RootStackParamList } from "src/navigation/RootNavigator";
 import { Ionicons } from "@expo/vector-icons";
 import { useAppDispatch, useAppSelector } from "src/hooks/store";
@@ -59,6 +60,18 @@ export const BibleScreen: React.FunctionComponent = () => {
   const theme = useTheme();
   const { height: tabBarHeight } = useTabBarHeightContext();
   const miniPlayerHeight = useMiniPlayerHeight();
+  const insets = useSafeAreaInsets();
+
+  // On iPad (iOS 18+), the native tab bar renders as a sidebar, so there's
+  // no bottom tab bar overlaying content. On iPhone, the bottom tab bar
+  // overlaps content and the toolbar needs an extra offset above it.
+  // The toolbar already accounts for safe area internally, so subtract it
+  // from the full tabBarHeight to get just the tab bar's own height.
+  const isIPad =
+    Platform.OS === "ios" && (Platform as { isPad?: boolean }).isPad;
+  const tabBarOverlayHeight = isIPad
+    ? 0
+    : Math.max(tabBarHeight - insets.bottom, 0);
   const uiPreferences = useUiPreferences();
   const pickerRef = useRef<BiblePickerHandle>(null);
   const [toolbarVisible, setToolbarVisible] = useState(true);
@@ -396,7 +409,7 @@ export const BibleScreen: React.FunctionComponent = () => {
           contentKey={`${location.bookId}-${location.chapter}`}
           isTransitioning={isLoading}
           miniPlayerHeight={miniPlayerHeight}
-          bottomInset={tabBarHeight}
+          bottomInset={tabBarOverlayHeight + insets.bottom}
           renderFooter={renderFooter}
           passageData={chapter}
           onScrollDirectionChange={handleScrollDirection}
@@ -406,7 +419,7 @@ export const BibleScreen: React.FunctionComponent = () => {
         <PassageToolbar
           actions={toolbarActions}
           visible={toolbarVisible}
-          bottomInset={tabBarHeight}
+          bottomOffset={tabBarOverlayHeight}
         />
       </>
     );

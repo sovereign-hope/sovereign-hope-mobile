@@ -174,7 +174,7 @@ export const HighlightsScreen: React.FunctionComponent<Props> = ({
       <SafeAreaView edges={["bottom"]} style={themedStyles.container}>
         <View style={themedStyles.emptyContainer}>
           <Ionicons
-            name="color-palette-outline"
+            name="star-outline"
             size={48}
             style={themedStyles.emptyIcon}
           />

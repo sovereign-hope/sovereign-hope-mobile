@@ -59,6 +59,33 @@ describe("wrapVerseHtml", () => {
     expect(pCount).toBe(1);
   });
 
+  it("wraps verse continuation before first marker in a split paragraph (Gen 3:1)", () => {
+    // ESV splits Gen 3:1 across two <p> tags. The second <p> starts with
+    // verse 1's continuation text, then has verse 2's marker mid-paragraph.
+    const html =
+      '<p id="p01003001_03-1" class="starts-chapter">' +
+      '<b class="chapter-num" id="v01003001-1">3:1\u00A0</b>Now the serpent was more crafty.' +
+      "</p>" +
+      '<p id="p01003001_03-1">' +
+      'He said to the woman, "Did God actually say?" ' +
+      '<b class="verse-num" id="v01003002-1">2\u00A0</b>And the woman said.' +
+      "</p>";
+
+    const result = wrapVerseHtml(html);
+
+    // First paragraph: verse 1 wrapped normally
+    expect(result).toContain('<verse-text id="v01003001_01-1">');
+    // Second paragraph: continuation text wrapped as verse 1
+    expect(result).toMatch(
+      /<verse-text id="v01003001_01-1">He said to the woman.*?<\/verse-text>/
+    );
+    // Second paragraph: verse 2 also wrapped
+    expect(result).toContain('<verse-text id="v01003002_01-1">');
+    // Total: 3 verse-text elements
+    const verseTextCount = (result.match(/<verse-text /g) ?? []).length;
+    expect(verseTextCount).toBe(3);
+  });
+
   it("does not touch paragraphs without verse IDs", () => {
     const html =
       '<p class="extra">(ESV)</p>' + "<h3>English Standard Version</h3>";
