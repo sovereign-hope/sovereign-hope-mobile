@@ -16,6 +16,7 @@ export interface SettingsState {
   showChildrensPlan: boolean;
   enableChurchCenterDeepLink: boolean;
   enableEinkMode: boolean;
+  highlightPickerSide: "left" | "right";
   overrideSystemTheme: boolean;
   darkModeEnabled: boolean;
   darkModeScheduleEnabled: boolean;
@@ -39,6 +40,7 @@ const initialState: SettingsState = {
   showChildrensPlan: true,
   enableChurchCenterDeepLink: false,
   enableEinkMode: false,
+  highlightPickerSide: "right",
   overrideSystemTheme: false,
   darkModeEnabled: false,
   darkModeScheduleEnabled: false,
@@ -382,6 +384,32 @@ export const getEnableEinkMode = createAsyncThunk(
     } catch (error) {
       console.error("Failed to read enableEinkMode from storage:", error);
       return false;
+    }
+  }
+);
+
+export const storeHighlightPickerSide = createAsyncThunk(
+  "settings/storeHighlightPickerSide",
+  async (side: "left" | "right") => {
+    try {
+      await AsyncStorage.setItem("@settings/highlightPickerSide", side);
+      return side;
+    } catch (error) {
+      console.error(error);
+      return "right" as const;
+    }
+  }
+);
+
+export const getHighlightPickerSide = createAsyncThunk(
+  "settings/getHighlightPickerSide",
+  async (): Promise<"left" | "right"> => {
+    try {
+      const value = await AsyncStorage.getItem("@settings/highlightPickerSide");
+      return value === "left" ? "left" : "right";
+    } catch (error) {
+      console.error("Failed to read highlightPickerSide from storage:", error);
+      return "right";
     }
   }
 );
@@ -865,6 +893,19 @@ export const settingsSlice = createSlice({
       state.hasError = true;
     });
 
+    // storeHighlightPickerSide
+    builder.addCase(storeHighlightPickerSide.pending, (state, action) => {
+      state.highlightPickerSide = action.meta.arg;
+    });
+    builder.addCase(storeHighlightPickerSide.fulfilled, (state, action) => {
+      state.highlightPickerSide = action.payload;
+    });
+
+    // getHighlightPickerSide
+    builder.addCase(getHighlightPickerSide.fulfilled, (state, action) => {
+      state.highlightPickerSide = action.payload;
+    });
+
     // storeOverrideSystemTheme
     builder.addCase(storeOverrideSystemTheme.pending, (state, action) => {
       state.overrideSystemTheme = action.meta.arg;
@@ -1082,6 +1123,9 @@ export const selectEnableChurchCenterDeepLink = (state: RootState): boolean =>
 
 export const selectEnableEinkMode = (state: RootState): boolean =>
   state.settings.enableEinkMode;
+
+export const selectHighlightPickerSide = (state: RootState): "left" | "right" =>
+  state.settings.highlightPickerSide;
 
 export const selectOverrideSystemTheme = (state: RootState): boolean =>
   state.settings.overrideSystemTheme;

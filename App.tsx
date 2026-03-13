@@ -37,6 +37,7 @@ import { useAppDispatch, useAppSelector } from "src/hooks/store";
 import * as SystemUI from "expo-system-ui";
 import { background as backgroundColors } from "src/style/colors";
 import { initializeTrackPlayer } from "src/services/trackPlayerSetup";
+import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 
 // Keep the splash screen visible while we fetch resources
 // eslint-disable-next-line @typescript-eslint/no-floating-promises
@@ -251,9 +252,11 @@ const App = (): React.JSX.Element => {
                 void onLayoutRootView();
               }}
             >
-              <AppLifecycleSyncEffects />
-              <RootScreen />
-              <MediaPlayer id="sov-hope-media-player" />
+              <BottomSheetModalProvider>
+                <AppLifecycleSyncEffects />
+                <RootScreen />
+                <MediaPlayer id="sov-hope-media-player" />
+              </BottomSheetModalProvider>
             </GestureHandlerRootView>
           </MediaPlayerContext.Provider>
         </TabBarHeightContext.Provider>

@@ -1,6 +1,7 @@
 import React, { useEffect } from "react";
 import { useColorScheme } from "src/hooks/useColorScheme";
 import { ReadingPlanScreen } from "src/screens/ReadingPlanScreen/ReadingPlanScreen";
+import { BibleScreen } from "src/screens/BibleScreen/BibleScreen";
 import { NavigationContainer, useFocusEffect } from "@react-navigation/native";
 import {
   lightTheme,
@@ -47,6 +48,7 @@ import {
   getEnableChurchCenterDeepLink,
   getEnableEinkMode,
   storeEnableEinkMode,
+  getHighlightPickerSide,
   getDarkModeEnabled,
   getDarkModeScheduleEnabled,
   getDarkModeScheduleEndMinutes,
@@ -67,6 +69,8 @@ import { useTabletLayout } from "src/hooks/useTabletLayout";
 import { spacing, radius } from "src/style/layout";
 import { maybeAutoEnableEinkMode } from "src/services/einkDetection";
 import { resolveThemeColorScheme } from "src/style/themeMode";
+import { useHighlightsSync } from "src/hooks/useHighlightsSync";
+import { HighlightsScreen } from "../HighlightsScreen/HighlightsScreen";
 
 // React Navigation configuration
 enableScreens();
@@ -328,46 +332,6 @@ const SettingsFlowStackScreen: React.FunctionComponent<SettingsFlowStackScreenPr
     );
   };
 
-const PodcastStack = (): React.JSX.Element => {
-  const colorScheme = useResolvedColorScheme();
-  const uiPreferences = useUiPreferences();
-  const navigationTheme = getNavigationTheme(
-    colorScheme,
-    uiPreferences.isEinkMode
-  );
-  const actionColor = getActionColor(uiPreferences.isEinkMode, colorScheme);
-
-  return (
-    <Stack.Navigator
-      screenOptions={{
-        headerTintColor: actionColor,
-        headerShadowVisible: false,
-        headerLargeTitle: true,
-        ...(uiPreferences.disableAnimations
-          ? { animation: "none" as const }
-          : {}),
-        ...(Platform.OS === "ios"
-          ? {
-              headerBackButtonDisplayMode: "minimal" as const,
-              headerBackTitleVisible: false,
-            }
-          : {}),
-        headerStyle: {
-          backgroundColor: getHeaderBackgroundColor(
-            colorScheme,
-            uiPreferences.isEinkMode
-          ),
-        },
-        headerTitleStyle: {
-          color: navigationTheme.colors.text,
-        },
-      }}
-    >
-      <Stack.Screen name="Resources" component={PodcastScreen} />
-    </Stack.Navigator>
-  );
-};
-
 const WeekStack = (): React.JSX.Element => {
   const colorScheme = useResolvedColorScheme();
   const uiPreferences = useUiPreferences();
@@ -516,6 +480,11 @@ const WeekStack = (): React.JSX.Element => {
         component={AccountSignInScreen}
         options={{ title: "Sign In", headerLargeTitle: false }}
       />
+      <Stack.Screen
+        name="Resources"
+        component={PodcastScreen}
+        options={{ headerLargeTitle: true }}
+      />
     </Stack.Navigator>
   );
 };
@@ -532,7 +501,7 @@ const ChurchStack = (): React.JSX.Element => {
   );
 };
 
-const ReadingPlanStack = (): React.JSX.Element => {
+const BibleStack = (): React.JSX.Element => {
   const colorScheme = useResolvedColorScheme();
   const uiPreferences = useUiPreferences();
   const navigationTheme = getNavigationTheme(
@@ -546,9 +515,15 @@ const ReadingPlanStack = (): React.JSX.Element => {
       screenOptions={{
         headerTintColor: actionColor,
         headerShadowVisible: false,
-        headerLargeTitle: true,
+        headerLargeTitle: false,
         ...(uiPreferences.disableAnimations
           ? { animation: "none" as const }
+          : {}),
+        ...(Platform.OS === "ios"
+          ? {
+              headerBackButtonDisplayMode: "minimal" as const,
+              headerBackTitleVisible: false,
+            }
           : {}),
         headerStyle: {
           backgroundColor: getHeaderBackgroundColor(
@@ -562,10 +537,18 @@ const ReadingPlanStack = (): React.JSX.Element => {
       }}
     >
       <Stack.Screen
+        name="Bible"
+        component={BibleScreen}
+        options={{ headerLargeTitle: false }}
+      />
+      <Stack.Screen
         name="Reading Plan"
         component={ReadingPlanScreen}
         options={{ headerLargeTitle: false }}
       />
+      <Stack.Screen name="Read" component={ReadScreen} />
+      <Stack.Screen name="Font Size" component={FontSizePickerScreen} />
+      <Stack.Screen name="Highlights" component={HighlightsScreen} />
     </Stack.Navigator>
   );
 };
@@ -730,6 +713,7 @@ const HomeScreen = (): React.JSX.Element => {
     const initializeSettings = async () => {
       void dispatch(getEnableChurchCenterDeepLink());
       void dispatch(getEnableEinkMode());
+      void dispatch(getHighlightPickerSide());
       void dispatch(getOverrideSystemTheme());
       void dispatch(getDarkModeEnabled());
       void dispatch(getDarkModeScheduleEnabled());
@@ -794,12 +778,12 @@ const HomeScreen = (): React.JSX.Element => {
           }}
         />
         <NativeTab.Screen
-          name="Reading Plan"
-          component={ReadingPlanStack}
+          name="Bible"
+          component={BibleStack}
           options={{
             lazy: false,
             headerShown: false,
-            tabBarLabel: "Reading",
+            tabBarLabel: "Bible",
             tabBarIcon: getNativeTabIcon("book"),
           }}
         />
@@ -843,16 +827,6 @@ const HomeScreen = (): React.JSX.Element => {
             }}
           />
         ) : undefined}
-        <NativeTab.Screen
-          name="Resources"
-          component={PodcastStack}
-          options={{
-            lazy: false,
-            headerShown: false,
-            tabBarLabel: "Resources",
-            tabBarIcon: getNativeTabIcon("bookmark"),
-          }}
-        />
       </NativeTab.Navigator>
     );
   }
@@ -886,12 +860,12 @@ const HomeScreen = (): React.JSX.Element => {
         }}
       />
       <JSTab.Screen
-        name="Reading Plan"
-        component={ReadingPlanStack}
+        name="Bible"
+        component={BibleStack}
         options={{
           lazy: false,
           headerShown: false,
-          tabBarLabel: "Reading",
+          tabBarLabel: "Bible",
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="book" size={size} color={color} />
           ),
@@ -923,18 +897,6 @@ const HomeScreen = (): React.JSX.Element => {
           }}
         />
       ) : undefined}
-      <JSTab.Screen
-        name="Resources"
-        component={PodcastStack}
-        options={{
-          lazy: false,
-          headerShown: false,
-          tabBarLabel: "Resources",
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="bookmark" size={size} color={color} />
-          ),
-        }}
-      />
     </JSTab.Navigator>
   );
 };
@@ -942,6 +904,7 @@ const HomeScreen = (): React.JSX.Element => {
 export const RootScreen = (): React.JSX.Element => {
   const systemColorScheme = useColorScheme();
   const uiPreferences = useUiPreferences();
+  useHighlightsSync();
   const overrideSystemTheme = useAppSelector(selectOverrideSystemTheme);
   const darkModeEnabled = useAppSelector(selectDarkModeEnabled);
   const darkModeScheduleEnabled = useAppSelector(selectDarkModeScheduleEnabled);
@@ -1103,9 +1066,15 @@ export const RootScreen = (): React.JSX.Element => {
                   }
             }
           />
+          <Stack.Screen
+            name="Reading Plan"
+            component={ReadingPlanScreen}
+            options={{ headerLargeTitle: false }}
+          />
           <Stack.Screen name="Font Size" component={FontSizePickerScreen} />
           <Stack.Screen name="Schedule" component={ScheduleScreen} />
           <Stack.Screen name="Sundays" component={SundaysScreen} />
+          <Stack.Screen name="Highlights" component={HighlightsScreen} />
         </Stack.Navigator>
       </NavigationContainer>
     </ResolvedColorSchemeContext.Provider>

@@ -1,8 +1,10 @@
 import { StyleSheet, ViewStyle } from "react-native";
 import { Theme } from "@react-navigation/native";
+import { colors } from "src/style/colors";
 
 type Props = {
   theme: Theme;
+  isEinkMode: boolean;
 };
 
 interface Style {
@@ -14,7 +16,7 @@ export const styles = ({ theme }: Props): Style =>
   StyleSheet.create({
     screen: {
       flex: 1,
-      backgroundColor: theme.colors.background,
+      backgroundColor: theme.dark ? theme.colors.background : colors.white,
     },
     loadingContainer: {
       flex: 1,

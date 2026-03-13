@@ -301,6 +301,7 @@ export const clearLocalSyncedData = async (): Promise<void> => {
     ...Object.values(SETTINGS_STORAGE_KEYS),
     ...LOCAL_ONLY_SETTINGS_KEYS,
     "@dismissedNotifications",
+    "@highlights",
     STORAGE_KEYS.settingsMeta,
     STORAGE_KEYS.dismissedNotificationsUpdatedAt,
     STORAGE_KEYS.pendingPush,
@@ -313,6 +314,8 @@ export const clearLocalSyncedData = async (): Promise<void> => {
 
 export const deleteRemoteUserData = async (uid: string): Promise<void> => {
   const db = getFirebaseFirestore();
+
+  // Delete progress subcollection
   const progressCollectionRef = collection(db, "users", uid, "progress");
   const progressSnapshot = await getDocs(progressCollectionRef);
 
@@ -320,6 +323,18 @@ export const deleteRemoteUserData = async (uid: string): Promise<void> => {
     const batch = writeBatch(db);
     progressSnapshot.docs.forEach((progressDoc) => {
       batch.delete(progressDoc.ref);
+    });
+    await batch.commit();
+  }
+
+  // Delete highlights subcollection
+  const highlightsCollectionRef = collection(db, "users", uid, "highlights");
+  const highlightsSnapshot = await getDocs(highlightsCollectionRef);
+
+  if (!highlightsSnapshot.empty) {
+    const batch = writeBatch(db);
+    highlightsSnapshot.docs.forEach((highlightDoc) => {
+      batch.delete(highlightDoc.ref);
     });
     await batch.commit();
   }

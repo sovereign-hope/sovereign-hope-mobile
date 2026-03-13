@@ -124,8 +124,11 @@ export const getReadingPlan = createAsyncThunk(
       let subscribedPlan = subscribedPlans[0];
       const planYear = getPlanYear(subscribedPlan);
 
-      // Handle year transition for multi-year plans (like Two Year Bible)
-      // Auto-upgrade to current year's version when year changes
+      // Handle year transition for multi-year plans (like Two Year Bible).
+      // Auto-upgrade to current year's version when year changes.
+      // Progress intentionally resets: each year of the Two Year Bible is a
+      // standalone reading schedule keyed by plan ID (e.g. "2025.1" → "2026.1"),
+      // so the new year starts fresh with its own AsyncStorage key.
       if (isMultiYearPlan(subscribedPlan) && planYear < currentYear) {
         const newPlanId = getUpdatedPlanId(subscribedPlan, currentYear);
 

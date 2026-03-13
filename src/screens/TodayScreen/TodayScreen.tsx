@@ -25,6 +25,7 @@ import {
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
 import { useAppSelector, useAppDispatch } from "src/hooks/store";
+import { ScreenErrorBoundary } from "src/components";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { RootStackParamList } from "src/navigation/RootNavigator";
 import { useTabBarHeightContext } from "src/navigation/TabBarContext";
@@ -79,7 +80,7 @@ import Animated, {
   FadeOutRight,
   LinearTransition,
 } from "react-native-reanimated";
-import { selectCurrentEpisode } from "src/redux/podcastSlice";
+import { getEpisodes, selectCurrentEpisode } from "src/redux/podcastSlice";
 import {
   selectAuthIsInitialized,
   selectAuthIsSyncing,
@@ -102,6 +103,7 @@ import TrackPlayer, { Track } from "react-native-track-player";
 import { initializeTrackPlayer } from "src/services/trackPlayerSetup";
 import { playPassageAudio } from "src/services/passageAudio";
 import { store } from "src/app/store";
+import { passageToLocation } from "src/app/bibleUtils";
 import { stopMemoryAudioSession } from "src/redux/memoryAudioSlice";
 import {
   GlassView,
@@ -224,6 +226,7 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
         void dispatch(getReadingPlan());
         void dispatch(getReadingPlanProgressState());
         void dispatch(getNotifications());
+        void dispatch(getEpisodes());
       }
       appState.current = nextAppState;
     };
@@ -243,6 +246,7 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
     void dispatch(getReadingPlan());
     void dispatch(getReadingPlanProgressState());
     void dispatch(getNotifications());
+    void dispatch(getEpisodes());
   }, [dispatch]);
 
   useEffect(() => {
@@ -376,6 +380,15 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
     masterDetailPassages,
     onMasterDetailComplete,
     onMasterDetailDone
+  );
+
+  // Derive bookId/chapter for highlight support
+  const currentDetailLocation = useMemo(
+    () =>
+      masterDetailPassages.length > 0
+        ? passageToLocation(masterDetailPassages[passageLoader.passageIndex])
+        : undefined,
+    [masterDetailPassages, passageLoader.passageIndex]
   );
 
   const handleDetailLayout = useCallback((event: LayoutChangeEvent) => {
@@ -845,321 +858,354 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
   );
 
   return (
-    <SafeAreaView style={themedStyles.screen} edges={["left", "right"]}>
-      {shouldShowLoadingIndicator ? (
-        <ActivityIndicator
-          size="large"
-          color={theme.colors.text}
-          style={themedStyles.loadingContainer}
-        />
-      ) : (
-        <Animated.View
-          layout={
-            uiPreferences.disableAnimations
-              ? undefined
-              : LinearTransition.duration(280)
-          }
-          style={
-            isTablet && selectedDayIndex !== undefined
-              ? themedStyles.splitView
-              : themedStyles.splitViewSingle
-          }
-        >
+    <ScreenErrorBoundary>
+      <SafeAreaView style={themedStyles.screen} edges={["left", "right"]}>
+        {shouldShowLoadingIndicator ? (
+          <ActivityIndicator
+            size="large"
+            color={theme.colors.text}
+            style={themedStyles.loadingContainer}
+          />
+        ) : (
           <Animated.View
             layout={
               uiPreferences.disableAnimations
                 ? undefined
                 : LinearTransition.duration(280)
             }
-            style={{ flex: 1 }}
+            style={
+              isTablet && selectedDayIndex !== undefined
+                ? themedStyles.splitView
+                : themedStyles.splitViewSingle
+            }
           >
-            <Animated.ScrollView
-              entering={
-                uiPreferences.disableAnimations
-                  ? undefined
-                  : FadeIn.duration(500)
-              }
-              exiting={
-                uiPreferences.disableAnimations
-                  ? undefined
-                  : FadeOut.duration(500)
-              }
-              style={themedStyles.scrollView}
-              contentInsetAdjustmentBehavior="automatic"
-              contentContainerStyle={{
-                paddingBottom: miniPlayerHeight + insets.bottom,
-              }}
-            >
-              <Animated.View
-                entering={
-                  uiPreferences.disableAnimations
-                    ? undefined
-                    : FadeIn.duration(500)
-                }
-                style={themedStyles.notifications}
-              >
-                {notifications?.map((notification) => (
-                  <Pressable
-                    onPress={() =>
-                      void Linking.openURL(notification.link ?? "")
-                    }
-                    accessibilityRole="button"
-                    key={notification.id}
-                    style={({ pressed }) => [
-                      themedStyles.notificationBox,
-                      getPressFeedbackStyle(pressed, uiPreferences.isEinkMode, {
-                        pressedOpacity: 0.5,
-                      }),
-                    ]}
-                  >
-                    <View style={themedStyles.notificationInfo}>
-                      <Text style={themedStyles.notificationTitle}>
-                        {notification.title}
-                      </Text>
-                      <Text style={themedStyles.notificationDetails}>
-                        {notification.details}
-                      </Text>
-                    </View>
-                    <Ionicons
-                      name="chevron-forward"
-                      size={24}
-                      color={theme.colors.border}
-                      style={themedStyles.disclosureIcon}
-                    />
-                  </Pressable>
-                ))}
-              </Animated.View>
-              <View style={themedStyles.content}>
-                {/* Reading Section */}
-                <Animated.View
-                  entering={
-                    uiPreferences.disableAnimations
-                      ? undefined
-                      : FadeIn.duration(500)
-                  }
-                >
-                  <View style={themedStyles.headerRow}>
-                    <Text style={themedStyles.header}>Reading</Text>
-                    {!useWideLayout && (
-                      <Pressable
-                        style={({ pressed }) => [
-                          themedStyles.textButton,
-                          getPressFeedbackStyle(
-                            pressed,
-                            uiPreferences.isEinkMode
-                          ),
-                        ]}
-                        accessibilityRole="button"
-                        onPress={() => {
-                          scrollToToday();
-                        }}
-                      >
-                        <Text style={{ color: actionColor, fontSize: 18 }}>
-                          Show Today
-                        </Text>
-                      </Pressable>
-                    )}
-                  </View>
-
-                  {/* Week Grid (wide tablet) or Horizontal FlatList (phone / narrow) */}
-                  {useWideLayout ? (
-                    <WeekGrid
-                      days={readingPlanWeek?.days ?? []}
-                      currentDayIndex={currentDayIndex}
-                      onDayPress={handleReadPress}
-                      onToggleComplete={handleCompleteDay}
-                    />
-                  ) : (
-                    <FlatList
-                      horizontal
-                      showsHorizontalScrollIndicator={false}
-                      data={readingPlanWeek?.days}
-                      renderItem={renderReadingItem}
-                      style={themedStyles.scrollRow}
-                      ref={readingScrollViewRef}
-                      onScrollToIndexFailed={(info) => {
-                        if (!readingScrollViewRef.current) {
-                          return;
-                        }
-                        readingScrollViewRef.current.scrollToIndex({
-                          index: Math.max(info.highestMeasuredFrameIndex, 0),
-                          animated: false,
-                        });
-                        setTimeout(() => {
-                          if (readingScrollViewRef.current) {
-                            readingScrollViewRef.current.scrollToIndex({
-                              index: info.index,
-                              animated: pendingScrollAnimatedRef.current,
-                            });
-                          }
-                        }, 50);
-                      }}
-                      contentContainerStyle={{
-                        marginTop: spacing.small,
-                        paddingRight: spacing.large,
-                      }}
-                    />
-                  )}
-
-                  <Text style={themedStyles.subHeader}>
-                    {subscribedPlan?.title ?? currentDate.getFullYear()}
-                  </Text>
-                  {!!readingPlanCompletionPercentage && (
-                    <Bar
-                      progress={readingPlanCompletionPercentage}
-                      // eslint-disable-next-line unicorn/no-null
-                      width={null}
-                      color={colors.green}
-                      animationType="timing"
-                      animationConfig={{
-                        duration: uiPreferences.disableAnimations ? 0 : 500,
-                      }}
-                      indeterminate={readingPlanCompletionPercentage <= 0}
-                      style={{
-                        marginHorizontal: spacing.large,
-                        marginBottom: spacing.large,
-                      }}
-                    />
-                  )}
-                </Animated.View>
-
-                {/* Dashboard: 2-column on wide tablet, single column on phone / narrow */}
-                {useWideLayout ? (
-                  <View style={themedStyles.dashboardGrid}>
-                    {/* Left column: Memory */}
-                    <View style={themedStyles.dashboardColumn}>
-                      <View style={themedStyles.headerRow}>
-                        <Text style={themedStyles.header}>Memory</Text>
-                      </View>
-                      {renderMemoryCard(themedStyles.contentCardTablet)}
-                    </View>
-
-                    {/* Right column: Prayer (if member) or Resources */}
-                    <View style={themedStyles.dashboardColumn}>
-                      {isMember ? (
-                        <>
-                          <View style={themedStyles.headerRow}>
-                            <Text style={themedStyles.header}>
-                              Prayer Assignments
-                            </Text>
-                          </View>
-                          {renderPrayerSection(themedStyles.contentCardTablet)}
-                        </>
-                      ) : (
-                        <>
-                          <View style={themedStyles.headerRow}>
-                            <Text style={themedStyles.header}>Resources</Text>
-                          </View>
-                          {renderResourcesCard(themedStyles.contentCardTablet)}
-                        </>
-                      )}
-                    </View>
-                  </View>
-                ) : (
-                  /* Phone: single column layout */
-                  <>
-                    <View style={themedStyles.headerRow}>
-                      <Text style={themedStyles.header}>Memory</Text>
-                    </View>
-                    {renderMemoryCard()}
-                    {isMember && (
-                      <>
-                        <View style={themedStyles.headerRow}>
-                          <Text style={themedStyles.header}>
-                            Prayer Assignments
-                          </Text>
-                        </View>
-                        {renderPrayerSection()}
-                      </>
-                    )}
-                  </>
-                )}
-
-                {/* Resources: full-width (shown here only when isMember on wide tablet, or always on phone/narrow) */}
-                {(!useWideLayout || isMember) && (
-                  <>
-                    <View style={themedStyles.headerRow}>
-                      <Text style={themedStyles.header}>Resources</Text>
-                    </View>
-                    {renderResourcesCard()}
-                  </>
-                )}
-                <View style={themedStyles.spacer} />
-              </View>
-            </Animated.ScrollView>
-          </Animated.View>
-          {isTablet && selectedDayIndex !== undefined && (
             <Animated.View
               layout={
                 uiPreferences.disableAnimations
                   ? undefined
                   : LinearTransition.duration(280)
               }
-              entering={
-                uiPreferences.disableAnimations
-                  ? undefined
-                  : FadeInRight.duration(280)
-              }
-              exiting={
-                uiPreferences.disableAnimations
-                  ? undefined
-                  : FadeOutRight.duration(220)
-              }
-              style={themedStyles.splitViewDetail}
-              onLayout={handleDetailLayout}
+              style={{ flex: 1 }}
             >
-              <View
-                style={[
-                  themedStyles.splitViewDetailHeader,
-                  { paddingTop: splitDetailTopInset + spacing.medium },
-                ]}
+              <Animated.ScrollView
+                entering={
+                  uiPreferences.disableAnimations
+                    ? undefined
+                    : FadeIn.duration(500)
+                }
+                exiting={
+                  uiPreferences.disableAnimations
+                    ? undefined
+                    : FadeOut.duration(500)
+                }
+                style={themedStyles.scrollView}
+                contentInsetAdjustmentBehavior="automatic"
+                contentContainerStyle={{
+                  paddingBottom: miniPlayerHeight + insets.bottom,
+                }}
               >
-                <View style={themedStyles.splitViewDetailHeaderRow}>
-                  <View style={themedStyles.splitViewDetailHeaderActions}>
+                <Animated.View
+                  entering={
+                    uiPreferences.disableAnimations
+                      ? undefined
+                      : FadeIn.duration(500)
+                  }
+                  style={themedStyles.notifications}
+                >
+                  {notifications?.map((notification) => (
                     <Pressable
+                      onPress={() =>
+                        void Linking.openURL(notification.link ?? "")
+                      }
                       accessibilityRole="button"
-                      accessibilityLabel="Text size"
-                      accessibilityHint="Opens text size settings"
-                      onPress={showSelectFontSize}
+                      key={notification.id}
                       style={({ pressed }) => [
-                        themedStyles.splitViewDetailHeaderButton,
-                        shouldUseLiquidGlassButtons &&
-                          themedStyles.splitViewDetailHeaderButtonLiquidGlass,
+                        themedStyles.notificationBox,
                         getPressFeedbackStyle(
                           pressed,
                           uiPreferences.isEinkMode,
                           {
-                            pressedOpacity: 0.65,
+                            pressedOpacity: 0.5,
                           }
                         ),
                       ]}
                     >
-                      {shouldUseLiquidGlassButtons && (
-                        <GlassView
-                          style={themedStyles.splitViewDetailHeaderButtonGlass}
-                          glassEffectStyle="regular"
-                          colorScheme="auto"
-                          isInteractive={false}
-                          pointerEvents="none"
-                        />
-                      )}
+                      <View style={themedStyles.notificationInfo}>
+                        <Text style={themedStyles.notificationTitle}>
+                          {notification.title}
+                        </Text>
+                        <Text style={themedStyles.notificationDetails}>
+                          {notification.details}
+                        </Text>
+                      </View>
                       <Ionicons
-                        name="text-outline"
-                        size={22}
-                        color={actionColor}
+                        name="chevron-forward"
+                        size={24}
+                        color={theme.colors.border}
+                        style={themedStyles.disclosureIcon}
                       />
-                      <Text
-                        style={themedStyles.splitViewDetailHeaderButtonText}
-                      >
-                        Text Size
-                      </Text>
                     </Pressable>
-                    {readingAudioUrl && readingAudioUrl !== "" && (
+                  ))}
+                </Animated.View>
+                <View style={themedStyles.content}>
+                  {/* Reading Section */}
+                  <Animated.View
+                    entering={
+                      uiPreferences.disableAnimations
+                        ? undefined
+                        : FadeIn.duration(500)
+                    }
+                  >
+                    <View style={themedStyles.headerRow}>
+                      <Text style={themedStyles.header}>Reading</Text>
+                      <View
+                        style={{ flexDirection: "row", gap: spacing.lmedium }}
+                      >
+                        <Pressable
+                          style={({ pressed }) => [
+                            themedStyles.textButton,
+                            getPressFeedbackStyle(
+                              pressed,
+                              uiPreferences.isEinkMode
+                            ),
+                          ]}
+                          accessibilityRole="button"
+                          accessibilityLabel="Reading Plan"
+                          accessibilityHint="Opens the full reading plan"
+                          onPress={() => {
+                            navigation.navigate("Reading Plan");
+                          }}
+                        >
+                          <Text style={themedStyles.textButtonLabel}>Plan</Text>
+                        </Pressable>
+                        {!useWideLayout && (
+                          <Pressable
+                            style={({ pressed }) => [
+                              themedStyles.textButton,
+                              getPressFeedbackStyle(
+                                pressed,
+                                uiPreferences.isEinkMode
+                              ),
+                            ]}
+                            accessibilityRole="button"
+                            accessibilityLabel="Show Today"
+                            accessibilityHint="Scrolls the reading list to today"
+                            onPress={() => {
+                              scrollToToday();
+                            }}
+                          >
+                            <Text style={themedStyles.textButtonLabel}>
+                              Today
+                            </Text>
+                          </Pressable>
+                        )}
+                      </View>
+                    </View>
+
+                    {/* Week Grid (wide tablet) or Horizontal FlatList (phone / narrow) */}
+                    {useWideLayout ? (
+                      <WeekGrid
+                        days={readingPlanWeek?.days ?? []}
+                        currentDayIndex={currentDayIndex}
+                        onDayPress={handleReadPress}
+                        onToggleComplete={handleCompleteDay}
+                      />
+                    ) : (
+                      <FlatList
+                        horizontal
+                        showsHorizontalScrollIndicator={false}
+                        data={readingPlanWeek?.days}
+                        renderItem={renderReadingItem}
+                        style={themedStyles.scrollRow}
+                        ref={readingScrollViewRef}
+                        onScrollToIndexFailed={(info) => {
+                          if (!readingScrollViewRef.current) {
+                            return;
+                          }
+                          readingScrollViewRef.current.scrollToIndex({
+                            index: Math.max(info.highestMeasuredFrameIndex, 0),
+                            animated: false,
+                          });
+                          setTimeout(() => {
+                            if (readingScrollViewRef.current) {
+                              readingScrollViewRef.current.scrollToIndex({
+                                index: info.index,
+                                animated: pendingScrollAnimatedRef.current,
+                              });
+                            }
+                          }, 50);
+                        }}
+                        contentContainerStyle={{
+                          marginTop: spacing.small,
+                          paddingRight: spacing.large,
+                        }}
+                      />
+                    )}
+
+                    <Text style={themedStyles.subHeader}>
+                      {subscribedPlan?.title ?? currentDate.getFullYear()}
+                    </Text>
+                    {!!readingPlanCompletionPercentage && (
+                      <Bar
+                        progress={readingPlanCompletionPercentage}
+                        // eslint-disable-next-line unicorn/no-null
+                        width={null}
+                        color={colors.green}
+                        animationType="timing"
+                        animationConfig={{
+                          duration: uiPreferences.disableAnimations ? 0 : 500,
+                        }}
+                        indeterminate={readingPlanCompletionPercentage <= 0}
+                        style={{
+                          marginHorizontal: spacing.large,
+                          marginBottom: spacing.large,
+                        }}
+                      />
+                    )}
+                  </Animated.View>
+
+                  {/* Dashboard: 2-column on wide tablet, single column on phone / narrow */}
+                  {useWideLayout ? (
+                    <View style={themedStyles.dashboardGrid}>
+                      {/* Left column: Memory */}
+                      <View style={themedStyles.dashboardColumn}>
+                        <View style={themedStyles.headerRow}>
+                          <Text style={themedStyles.header}>Memory</Text>
+                        </View>
+                        {renderMemoryCard(themedStyles.contentCardTablet)}
+                      </View>
+
+                      {/* Right column: Prayer (if member) or Resources */}
+                      <View style={themedStyles.dashboardColumn}>
+                        {isMember ? (
+                          <>
+                            <View style={themedStyles.headerRow}>
+                              <Text style={themedStyles.header}>
+                                Prayer Assignments
+                              </Text>
+                            </View>
+                            {renderPrayerSection(
+                              themedStyles.contentCardTablet
+                            )}
+                          </>
+                        ) : (
+                          <>
+                            <View style={themedStyles.headerRow}>
+                              <Text style={themedStyles.header}>Resources</Text>
+                              <Pressable
+                                style={({ pressed }) => [
+                                  themedStyles.textButton,
+                                  getPressFeedbackStyle(
+                                    pressed,
+                                    uiPreferences.isEinkMode
+                                  ),
+                                ]}
+                                accessibilityRole="button"
+                                accessibilityLabel="See all resources"
+                                accessibilityHint="Opens the full resources screen"
+                                onPress={() => {
+                                  navigation.navigate("Resources");
+                                }}
+                              >
+                                <Text
+                                  style={{ color: actionColor, fontSize: 18 }}
+                                >
+                                  See All
+                                </Text>
+                              </Pressable>
+                            </View>
+                            {renderResourcesCard(
+                              themedStyles.contentCardTablet
+                            )}
+                          </>
+                        )}
+                      </View>
+                    </View>
+                  ) : (
+                    /* Phone: single column layout */
+                    <>
+                      <View style={themedStyles.headerRow}>
+                        <Text style={themedStyles.header}>Memory</Text>
+                      </View>
+                      {renderMemoryCard()}
+                      {isMember && (
+                        <>
+                          <View style={themedStyles.headerRow}>
+                            <Text style={themedStyles.header}>
+                              Prayer Assignments
+                            </Text>
+                          </View>
+                          {renderPrayerSection()}
+                        </>
+                      )}
+                    </>
+                  )}
+
+                  {/* Resources: full-width (shown here only when isMember on wide tablet, or always on phone/narrow) */}
+                  {(!useWideLayout || isMember) && (
+                    <>
+                      <View style={themedStyles.headerRow}>
+                        <Text style={themedStyles.header}>Resources</Text>
+                        <Pressable
+                          style={({ pressed }) => [
+                            themedStyles.textButton,
+                            getPressFeedbackStyle(
+                              pressed,
+                              uiPreferences.isEinkMode
+                            ),
+                          ]}
+                          accessibilityRole="button"
+                          accessibilityLabel="See all resources"
+                          accessibilityHint="Opens the full resources screen"
+                          onPress={() => {
+                            navigation.navigate("Resources");
+                          }}
+                        >
+                          <Text style={themedStyles.textButtonLabel}>
+                            See All
+                          </Text>
+                        </Pressable>
+                      </View>
+                      {renderResourcesCard()}
+                    </>
+                  )}
+                  <View style={themedStyles.spacer} />
+                </View>
+              </Animated.ScrollView>
+            </Animated.View>
+            {isTablet && selectedDayIndex !== undefined && (
+              <Animated.View
+                layout={
+                  uiPreferences.disableAnimations
+                    ? undefined
+                    : LinearTransition.duration(280)
+                }
+                entering={
+                  uiPreferences.disableAnimations
+                    ? undefined
+                    : FadeInRight.duration(280)
+                }
+                exiting={
+                  uiPreferences.disableAnimations
+                    ? undefined
+                    : FadeOutRight.duration(220)
+                }
+                style={themedStyles.splitViewDetail}
+                onLayout={handleDetailLayout}
+              >
+                <View
+                  style={[
+                    themedStyles.splitViewDetailHeader,
+                    { paddingTop: splitDetailTopInset + spacing.medium },
+                  ]}
+                >
+                  <View style={themedStyles.splitViewDetailHeaderRow}>
+                    <View style={themedStyles.splitViewDetailHeaderActions}>
                       <Pressable
                         accessibilityRole="button"
-                        accessibilityLabel="Listen"
-                        accessibilityHint="Plays reading audio for this passage"
-                        onPress={() => void playReadingAudio()}
+                        accessibilityLabel="Text size"
+                        accessibilityHint="Opens text size settings"
+                        onPress={showSelectFontSize}
                         style={({ pressed }) => [
                           themedStyles.splitViewDetailHeaderButton,
                           shouldUseLiquidGlassButtons &&
@@ -1185,80 +1231,129 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
                           />
                         )}
                         <Ionicons
-                          name="volume-high-outline"
+                          name="text-outline"
                           size={22}
                           color={actionColor}
                         />
                         <Text
                           style={themedStyles.splitViewDetailHeaderButtonText}
                         >
-                          Listen
+                          Text Size
                         </Text>
                       </Pressable>
-                    )}
-                  </View>
-                  <Pressable
-                    accessibilityRole="button"
-                    accessibilityLabel="Close reading"
-                    accessibilityHint="Closes the reading detail pane"
-                    onPress={onMasterDetailDone}
-                    style={({ pressed }) => [
-                      themedStyles.splitViewDetailCloseButton,
-                      shouldUseLiquidGlassButtons &&
-                        themedStyles.splitViewDetailCloseButtonLiquidGlass,
-                      getPressFeedbackStyle(pressed, uiPreferences.isEinkMode, {
-                        pressedOpacity: 0.65,
-                      }),
-                    ]}
-                  >
-                    {shouldUseLiquidGlassButtons && (
-                      <GlassView
-                        style={themedStyles.splitViewDetailHeaderButtonGlass}
-                        glassEffectStyle="regular"
-                        colorScheme="auto"
-                        isInteractive={false}
-                        pointerEvents="none"
+                      {readingAudioUrl && readingAudioUrl !== "" && (
+                        <Pressable
+                          accessibilityRole="button"
+                          accessibilityLabel="Listen"
+                          accessibilityHint="Plays reading audio for this passage"
+                          onPress={() => void playReadingAudio()}
+                          style={({ pressed }) => [
+                            themedStyles.splitViewDetailHeaderButton,
+                            shouldUseLiquidGlassButtons &&
+                              themedStyles.splitViewDetailHeaderButtonLiquidGlass,
+                            getPressFeedbackStyle(
+                              pressed,
+                              uiPreferences.isEinkMode,
+                              {
+                                pressedOpacity: 0.65,
+                              }
+                            ),
+                          ]}
+                        >
+                          {shouldUseLiquidGlassButtons && (
+                            <GlassView
+                              style={
+                                themedStyles.splitViewDetailHeaderButtonGlass
+                              }
+                              glassEffectStyle="regular"
+                              colorScheme="auto"
+                              isInteractive={false}
+                              pointerEvents="none"
+                            />
+                          )}
+                          <Ionicons
+                            name="volume-high-outline"
+                            size={22}
+                            color={actionColor}
+                          />
+                          <Text
+                            style={themedStyles.splitViewDetailHeaderButtonText}
+                          >
+                            Listen
+                          </Text>
+                        </Pressable>
+                      )}
+                    </View>
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel="Close reading"
+                      accessibilityHint="Closes the reading detail pane"
+                      onPress={onMasterDetailDone}
+                      style={({ pressed }) => [
+                        themedStyles.splitViewDetailCloseButton,
+                        shouldUseLiquidGlassButtons &&
+                          themedStyles.splitViewDetailCloseButtonLiquidGlass,
+                        getPressFeedbackStyle(
+                          pressed,
+                          uiPreferences.isEinkMode,
+                          {
+                            pressedOpacity: 0.65,
+                          }
+                        ),
+                      ]}
+                    >
+                      {shouldUseLiquidGlassButtons && (
+                        <GlassView
+                          style={themedStyles.splitViewDetailHeaderButtonGlass}
+                          glassEffectStyle="regular"
+                          colorScheme="auto"
+                          isInteractive={false}
+                          pointerEvents="none"
+                        />
+                      )}
+                      <Ionicons
+                        name="close"
+                        size={22}
+                        color={theme.colors.text}
                       />
-                    )}
-                    <Ionicons
-                      name="close"
-                      size={22}
-                      color={theme.colors.text}
-                    />
-                  </Pressable>
+                    </Pressable>
+                  </View>
                 </View>
-              </View>
-              {passageLoader.isNavigatingPassages &&
-              !passageLoader.hasLoadedCurrentPassage ? (
-                <ActivityIndicator
-                  size="large"
-                  color={theme.colors.text}
-                  style={themedStyles.loadingContainer}
-                />
-              ) : (
-                <ReadScrollView
-                  key={`${selectedDayIndex ?? "none"}`}
-                  showMemoryButton={passageLoader.shouldShowMemoryButton}
-                  heading={passageLoader.heading}
-                  passageIndex={passageLoader.passageIndex}
-                  showPreviousPassageButton={masterDetailPassages.length > 1}
-                  canGoToPreviousPassage={passageLoader.passageIndex > 0}
-                  isNavigatingPassages={passageLoader.isNavigatingPassages}
-                  onPreviousPassage={passageLoader.handlePreviousPassage}
-                  onNextPassage={passageLoader.handleNextPassage}
-                  hasNextPassage={
-                    passageLoader.passageIndex < masterDetailPassages.length - 1
-                  }
-                  miniPlayerHeight={miniPlayerHeight}
-                  bottomInset={insets.bottom}
-                  contentWidth={detailContentWidth}
-                  adjustsForInsets
-                />
-              )}
-            </Animated.View>
-          )}
-        </Animated.View>
-      )}
-    </SafeAreaView>
+                {passageLoader.isNavigatingPassages &&
+                !passageLoader.hasLoadedCurrentPassage ? (
+                  <ActivityIndicator
+                    size="large"
+                    color={theme.colors.text}
+                    style={themedStyles.loadingContainer}
+                  />
+                ) : (
+                  <ReadScrollView
+                    key={`${selectedDayIndex ?? "none"}`}
+                    showMemoryButton={passageLoader.shouldShowMemoryButton}
+                    heading={passageLoader.heading}
+                    passageIndex={passageLoader.passageIndex}
+                    showPreviousPassageButton={masterDetailPassages.length > 1}
+                    canGoToPreviousPassage={passageLoader.passageIndex > 0}
+                    isNavigatingPassages={passageLoader.isNavigatingPassages}
+                    onPreviousPassage={passageLoader.handlePreviousPassage}
+                    onNextPassage={passageLoader.handleNextPassage}
+                    hasNextPassage={
+                      passageLoader.passageIndex <
+                      masterDetailPassages.length - 1
+                    }
+                    miniPlayerHeight={miniPlayerHeight}
+                    bottomInset={insets.bottom}
+                    contentWidth={detailContentWidth}
+                    adjustsForInsets
+                    bookId={currentDetailLocation?.bookId}
+                    chapter={currentDetailLocation?.chapter}
+                  />
+                )}
+              </Animated.View>
+            )}
+          </Animated.View>
+        )}
+      </SafeAreaView>
+    </ScreenErrorBoundary>
   );
 };

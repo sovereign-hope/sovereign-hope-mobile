@@ -19,7 +19,8 @@ interface Style {
   dayTitleIcon: ImageStyle;
   headerRow: ViewStyle;
   subHeader: TextStyle;
-  textButton: TextStyle;
+  textButton: ViewStyle;
+  textButtonLabel: TextStyle;
   contentCard: ViewStyle;
   memoryCard: ViewStyle;
   memoryPassageButton: ViewStyle;
@@ -106,6 +107,8 @@ export const styles = ({ theme, isEinkMode = false }: Props): Style =>
       justifyContent: "space-between",
       alignItems: "center",
       marginHorizontal: spacing.medium,
+      marginTop: spacing.medium,
+      marginBottom: spacing.small,
     },
     subHeader: {
       ...header3,
@@ -114,9 +117,16 @@ export const styles = ({ theme, isEinkMode = false }: Props): Style =>
       marginBottom: spacing.medium,
     },
     textButton: {
+      paddingVertical: spacing.medium,
+      paddingHorizontal: spacing.lmedium,
+      borderRadius: radius.medium,
+      borderWidth: 1,
+      borderColor: isEinkMode ? theme.colors.primary : colors.accent,
+    },
+    textButtonLabel: {
       ...body,
       color: isEinkMode ? theme.colors.primary : colors.accent,
-      marginRight: spacing.large,
+      fontWeight: "600",
     },
     contentCard: {
       flexShrink: 1,
@@ -165,6 +175,8 @@ export const styles = ({ theme, isEinkMode = false }: Props): Style =>
     },
     header: {
       ...header2,
+      fontSize: 28,
+      fontWeight: "600",
       margin: spacing.medium,
       color: theme.colors.text,
     },
