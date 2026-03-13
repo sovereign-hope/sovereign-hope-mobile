@@ -48,6 +48,9 @@ const formatRelativeReviewDate = (nextReviewDate?: string): string => {
     0
   );
   const nextDate = new Date(`${nextReviewDate}T12:00:00`);
+  if (Number.isNaN(nextDate.getTime())) {
+    return "Next review: Today";
+  }
   const dayDelta = Math.round(
     (nextDate.getTime() - todayDate.getTime()) / (1000 * 60 * 60 * 24)
   );
