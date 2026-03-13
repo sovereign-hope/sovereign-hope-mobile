@@ -91,6 +91,7 @@ export const styles = ({ theme, isEinkMode = false }: Props): Style =>
     },
     sessionActionButton: {
       flex: 4,
+      flexDirection: "row",
       minHeight: elementSize.small,
       paddingVertical: spacing.medium,
       paddingHorizontal: spacing.lmedium,
