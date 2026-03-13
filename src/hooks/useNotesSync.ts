@@ -2,7 +2,9 @@ import { useCallback, useEffect, useRef } from "react";
 import { useAppDispatch, useAppSelector } from "src/hooks/store";
 import { selectAuthUser } from "src/redux/authSlice";
 import { selectAllNotes, setNotes } from "src/redux/notesSlice";
-import { subscribeToNotes, setNoteDoc } from "src/services/notes";
+import { subscribeToNotes } from "src/services/notes";
+import { collection, doc, getDocs, writeBatch } from "firebase/firestore";
+import { getFirebaseFirestore } from "src/config/firebase";
 import {
   clearNotesFromStorage,
   loadNotesFromStorage,
@@ -13,8 +15,9 @@ import type { Note } from "src/types/notes";
 const SAVE_DEBOUNCE_MS = 500;
 
 /**
- * Push local notes to Firestore.
- * Called once on sign-in to sync any notes created while signed out.
+ * Merge local notes into Firestore using timestamp-based conflict resolution.
+ * Reads remote notes first and only writes local notes that are newer (by updatedAt)
+ * or don't exist remotely. This prevents clobbering edits made on other devices.
  */
 const mergeLocalNotesToFirestore = async (
   uid: string,
@@ -23,8 +26,34 @@ const mergeLocalNotesToFirestore = async (
   if (localNotes.length === 0) return;
 
   try {
-    for (const note of localNotes) {
-      await setNoteDoc(uid, note);
+    const db = getFirebaseFirestore();
+
+    // Read current remote state to compare timestamps
+    const remoteSnapshot = await getDocs(collection(db, "users", uid, "notes"));
+    const remoteByID = new Map<string, number>();
+    for (const docSnap of remoteSnapshot.docs) {
+      const data = docSnap.data() as { updatedAt?: number };
+      remoteByID.set(docSnap.id, data.updatedAt ?? 0);
+    }
+
+    // Only write local notes that are newer or don't exist remotely
+    const notesToWrite = localNotes.filter((note) => {
+      const remoteUpdatedAt = remoteByID.get(note.id);
+      return remoteUpdatedAt === undefined || note.updatedAt > remoteUpdatedAt;
+    });
+
+    if (notesToWrite.length === 0) return;
+
+    const BATCH_SIZE = 500;
+    for (let i = 0; i < notesToWrite.length; i += BATCH_SIZE) {
+      const chunk = notesToWrite.slice(i, i + BATCH_SIZE);
+      const batch = writeBatch(db);
+      for (const note of chunk) {
+        const { id, ...data } = note;
+        const ref = doc(db, "users", uid, "notes", id);
+        batch.set(ref, data);
+      }
+      await batch.commit();
     }
   } catch (error) {
     console.warn("[Notes] Failed to merge local notes to Firestore:", error);

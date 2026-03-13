@@ -321,7 +321,7 @@ export const useHighlightRenderer = (
                 ? {
                     textDecorationLine: "underline" as const,
                     textDecorationStyle: "solid" as const,
-                    textDecorationColor: isDarkMode ? "#666666" : "#CCCCCC",
+                    textDecorationColor: isDarkMode ? "#888888" : "#CCCCCC",
                   }
                 : undefined,
             ]}

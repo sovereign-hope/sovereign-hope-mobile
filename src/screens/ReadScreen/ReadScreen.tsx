@@ -28,7 +28,7 @@ import { selectNotesForChapter, buildNoteLookup } from "src/redux/notesSlice";
 import { styles } from "./ReadScreen.styles";
 import { useUiPreferences } from "src/hooks/useUiPreferences";
 import { NotePreviewPopup } from "src/components/NotePreviewPopup/NotePreviewPopup";
-import { BIBLE_BOOKS } from "src/constants/bibleBooks";
+import { formatVerseReference } from "src/app/bibleUtils";
 
 export type ReadScreenProps = NativeStackScreenProps<
   RootStackParamList,
@@ -177,22 +177,24 @@ export const ReadScreen: React.FunctionComponent<ReadScreenProps> = ({
     return actions;
   }, [audioUrl, handleOpenInBible, navigation, playAudio, showSelectFontSize]);
 
-  const getBookName = useCallback(
-    (bookId: string) =>
-      BIBLE_BOOKS.find((b) => b.id === bookId)?.name ?? bookId,
-    []
-  );
-
-  const formatNoteReference = useCallback(
-    (note: Note) => {
-      const bookName = getBookName(note.bookId);
-      const range =
-        note.startVerse === note.endVerse
-          ? `${note.startVerse}`
-          : `${note.startVerse}-${note.endVerse}`;
-      return `${bookName} ${note.chapter}:${range}`;
+  const handleNote = useCallback(
+    (startVerse: number, endVerse: number) => {
+      if (!currentLocation) return;
+      const existing = chapterNotes.find(
+        (n) => n.startVerse <= endVerse && n.endVerse >= startVerse
+      );
+      if (existing) {
+        setPreviewNote(existing);
+      } else {
+        navigation.navigate("NoteEditor", {
+          bookId: currentLocation.bookId,
+          chapter: currentLocation.chapter,
+          startVerse,
+          endVerse,
+        });
+      }
     },
-    [getBookName]
+    [chapterNotes, currentLocation, navigation]
   );
 
   return (
@@ -219,26 +221,7 @@ export const ReadScreen: React.FunctionComponent<ReadScreenProps> = ({
               onScrollDirectionChange={handleScrollDirection}
               bookId={currentLocation?.bookId}
               chapter={currentLocation?.chapter}
-              onNote={
-                currentLocation
-                  ? (startVerse, endVerse) => {
-                      const existing = chapterNotes.find(
-                        (n) =>
-                          n.startVerse <= endVerse && n.endVerse >= startVerse
-                      );
-                      if (existing) {
-                        setPreviewNote(existing);
-                      } else {
-                        navigation.navigate("NoteEditor", {
-                          bookId: currentLocation.bookId,
-                          chapter: currentLocation.chapter,
-                          startVerse,
-                          endVerse,
-                        });
-                      }
-                    }
-                  : undefined
-              }
+              onNote={currentLocation ? handleNote : undefined}
               noteLookup={noteLookup}
             />
             <PassageToolbar actions={toolbarActions} visible={toolbarVisible} />
@@ -248,7 +231,12 @@ export const ReadScreen: React.FunctionComponent<ReadScreenProps> = ({
       {previewNote && (
         <NotePreviewPopup
           text={previewNote.text}
-          reference={formatNoteReference(previewNote)}
+          reference={formatVerseReference(
+            previewNote.bookId,
+            previewNote.chapter,
+            previewNote.startVerse,
+            previewNote.endVerse
+          )}
           onEdit={() => {
             const note = previewNote;
             // eslint-disable-next-line unicorn/no-null

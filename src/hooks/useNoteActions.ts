@@ -22,6 +22,18 @@ const fireAndForget = (promise: Promise<unknown>): void => {
   });
 };
 
+/** Delete a note from Redux and Firestore (fire-and-forget). Usable outside hook context. */
+export const deleteNoteWithSync = (
+  dispatch: ReturnType<typeof useAppDispatch>,
+  uid: string | undefined,
+  noteId: string
+): void => {
+  dispatch(removeNoteAction(noteId));
+  if (uid) {
+    fireAndForget(deleteNoteDoc(uid, noteId));
+  }
+};
+
 export type NoteActionsResult = {
   chapterNotes: Note[];
   findNoteForVerse: (verse: number) => Note | undefined;
@@ -100,10 +112,7 @@ export const useNoteActions = (
 
   const deleteNote = useCallback(
     (id: string) => {
-      dispatch(removeNoteAction(id));
-      if (user?.uid) {
-        fireAndForget(deleteNoteDoc(user.uid, id));
-      }
+      deleteNoteWithSync(dispatch, user?.uid, id);
     },
     [dispatch, user?.uid]
   );

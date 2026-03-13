@@ -14,26 +14,11 @@ import { Ionicons } from "@expo/vector-icons";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { RootStackParamList } from "src/navigation/RootNavigator";
 import { useNoteActions } from "src/hooks/useNoteActions";
-import { BIBLE_BOOKS } from "src/constants/bibleBooks";
+import { formatVerseReference } from "src/app/bibleUtils";
 import { colors } from "src/style/colors";
 import { useUiPreferences } from "src/hooks/useUiPreferences";
 
 type Props = NativeStackScreenProps<RootStackParamList, "NoteEditor">;
-
-const getBookName = (bookId: string): string =>
-  BIBLE_BOOKS.find((b) => b.id === bookId)?.name ?? bookId;
-
-const formatVerseRange = (
-  bookId: string,
-  chapter: number,
-  startVerse: number,
-  endVerse: number
-): string => {
-  const bookName = getBookName(bookId);
-  const range =
-    startVerse === endVerse ? `${startVerse}` : `${startVerse}-${endVerse}`;
-  return `${bookName} ${chapter}:${range}`;
-};
 
 export const NoteEditorScreen: React.FunctionComponent<Props> = ({
   navigation,
@@ -205,7 +190,7 @@ export const NoteEditorScreen: React.FunctionComponent<Props> = ({
         </View>
 
         <Text style={themedStyles.reference}>
-          {formatVerseRange(bookId, chapter, startVerse, endVerse)}
+          {formatVerseReference(bookId, chapter, startVerse, endVerse)}
         </Text>
 
         <TextInput
@@ -216,6 +201,7 @@ export const NoteEditorScreen: React.FunctionComponent<Props> = ({
           placeholder="Write your note..."
           placeholderTextColor={theme.dark ? "#666666" : "#AAAAAA"}
           multiline
+          maxLength={5000}
           autoFocus
           textAlignVertical="top"
           accessibilityLabel="Note text"

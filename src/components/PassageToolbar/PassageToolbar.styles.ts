@@ -12,6 +12,7 @@ type Props = {
 interface Style {
   container: ViewStyle;
   containerSolid: ViewStyle;
+  containerBlurFallback: ViewStyle;
   glassBackground: ViewStyle;
   blurBackground: ViewStyle;
   blurOverlay: ViewStyle;
@@ -46,6 +47,9 @@ export const styles = ({ theme, isEinkMode, bottomInset }: Props): Style => {
       borderWidth: StyleSheet.hairlineWidth,
       borderColor: theme.colors.border,
     },
+    containerBlurFallback: {
+      backgroundColor: theme.colors.card,
+    },
     glassBackground: {
       ...StyleSheet.absoluteFillObject,
       borderRadius: cornerRadius,
@@ -79,7 +83,7 @@ export const styles = ({ theme, isEinkMode, bottomInset }: Props): Style => {
     label: {
       fontSize: 12,
       marginTop: 2,
-      color: actionColor,
+      color: theme.colors.text,
     },
   });
 };

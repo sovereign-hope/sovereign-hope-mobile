@@ -86,6 +86,7 @@ export const PassageToolbar: React.FunctionComponent<PassageToolbarProps> = ({
       style={[
         themedStyles.container,
         !useGlassLayer && themedStyles.containerSolid,
+        shouldUseBlur && themedStyles.containerBlurFallback,
         { transform: [{ translateY }] },
       ]}
       pointerEvents="box-none"
@@ -123,7 +124,7 @@ export const PassageToolbar: React.FunctionComponent<PassageToolbarProps> = ({
               pressed && themedStyles.buttonPressed,
             ]}
           >
-            <Ionicons name={action.icon} size={22} color={actionColor} />
+            <Ionicons name={action.icon} size={22} color={theme.colors.text} />
             <Text style={themedStyles.label}>{action.label}</Text>
           </Pressable>
         ))}

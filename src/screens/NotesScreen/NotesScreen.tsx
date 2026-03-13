@@ -7,10 +7,11 @@ import { Swipeable, TouchableOpacity } from "react-native-gesture-handler";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { RootStackParamList } from "src/navigation/RootNavigator";
 import { useAppDispatch, useAppSelector } from "src/hooks/store";
-import { selectAllNotes, removeNote } from "src/redux/notesSlice";
+import { selectAllNotes } from "src/redux/notesSlice";
 import { selectAuthUser } from "src/redux/authSlice";
-import { deleteNoteDoc } from "src/services/notes";
+import { deleteNoteWithSync } from "src/hooks/useNoteActions";
 import { BIBLE_BOOKS } from "src/constants/bibleBooks";
+import { getBookName } from "src/app/bibleUtils";
 import type { Note } from "src/types/notes";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Notes">;
@@ -21,9 +22,6 @@ type BookGroup = {
   bookName: string;
   notes: Note[];
 };
-
-const getBookName = (bookId: string): string =>
-  BIBLE_BOOKS.find((b) => b.id === bookId)?.name ?? bookId;
 
 const getBookOrder = (bookId: string): number => {
   const idx = BIBLE_BOOKS.findIndex((b) => b.id === bookId);
@@ -154,12 +152,7 @@ export const NotesScreen: React.FunctionComponent<Props> = ({ navigation }) => {
 
   const handleDeleteNote = useCallback(
     (noteId: string) => {
-      dispatch(removeNote(noteId));
-      if (user?.uid) {
-        void deleteNoteDoc(user.uid, noteId).catch((error) => {
-          console.warn("[Notes] Firestore delete failed:", error);
-        });
-      }
+      deleteNoteWithSync(dispatch, user?.uid, noteId);
     },
     [dispatch, user?.uid]
   );
@@ -184,7 +177,7 @@ export const NotesScreen: React.FunctionComponent<Props> = ({ navigation }) => {
     [handleDeleteNote]
   );
 
-  const formatVerseRange = (n: Note): string => {
+  const formatChapterVerse = (n: Note): string => {
     const range =
       n.startVerse === n.endVerse
         ? `${n.startVerse}`
@@ -295,14 +288,14 @@ export const NotesScreen: React.FunctionComponent<Props> = ({ navigation }) => {
                   });
                 }}
                 accessibilityRole="button"
-                accessibilityLabel={`${item.bookName} ${formatVerseRange(
+                accessibilityLabel={`${item.bookName} ${formatChapterVerse(
                   n
                 )}: ${truncateText(n.text)}`}
                 accessibilityHint="Navigates to this passage"
               >
                 <View style={themedStyles.rowHeader}>
                   <Text style={themedStyles.rowReference}>
-                    {item.bookName} {formatVerseRange(n)}
+                    {item.bookName} {formatChapterVerse(n)}
                   </Text>
                   <Ionicons
                     name="chevron-forward"

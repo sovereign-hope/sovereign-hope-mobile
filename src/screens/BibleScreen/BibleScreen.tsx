@@ -55,7 +55,7 @@ import { colors } from "src/style/colors";
 import { useTabBarHeightContext } from "src/navigation/TabBarContext";
 import { selectNotesForChapter, buildNoteLookup } from "src/redux/notesSlice";
 import { NotePreviewPopup } from "src/components/NotePreviewPopup/NotePreviewPopup";
-import { BIBLE_BOOKS } from "src/constants/bibleBooks";
+import { formatVerseReference } from "src/app/bibleUtils";
 import { styles } from "./BibleScreen.styles";
 
 export const BibleScreen: React.FunctionComponent = () => {
@@ -392,6 +392,25 @@ export const BibleScreen: React.FunctionComponent = () => {
     prevChapter,
   ]);
 
+  const handleNote = useCallback(
+    (startVerse: number, endVerse: number) => {
+      const existing = chapterNotes.find(
+        (n) => n.startVerse <= endVerse && n.endVerse >= startVerse
+      );
+      if (existing) {
+        setPreviewNote(existing);
+      } else {
+        navigation.navigate("NoteEditor", {
+          bookId: location.bookId,
+          chapter: location.chapter,
+          startVerse,
+          endVerse,
+        });
+      }
+    },
+    [chapterNotes, location.bookId, location.chapter, navigation]
+  );
+
   // Determine content based on state
   let content: React.JSX.Element;
 
@@ -443,22 +462,7 @@ export const BibleScreen: React.FunctionComponent = () => {
           onScrollDirectionChange={handleScrollDirection}
           bookId={location.bookId}
           chapter={location.chapter}
-          onNote={(startVerse, endVerse) => {
-            // Find existing note that overlaps this verse range
-            const existing = chapterNotes.find(
-              (n) => n.startVerse <= endVerse && n.endVerse >= startVerse
-            );
-            if (existing) {
-              setPreviewNote(existing);
-            } else {
-              navigation.navigate("NoteEditor", {
-                bookId: location.bookId,
-                chapter: location.chapter,
-                startVerse,
-                endVerse,
-              });
-            }
-          }}
+          onNote={handleNote}
           noteLookup={noteLookup}
         />
         <PassageToolbar
@@ -469,24 +473,6 @@ export const BibleScreen: React.FunctionComponent = () => {
       </>
     );
   }
-
-  const getBookName = useCallback(
-    (bookId: string) =>
-      BIBLE_BOOKS.find((b) => b.id === bookId)?.name ?? bookId,
-    []
-  );
-
-  const formatNoteReference = useCallback(
-    (note: Note) => {
-      const bookName = getBookName(note.bookId);
-      const range =
-        note.startVerse === note.endVerse
-          ? `${note.startVerse}`
-          : `${note.startVerse}-${note.endVerse}`;
-      return `${bookName} ${note.chapter}:${range}`;
-    },
-    [getBookName]
-  );
 
   return (
     <>
@@ -499,7 +485,12 @@ export const BibleScreen: React.FunctionComponent = () => {
       {previewNote && (
         <NotePreviewPopup
           text={previewNote.text}
-          reference={formatNoteReference(previewNote)}
+          reference={formatVerseReference(
+            previewNote.bookId,
+            previewNote.chapter,
+            previewNote.startVerse,
+            previewNote.endVerse
+          )}
           onEdit={() => {
             const note = previewNote;
             // eslint-disable-next-line unicorn/no-null

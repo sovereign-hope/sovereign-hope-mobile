@@ -11,7 +11,9 @@ const isNote = (value: unknown): value is Note =>
   typeof (value as Note).chapter === "number" &&
   typeof (value as Note).startVerse === "number" &&
   typeof (value as Note).endVerse === "number" &&
-  typeof (value as Note).text === "string";
+  typeof (value as Note).text === "string" &&
+  typeof (value as Note).createdAt === "number" &&
+  typeof (value as Note).updatedAt === "number";
 
 export const loadNotesFromStorage = async (): Promise<Note[]> => {
   try {

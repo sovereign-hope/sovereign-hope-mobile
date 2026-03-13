@@ -51,9 +51,6 @@ export const NotePreviewPopup: React.FunctionComponent<NotePreviewPopupProps> =
           elevation: 8,
         },
         header: {
-          flexDirection: "row" as const,
-          alignItems: "center" as const,
-          justifyContent: "space-between" as const,
           paddingHorizontal: 16,
           paddingTop: 14,
           paddingBottom: 8,
@@ -62,10 +59,6 @@ export const NotePreviewPopup: React.FunctionComponent<NotePreviewPopupProps> =
           fontSize: 15,
           fontWeight: "600" as const,
           color: theme.colors.text,
-          flex: 1,
-        },
-        closeButton: {
-          padding: 4,
         },
         body: {
           paddingHorizontal: 16,
@@ -79,19 +72,21 @@ export const NotePreviewPopup: React.FunctionComponent<NotePreviewPopupProps> =
         footer: {
           borderTopWidth: 1,
           borderTopColor: theme.dark ? "#444444" : "#E8E8E8",
-          paddingVertical: 12,
-          paddingHorizontal: 16,
           flexDirection: "row" as const,
-          justifyContent: "flex-end" as const,
         },
-        editButton: {
+        footerButton: {
+          flex: 1,
           flexDirection: "row" as const,
           alignItems: "center" as const,
+          justifyContent: "center" as const,
           gap: 6,
-          paddingVertical: 6,
-          paddingHorizontal: 12,
+          paddingVertical: 14,
         },
-        editButtonText: {
+        footerDivider: {
+          width: 1,
+          backgroundColor: theme.dark ? "#444444" : "#E8E8E8",
+        },
+        footerButtonText: {
           fontSize: 16,
           fontWeight: "600" as const,
           color: accentColor,
@@ -114,27 +109,15 @@ export const NotePreviewPopup: React.FunctionComponent<NotePreviewPopupProps> =
           accessibilityLabel="Dismiss note preview"
           accessibilityHint="Closes the note preview popup"
         >
-          <View style={themedStyles.card}>
+          <Pressable
+            style={themedStyles.card}
+            onPress={() => {}}
+            accessibilityRole="none"
+          >
             <View style={themedStyles.header}>
               <Text style={themedStyles.reference} numberOfLines={1}>
                 {reference}
               </Text>
-              <Pressable
-                onPress={onDismiss}
-                style={({ pressed }) => [
-                  themedStyles.closeButton,
-                  pressed && { opacity: 0.6 },
-                ]}
-                accessibilityRole="button"
-                accessibilityLabel="Close preview"
-                accessibilityHint="Dismisses the note preview"
-              >
-                <Ionicons
-                  name="close"
-                  size={18}
-                  color={theme.dark ? "#888888" : "#999999"}
-                />
-              </Pressable>
             </View>
 
             <View style={themedStyles.body}>
@@ -150,7 +133,7 @@ export const NotePreviewPopup: React.FunctionComponent<NotePreviewPopupProps> =
               <Pressable
                 onPress={onEdit}
                 style={({ pressed }) => [
-                  themedStyles.editButton,
+                  themedStyles.footerButton,
                   pressed && { opacity: 0.6 },
                 ]}
                 accessibilityRole="button"
@@ -158,10 +141,24 @@ export const NotePreviewPopup: React.FunctionComponent<NotePreviewPopupProps> =
                 accessibilityHint="Opens the note editor"
               >
                 <Ionicons name="create-outline" size={18} color={accentColor} />
-                <Text style={themedStyles.editButtonText}>Edit</Text>
+                <Text style={themedStyles.footerButtonText}>Edit</Text>
+              </Pressable>
+              <View style={themedStyles.footerDivider} />
+              <Pressable
+                onPress={onDismiss}
+                style={({ pressed }) => [
+                  themedStyles.footerButton,
+                  pressed && { opacity: 0.6 },
+                ]}
+                accessibilityRole="button"
+                accessibilityLabel="Close preview"
+                accessibilityHint="Dismisses the note preview"
+              >
+                <Ionicons name="close-outline" size={18} color={accentColor} />
+                <Text style={themedStyles.footerButtonText}>Close</Text>
               </Pressable>
             </View>
-          </View>
+          </Pressable>
         </Pressable>
       </Modal>
     );

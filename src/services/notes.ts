@@ -1,5 +1,4 @@
 import {
-  addDoc,
   collection,
   deleteDoc,
   doc,
@@ -11,17 +10,6 @@ import {
 import type { Unsubscribe } from "firebase/firestore";
 import { getFirebaseFirestore } from "src/config/firebase";
 import type { Note } from "src/types/notes";
-
-const getNotesCollection = (uid: string) =>
-  collection(getFirebaseFirestore(), "users", uid, "notes");
-
-export const addNoteDoc = async (
-  uid: string,
-  data: Omit<Note, "id">
-): Promise<string> => {
-  const ref = await addDoc(getNotesCollection(uid), data);
-  return ref.id;
-};
 
 /** Write a note with an explicit ID (preserves local ID as Firestore doc ID). */
 export const setNoteDoc = async (uid: string, note: Note): Promise<void> => {
@@ -52,7 +40,7 @@ export const subscribeToNotes = (
   onUpdate: (notes: Note[]) => void,
   onError?: (error: Error) => void
 ): Unsubscribe => {
-  const q = query(getNotesCollection(uid));
+  const q = query(collection(getFirebaseFirestore(), "users", uid, "notes"));
   return onSnapshot(
     q,
     (snapshot) => {
