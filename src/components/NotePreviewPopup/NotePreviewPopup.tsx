@@ -1,5 +1,5 @@
 import React, { useMemo } from "react";
-import { Modal, Pressable, Text, View } from "react-native";
+import { Modal, Pressable, ScrollView, Text, View } from "react-native";
 import { useTheme } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 import { useUiPreferences } from "src/hooks/useUiPreferences";
@@ -15,8 +15,6 @@ interface NotePreviewPopupProps {
   /** Called when user taps outside or dismisses */
   onDismiss: () => void;
 }
-
-const MAX_PREVIEW_LINES = 6;
 
 export const NotePreviewPopup: React.FunctionComponent<NotePreviewPopupProps> =
   ({ text, reference, onEdit, onDismiss }) => {
@@ -36,11 +34,13 @@ export const NotePreviewPopup: React.FunctionComponent<NotePreviewPopupProps> =
           justifyContent: "center" as const,
           alignItems: "center" as const,
           backgroundColor: "rgba(0, 0, 0, 0.4)",
-          paddingHorizontal: 32,
+          paddingHorizontal: 24,
+          paddingVertical: 64,
         },
         card: {
           width: "100%" as const,
-          maxWidth: 340,
+          maxWidth: 560,
+          maxHeight: "100%" as const,
           backgroundColor: theme.dark ? "#2A2A2A" : "#FFFFFF",
           borderRadius: 14,
           overflow: "hidden" as const,
@@ -61,6 +61,7 @@ export const NotePreviewPopup: React.FunctionComponent<NotePreviewPopupProps> =
           color: theme.colors.text,
         },
         body: {
+          flexShrink: 1,
           paddingHorizontal: 16,
           paddingBottom: 14,
         },
@@ -120,14 +121,9 @@ export const NotePreviewPopup: React.FunctionComponent<NotePreviewPopupProps> =
               </Text>
             </View>
 
-            <View style={themedStyles.body}>
-              <Text
-                style={themedStyles.noteText}
-                numberOfLines={MAX_PREVIEW_LINES}
-              >
-                {text}
-              </Text>
-            </View>
+            <ScrollView style={themedStyles.body}>
+              <Text style={themedStyles.noteText}>{text}</Text>
+            </ScrollView>
 
             <View style={themedStyles.footer}>
               <Pressable

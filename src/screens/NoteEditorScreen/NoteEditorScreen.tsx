@@ -10,7 +10,6 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "@react-navigation/native";
-import { Ionicons } from "@expo/vector-icons";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { RootStackParamList } from "src/navigation/RootNavigator";
 import { useNoteActions } from "src/hooks/useNoteActions";
@@ -86,23 +85,9 @@ export const NoteEditorScreen: React.FunctionComponent<Props> = ({
         textAlignVertical: "top" as const,
         lineHeight: 24,
       },
-      deleteRow: {
-        flexDirection: "row" as const,
-        justifyContent: "center" as const,
-        paddingVertical: 16,
-        borderTopWidth: 1,
-        borderTopColor: theme.dark ? "#333333" : "#E8E8E8",
-      },
-      deleteButton: {
-        flexDirection: "row" as const,
-        alignItems: "center" as const,
-        gap: 6,
-        paddingVertical: 8,
-        paddingHorizontal: 16,
-      },
-      deleteButtonText: {
-        fontSize: 16,
-        color: "#FF3B30",
+      headerDeleteButton: {
+        paddingVertical: 4,
+        paddingHorizontal: 8,
       },
     }),
     [theme, accentColor]
@@ -168,25 +153,41 @@ export const NoteEditorScreen: React.FunctionComponent<Props> = ({
             <Text style={themedStyles.headerButtonText}>Cancel</Text>
           </Pressable>
 
-          <Pressable
-            onPress={handleSave}
-            disabled={!canSave}
-            style={themedStyles.headerButton}
-            accessibilityRole="button"
-            accessibilityLabel="Save note"
-            accessibilityHint="Save your note for this passage"
-            accessibilityState={{ disabled: !canSave }}
-          >
-            <Text
-              style={[
-                themedStyles.headerButtonText,
-                { fontWeight: "600" },
-                !canSave && themedStyles.headerButtonTextDisabled,
-              ]}
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+            {isEditing && (
+              <Pressable
+                onPress={handleDelete}
+                style={({ pressed }) => [
+                  themedStyles.headerDeleteButton,
+                  pressed && { opacity: 0.6 },
+                ]}
+                accessibilityRole="button"
+                accessibilityLabel="Delete note"
+                accessibilityHint="Permanently delete this note"
+              >
+                <Text style={{ fontSize: 17, color: "#FF3B30" }}>Delete</Text>
+              </Pressable>
+            )}
+            <Pressable
+              onPress={handleSave}
+              disabled={!canSave}
+              style={themedStyles.headerButton}
+              accessibilityRole="button"
+              accessibilityLabel="Save note"
+              accessibilityHint="Save your note for this passage"
+              accessibilityState={{ disabled: !canSave }}
             >
-              Save
-            </Text>
-          </Pressable>
+              <Text
+                style={[
+                  themedStyles.headerButtonText,
+                  { fontWeight: "600" },
+                  !canSave && themedStyles.headerButtonTextDisabled,
+                ]}
+              >
+                Save
+              </Text>
+            </Pressable>
+          </View>
         </View>
 
         <Text style={themedStyles.reference}>
@@ -207,24 +208,6 @@ export const NoteEditorScreen: React.FunctionComponent<Props> = ({
           accessibilityLabel="Note text"
           accessibilityHint="Enter your note for this passage"
         />
-
-        {isEditing && (
-          <View style={themedStyles.deleteRow}>
-            <Pressable
-              onPress={handleDelete}
-              style={({ pressed }) => [
-                themedStyles.deleteButton,
-                pressed && { opacity: 0.6 },
-              ]}
-              accessibilityRole="button"
-              accessibilityLabel="Delete note"
-              accessibilityHint="Permanently delete this note"
-            >
-              <Ionicons name="trash-outline" size={18} color="#FF3B30" />
-              <Text style={themedStyles.deleteButtonText}>Delete Note</Text>
-            </Pressable>
-          </View>
-        )}
       </KeyboardAvoidingView>
     </SafeAreaView>
   );

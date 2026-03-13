@@ -7,8 +7,10 @@ import React, {
   useState,
 } from "react";
 import {
+  ActivityIndicator,
   Pressable,
   ScrollView,
+  StyleSheet,
   Text,
   useWindowDimensions,
   Animated,
@@ -168,6 +170,7 @@ export const PassageReader: React.FunctionComponent<PassageReaderProps> = ({
   // Ref Hooks
   const animation = useRef(new Animated.Value(1)).current;
   const passageTransitionOpacity = useRef(new Animated.Value(1)).current;
+  const transitionOverlayOpacity = useRef(new Animated.Value(0)).current;
   const mountAnimation = useRef(new Animated.Value(0)).current;
   const pendingRevealRef = useRef(false);
   const revealTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -203,11 +206,13 @@ export const PassageReader: React.FunctionComponent<PassageReaderProps> = ({
 
   const fadeInPassage = React.useCallback(() => {
     runTiming(passageTransitionOpacity, 1, PASSAGE_FADE_DURATION_MS);
-  }, [passageTransitionOpacity, runTiming]);
+    runTiming(transitionOverlayOpacity, 0, PASSAGE_FADE_DURATION_MS);
+  }, [passageTransitionOpacity, transitionOverlayOpacity, runTiming]);
 
   const fadeOutPassage = React.useCallback(() => {
     runTiming(passageTransitionOpacity, 0, PASSAGE_FADE_DURATION_MS);
-  }, [passageTransitionOpacity, runTiming]);
+    runTiming(transitionOverlayOpacity, 1, PASSAGE_FADE_DURATION_MS);
+  }, [passageTransitionOpacity, transitionOverlayOpacity, runTiming]);
 
   const revealPassageAfterScrollReset = React.useCallback(() => {
     if (isTransitioning || !pendingRevealRef.current) {
@@ -278,17 +283,30 @@ export const PassageReader: React.FunctionComponent<PassageReaderProps> = ({
 
   const handleScroll = React.useCallback(
     (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-      const offsetY = event.nativeEvent.contentOffset.y;
+      const { contentOffset, contentSize, layoutMeasurement } =
+        event.nativeEvent;
+      const offsetY = contentOffset.y;
 
       // Scroll-direction detection: ignore bounce region (offsetY <= 0)
       // and require minimum 4px delta to avoid jitter
       if (onScrollDirectionChange && offsetY > 0) {
-        const delta = offsetY - lastScrollOffsetRef.current;
-        if (Math.abs(delta) > 4) {
-          const direction = delta > 0 ? "down" : "up";
-          if (direction !== lastScrollDirectionRef.current) {
-            lastScrollDirectionRef.current = direction;
-            onScrollDirectionChange(direction);
+        // Hide toolbar when near the bottom to prevent overscroll bounce
+        // from showing it over the navigation buttons
+        const distanceFromBottom =
+          contentSize.height - layoutMeasurement.height - offsetY;
+        if (distanceFromBottom < 80) {
+          if (lastScrollDirectionRef.current !== "down") {
+            lastScrollDirectionRef.current = "down";
+            onScrollDirectionChange("down");
+          }
+        } else {
+          const delta = offsetY - lastScrollOffsetRef.current;
+          if (Math.abs(delta) > 4) {
+            const direction = delta > 0 ? "down" : "up";
+            if (direction !== lastScrollDirectionRef.current) {
+              lastScrollDirectionRef.current = direction;
+              onScrollDirectionChange(direction);
+            }
           }
         }
       }
@@ -735,6 +753,20 @@ export const PassageReader: React.FunctionComponent<PassageReaderProps> = ({
           {renderFooter?.()}
         </Animated.View>
       </Animated.ScrollView>
+
+      {/* Transition overlay — covers content while loading next passage */}
+      <Animated.View
+        style={{
+          ...StyleSheet.absoluteFillObject,
+          backgroundColor: theme.colors.background,
+          justifyContent: "center",
+          alignItems: "center",
+          opacity: transitionOverlayOpacity,
+        }}
+        pointerEvents="none"
+      >
+        <ActivityIndicator size="large" color={theme.colors.text} />
+      </Animated.View>
 
       {/* Highlight color picker — positioned above the PassageToolbar */}
       {highlightEnabled && highlightRenderer.colorPickerTarget && (

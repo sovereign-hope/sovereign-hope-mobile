@@ -30,7 +30,9 @@ import {
   getEnableChurchCenterDeepLink,
   getEnableEinkMode,
   selectEnableEinkMode,
+  selectEnableSplitView,
   storeEnableEinkMode,
+  storeEnableSplitView,
   getHighlightPickerSide,
   selectHighlightPickerSide,
   storeHighlightPickerSide,
@@ -100,6 +102,7 @@ export const SettingsScreen: React.FunctionComponent<Props> = ({
     selectEnableChurchCenterDeepLink
   );
   const enableEinkMode = useAppSelector(selectEnableEinkMode);
+  const enableSplitView = useAppSelector(selectEnableSplitView);
   const highlightPickerSide = useAppSelector(selectHighlightPickerSide);
   const overrideSystemTheme = useAppSelector(selectOverrideSystemTheme);
   const darkModeEnabled = useAppSelector(selectDarkModeEnabled);
@@ -162,6 +165,10 @@ export const SettingsScreen: React.FunctionComponent<Props> = ({
 
   const handleToggleEinkMode = (value: boolean) => {
     void dispatch(storeEnableEinkMode(value));
+  };
+
+  const handleToggleSplitView = (value: boolean) => {
+    void dispatch(storeEnableSplitView(value));
   };
 
   const handleToggleHighlightPickerSide = () => {
@@ -524,6 +531,29 @@ export const SettingsScreen: React.FunctionComponent<Props> = ({
                 value={enableEinkMode}
               />
             </View>
+
+            {Platform.OS === "ios" && (Platform as { isPad?: boolean }).isPad && (
+              <View
+                style={[
+                  themedStyles.settingsRow,
+                  useInsetSettingsGroups && themedStyles.settingsRowGrouped,
+                ]}
+              >
+                <View style={themedStyles.settingsRowTextContainer}>
+                  <Text style={themedStyles.settingsRowText}>
+                    Split View Reading
+                  </Text>
+                  <Text style={themedStyles.settingsRowSubtext}>
+                    Show daily readings in a side panel instead of a full
+                    screen.
+                  </Text>
+                </View>
+                <Switch
+                  onValueChange={handleToggleSplitView}
+                  value={enableSplitView}
+                />
+              </View>
+            )}
 
             <Pressable
               onPress={handleToggleHighlightPickerSide}

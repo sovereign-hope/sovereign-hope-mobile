@@ -16,6 +16,7 @@ export interface SettingsState {
   showChildrensPlan: boolean;
   enableChurchCenterDeepLink: boolean;
   enableEinkMode: boolean;
+  enableSplitView: boolean;
   highlightPickerSide: "left" | "right";
   overrideSystemTheme: boolean;
   darkModeEnabled: boolean;
@@ -40,6 +41,7 @@ const initialState: SettingsState = {
   showChildrensPlan: true,
   enableChurchCenterDeepLink: false,
   enableEinkMode: false,
+  enableSplitView: false,
   highlightPickerSide: "right",
   overrideSystemTheme: false,
   darkModeEnabled: false,
@@ -342,6 +344,44 @@ export const getEnableChurchCenterDeepLink = createAsyncThunk(
         "Failed to read enableChurchCenterDeepLink from storage:",
         error
       );
+      return false;
+    }
+  }
+);
+
+export const storeEnableSplitView = createAsyncThunk(
+  "settings/storeEnableSplitView",
+  async (enableSplitView: boolean) => {
+    try {
+      await AsyncStorage.setItem(
+        "@settings/enableSplitView",
+        String(enableSplitView)
+      );
+      return enableSplitView;
+    } catch (error) {
+      console.error(error);
+      return false;
+    }
+  }
+);
+
+export const getEnableSplitView = createAsyncThunk(
+  "settings/getEnableSplitView",
+  async (): Promise<boolean> => {
+    try {
+      const stringValue = await AsyncStorage.getItem(
+        "@settings/enableSplitView"
+      );
+      if (!stringValue) {
+        return false;
+      }
+      try {
+        const parsedValue = JSON.parse(stringValue) as unknown;
+        return typeof parsedValue === "boolean" ? parsedValue : false;
+      } catch {
+        return false;
+      }
+    } catch {
       return false;
     }
   }
@@ -867,6 +907,12 @@ export const settingsSlice = createSlice({
       state.isLoading = true;
       state.hasError = false;
     });
+    builder.addCase(storeEnableSplitView.fulfilled, (state, action) => {
+      state.enableSplitView = action.payload ?? false;
+    });
+    builder.addCase(getEnableSplitView.fulfilled, (state, action) => {
+      state.enableSplitView = action.payload ?? false;
+    });
     builder.addCase(storeEnableEinkMode.fulfilled, (state, action) => {
       state.enableEinkMode = action.payload ?? false;
       state.isLoading = false;
@@ -1123,6 +1169,9 @@ export const selectEnableChurchCenterDeepLink = (state: RootState): boolean =>
 
 export const selectEnableEinkMode = (state: RootState): boolean =>
   state.settings.enableEinkMode;
+
+export const selectEnableSplitView = (state: RootState): boolean =>
+  state.settings.enableSplitView;
 
 export const selectHighlightPickerSide = (state: RootState): "left" | "right" =>
   state.settings.highlightPickerSide;
