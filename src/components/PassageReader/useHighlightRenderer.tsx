@@ -38,6 +38,10 @@ export const HighlightLookupContext = createContext<
   Record<string, HighlightColor>
 >({});
 
+// Context for note existence: verse key → true if a note covers that verse.
+// Used by the verse-text renderer to add a visual indicator (underline).
+export const NoteLookupContext = createContext<Record<string, boolean>>({});
+
 // Semi-transparent blue used for the inline drag-preview background
 const DRAG_PREVIEW_COLOR = "rgba(59, 130, 246, 0.25)";
 
@@ -260,6 +264,8 @@ export const useHighlightRenderer = (
         const dragRange = useContext(DragPreviewContext);
         // eslint-disable-next-line react-hooks/rules-of-hooks -- same guard as above
         const lookup = useContext(HighlightLookupContext);
+        // eslint-disable-next-line react-hooks/rules-of-hooks -- same guard as above
+        const noteLookup = useContext(NoteLookupContext);
         const isInDragRange =
           dragRange !== null && // eslint-disable-line unicorn/no-null
           parsed.verse >= dragRange.lo &&
@@ -271,6 +277,7 @@ export const useHighlightRenderer = (
           parsed.verse
         );
         const highlightColor = lookup[verseKey];
+        const hasNote = !!noteLookup[verseKey];
         const mode = isDarkMode ? "dark" : "light";
 
         // Drag preview takes priority so the user sees the selection clearly
@@ -310,6 +317,13 @@ export const useHighlightRenderer = (
             style={[
               props.style,
               bgColor ? { backgroundColor: bgColor } : undefined,
+              hasNote
+                ? {
+                    textDecorationLine: "underline" as const,
+                    textDecorationStyle: "solid" as const,
+                    textDecorationColor: isDarkMode ? "#666666" : "#CCCCCC",
+                  }
+                : undefined,
             ]}
           />
         );

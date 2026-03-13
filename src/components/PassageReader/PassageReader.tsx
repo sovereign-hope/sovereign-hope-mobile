@@ -36,6 +36,7 @@ import { selectReadingFontSize } from "src/redux/settingsSlice";
 import {
   DragPreviewContext,
   HighlightLookupContext,
+  NoteLookupContext,
 } from "./useHighlightRenderer";
 import type { GestureResponderEvent } from "react-native";
 import { useHighlightRenderer } from "./useHighlightRenderer";
@@ -88,6 +89,10 @@ export interface PassageReaderProps {
   bookId?: string;
   /** Chapter number — enables verse highlighting when combined with bookId */
   chapter?: number;
+  /** Called when the user taps the note button on a highlighted verse */
+  onNote?: (startVerse: number, endVerse: number) => void;
+  /** Lookup map: "BOOK:chapter:verse" → true if a note covers that verse */
+  noteLookup?: Record<string, boolean>;
 }
 
 export const PassageReader: React.FunctionComponent<PassageReaderProps> = ({
@@ -106,6 +111,8 @@ export const PassageReader: React.FunctionComponent<PassageReaderProps> = ({
   onScrollDirectionChange,
   bookId,
   chapter,
+  onNote,
+  noteLookup,
 }: PassageReaderProps) => {
   // State
   const [isPressingHideButton, setIsPressingHideButton] = useState(false);
@@ -586,15 +593,19 @@ export const PassageReader: React.FunctionComponent<PassageReaderProps> = ({
                 <HighlightLookupContext.Provider
                   value={highlightRenderer.highlightLookup}
                 >
-                  <RenderHtml
-                    contentWidth={width}
-                    source={{ html: passageHtml }}
-                    tagsStyles={tagsStyles}
-                    customHTMLElementModels={customHTMLElementModels}
-                    renderers={
-                      highlightEnabled ? highlightRenderer.renderers : undefined
-                    }
-                  />
+                  <NoteLookupContext.Provider value={noteLookup ?? {}}>
+                    <RenderHtml
+                      contentWidth={width}
+                      source={{ html: passageHtml }}
+                      tagsStyles={tagsStyles}
+                      customHTMLElementModels={customHTMLElementModels}
+                      renderers={
+                        highlightEnabled
+                          ? highlightRenderer.renderers
+                          : undefined
+                      }
+                    />
+                  </NoteLookupContext.Provider>
                 </HighlightLookupContext.Provider>
               </DragPreviewContext.Provider>
               {!showMemoryButton && !passageData && commentaryHTML !== "" && (
@@ -731,6 +742,33 @@ export const PassageReader: React.FunctionComponent<PassageReaderProps> = ({
           activeColor={highlightRenderer.colorPickerTarget.color}
           onSelectColor={highlightRenderer.changeColor}
           onDelete={highlightRenderer.deleteHighlight}
+          onNote={
+            onNote
+              ? () => {
+                  const target = highlightRenderer.colorPickerTarget;
+                  if (target) {
+                    highlightRenderer.dismissColorPicker();
+                    onNote(target.startVerse, target.endVerse);
+                  }
+                }
+              : undefined
+          }
+          hasNote={
+            noteLookup && highlightRenderer.colorPickerTarget
+              ? Array.from(
+                  {
+                    length:
+                      highlightRenderer.colorPickerTarget.endVerse -
+                      highlightRenderer.colorPickerTarget.startVerse +
+                      1,
+                  },
+                  (_, i) =>
+                    `${highlightRenderer.colorPickerTarget!.bookId}:${
+                      highlightRenderer.colorPickerTarget!.chapter
+                    }:${highlightRenderer.colorPickerTarget!.startVerse + i}`
+                ).some((key) => noteLookup[key])
+              : false
+          }
           onDismiss={highlightRenderer.dismissColorPicker}
         />
       )}

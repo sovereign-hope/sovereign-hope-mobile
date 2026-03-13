@@ -70,7 +70,10 @@ import { spacing, radius } from "src/style/layout";
 import { maybeAutoEnableEinkMode } from "src/services/einkDetection";
 import { resolveThemeColorScheme } from "src/style/themeMode";
 import { useHighlightsSync } from "src/hooks/useHighlightsSync";
+import { useNotesSync } from "src/hooks/useNotesSync";
 import { HighlightsScreen } from "../HighlightsScreen/HighlightsScreen";
+import { NotesScreen } from "../NotesScreen/NotesScreen";
+import { NoteEditorScreen } from "../NoteEditorScreen/NoteEditorScreen";
 
 // React Navigation configuration
 enableScreens();
@@ -549,6 +552,12 @@ const BibleStack = (): React.JSX.Element => {
       <Stack.Screen name="Read" component={ReadScreen} />
       <Stack.Screen name="Font Size" component={FontSizePickerScreen} />
       <Stack.Screen name="Highlights" component={HighlightsScreen} />
+      <Stack.Screen name="Notes" component={NotesScreen} />
+      <Stack.Screen
+        name="NoteEditor"
+        component={NoteEditorScreen}
+        options={{ presentation: "modal", headerShown: false }}
+      />
     </Stack.Navigator>
   );
 };
@@ -905,6 +914,7 @@ export const RootScreen = (): React.JSX.Element => {
   const systemColorScheme = useColorScheme();
   const uiPreferences = useUiPreferences();
   useHighlightsSync();
+  useNotesSync();
   const overrideSystemTheme = useAppSelector(selectOverrideSystemTheme);
   const darkModeEnabled = useAppSelector(selectDarkModeEnabled);
   const darkModeScheduleEnabled = useAppSelector(selectDarkModeScheduleEnabled);
@@ -1075,6 +1085,12 @@ export const RootScreen = (): React.JSX.Element => {
           <Stack.Screen name="Schedule" component={ScheduleScreen} />
           <Stack.Screen name="Sundays" component={SundaysScreen} />
           <Stack.Screen name="Highlights" component={HighlightsScreen} />
+          <Stack.Screen name="Notes" component={NotesScreen} />
+          <Stack.Screen
+            name="NoteEditor"
+            component={NoteEditorScreen}
+            options={{ presentation: "modal", headerShown: false }}
+          />
         </Stack.Navigator>
       </NavigationContainer>
     </ResolvedColorSchemeContext.Provider>

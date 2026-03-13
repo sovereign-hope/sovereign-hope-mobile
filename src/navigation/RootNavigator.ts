@@ -25,4 +25,13 @@ export type RootStackParamList = {
   Signups: undefined;
   Sundays: undefined;
   Highlights: undefined;
+  Notes: undefined;
+  NoteEditor: {
+    bookId: string;
+    chapter: number;
+    startVerse: number;
+    endVerse: number;
+    noteId?: string;
+    initialText?: string;
+  };
 };

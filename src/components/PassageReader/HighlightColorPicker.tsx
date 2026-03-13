@@ -22,6 +22,10 @@ interface HighlightColorPickerProps {
   onSelectColor: (color: HighlightColor) => void;
   /** Called when user taps the delete/remove button */
   onDelete: () => void;
+  /** Called when user taps the note button */
+  onNote?: () => void;
+  /** When true, the note icon is filled to indicate an existing note */
+  hasNote?: boolean;
   /** Called when user taps outside or wants to dismiss */
   onDismiss: () => void;
 }
@@ -82,7 +86,7 @@ const pickerStyles = StyleSheet.create({
 });
 
 export const HighlightColorPicker: React.FunctionComponent<HighlightColorPickerProps> =
-  ({ activeColor, onSelectColor, onDelete, onDismiss }) => {
+  ({ activeColor, onSelectColor, onDelete, onNote, hasNote, onDismiss }) => {
     const theme = useTheme();
     const colorMode = theme.dark ? "dark" : "light";
     const side = useAppSelector(selectHighlightPickerSide);
@@ -148,6 +152,34 @@ export const HighlightColorPicker: React.FunctionComponent<HighlightColorPickerP
             },
           ]}
         >
+          {/* Note button */}
+          {onNote && (
+            <>
+              <Pressable
+                onPress={onNote}
+                accessibilityRole="button"
+                accessibilityLabel="Add note"
+                accessibilityHint="Add a note to this passage"
+                style={({ pressed }) => [
+                  pickerStyles.actionButton,
+                  pressed && pickerStyles.actionButtonPressed,
+                ]}
+              >
+                <Ionicons
+                  name={hasNote ? "document-text" : "document-text-outline"}
+                  size={18}
+                  color={theme.dark ? "#AAAAAA" : "#888888"}
+                />
+              </Pressable>
+              <View
+                style={[
+                  pickerStyles.divider,
+                  { backgroundColor: theme.dark ? "#666666" : "#E0E0E0" },
+                ]}
+              />
+            </>
+          )}
+
           {HIGHLIGHT_COLOR_ORDER.map((color) => {
             const isActive = color === activeColor;
             return (

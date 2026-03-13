@@ -1,5 +1,6 @@
 /* eslint-disable react/prop-types */
 import React, { useCallback, useMemo, useState } from "react";
+import type { Note } from "src/types/notes";
 import { ActivityIndicator, View } from "react-native";
 import {
   SafeAreaView,
@@ -23,8 +24,11 @@ import { PassageToolbar } from "src/components/PassageToolbar/PassageToolbar";
 import type { PassageToolbarAction } from "src/components/PassageToolbar/PassageToolbar";
 import { fetchBibleChapter } from "src/redux/bibleSlice";
 import { passageToLocation } from "src/app/bibleUtils";
+import { selectNotesForChapter, buildNoteLookup } from "src/redux/notesSlice";
 import { styles } from "./ReadScreen.styles";
 import { useUiPreferences } from "src/hooks/useUiPreferences";
+import { NotePreviewPopup } from "src/components/NotePreviewPopup/NotePreviewPopup";
+import { BIBLE_BOOKS } from "src/constants/bibleBooks";
 
 export type ReadScreenProps = NativeStackScreenProps<
   RootStackParamList,
@@ -48,6 +52,8 @@ export const ReadScreen: React.FunctionComponent<ReadScreenProps> = ({
   const theme = useTheme();
   const uiPreferences = useUiPreferences();
   const [toolbarVisible, setToolbarVisible] = useState(true);
+  // eslint-disable-next-line unicorn/no-null
+  const [previewNote, setPreviewNote] = useState<Note | null>(null);
 
   const handleScrollDirection = useCallback((direction: "up" | "down") => {
     setToolbarVisible(direction === "up");
@@ -67,10 +73,28 @@ export const ReadScreen: React.FunctionComponent<ReadScreenProps> = ({
     handlePreviousPassage,
   } = usePassageLoader(passages, onComplete, onDone);
 
-  // Derive bookId/chapter for highlight support
+  // Derive bookId/chapter for highlight + note support
   const currentLocation = useMemo(
     () => passageToLocation(passages[passageIndex]),
     [passageIndex, passages]
+  );
+
+  const selectChapterNotes = useMemo(
+    () =>
+      currentLocation
+        ? (state: Parameters<typeof selectNotesForChapter>[0]) =>
+            selectNotesForChapter(
+              state,
+              currentLocation.bookId,
+              currentLocation.chapter
+            )
+        : () => [] as ReturnType<typeof selectNotesForChapter>,
+    [currentLocation]
+  );
+  const chapterNotes = useAppSelector(selectChapterNotes);
+  const noteLookup = useMemo(
+    () => buildNoteLookup(chapterNotes),
+    [chapterNotes]
   );
 
   // Navbar handlers
@@ -122,14 +146,24 @@ export const ReadScreen: React.FunctionComponent<ReadScreenProps> = ({
         onPress: showSelectFontSize,
       },
     ];
-    actions.push({
-      key: "highlights",
-      icon: "star-outline",
-      label: "Highlights",
-      accessibilityLabel: "View Highlights",
-      accessibilityHint: "View all your saved highlights",
-      onPress: () => navigation.push("Highlights"),
-    });
+    actions.push(
+      {
+        key: "highlights",
+        icon: "star-outline",
+        label: "Highlights",
+        accessibilityLabel: "View Highlights",
+        accessibilityHint: "View all your saved highlights",
+        onPress: () => navigation.push("Highlights"),
+      },
+      {
+        key: "notes",
+        icon: "document-text-outline",
+        label: "Notes",
+        accessibilityLabel: "View Notes",
+        accessibilityHint: "View all your saved notes",
+        onPress: () => navigation.push("Notes"),
+      }
+    );
     if (audioUrl) {
       actions.push({
         key: "listen",
@@ -143,34 +177,98 @@ export const ReadScreen: React.FunctionComponent<ReadScreenProps> = ({
     return actions;
   }, [audioUrl, handleOpenInBible, navigation, playAudio, showSelectFontSize]);
 
+  const getBookName = useCallback(
+    (bookId: string) =>
+      BIBLE_BOOKS.find((b) => b.id === bookId)?.name ?? bookId,
+    []
+  );
+
+  const formatNoteReference = useCallback(
+    (note: Note) => {
+      const bookName = getBookName(note.bookId);
+      const range =
+        note.startVerse === note.endVerse
+          ? `${note.startVerse}`
+          : `${note.startVerse}-${note.endVerse}`;
+      return `${bookName} ${note.chapter}:${range}`;
+    },
+    [getBookName]
+  );
+
   return (
-    <SafeAreaView style={themedStyles.screen} edges={["left", "right"]}>
-      {isLoading && !hasLoadedCurrentPassage ? (
-        <View style={themedStyles.loadingContainer}>
-          <ActivityIndicator size="large" color={theme.colors.text} />
-        </View>
-      ) : (
-        <>
-          <ReadScrollView
-            showMemoryButton={shouldShowMemoryButton}
-            heading={heading}
-            passageIndex={passageIndex}
-            showPreviousPassageButton={passages.length > 1}
-            canGoToPreviousPassage={passageIndex > 0}
-            isNavigatingPassages={isNavigatingPassages}
-            onPreviousPassage={handlePreviousPassage}
-            onNextPassage={handleNextPassage}
-            hasNextPassage={passageIndex < passages.length - 1}
-            miniPlayerHeight={miniPlayerHeight}
-            bottomInset={insets.bottom}
-            onScrollDirectionChange={handleScrollDirection}
-            bookId={currentLocation?.bookId}
-            chapter={currentLocation?.chapter}
-          />
-          <PassageToolbar actions={toolbarActions} visible={toolbarVisible} />
-        </>
+    <>
+      <SafeAreaView style={themedStyles.screen} edges={["left", "right"]}>
+        {isLoading && !hasLoadedCurrentPassage ? (
+          <View style={themedStyles.loadingContainer}>
+            <ActivityIndicator size="large" color={theme.colors.text} />
+          </View>
+        ) : (
+          <>
+            <ReadScrollView
+              showMemoryButton={shouldShowMemoryButton}
+              heading={heading}
+              passageIndex={passageIndex}
+              showPreviousPassageButton={passages.length > 1}
+              canGoToPreviousPassage={passageIndex > 0}
+              isNavigatingPassages={isNavigatingPassages}
+              onPreviousPassage={handlePreviousPassage}
+              onNextPassage={handleNextPassage}
+              hasNextPassage={passageIndex < passages.length - 1}
+              miniPlayerHeight={miniPlayerHeight}
+              bottomInset={insets.bottom}
+              onScrollDirectionChange={handleScrollDirection}
+              bookId={currentLocation?.bookId}
+              chapter={currentLocation?.chapter}
+              onNote={
+                currentLocation
+                  ? (startVerse, endVerse) => {
+                      const existing = chapterNotes.find(
+                        (n) =>
+                          n.startVerse <= endVerse && n.endVerse >= startVerse
+                      );
+                      if (existing) {
+                        setPreviewNote(existing);
+                      } else {
+                        navigation.navigate("NoteEditor", {
+                          bookId: currentLocation.bookId,
+                          chapter: currentLocation.chapter,
+                          startVerse,
+                          endVerse,
+                        });
+                      }
+                    }
+                  : undefined
+              }
+              noteLookup={noteLookup}
+            />
+            <PassageToolbar actions={toolbarActions} visible={toolbarVisible} />
+          </>
+        )}
+      </SafeAreaView>
+      {previewNote && (
+        <NotePreviewPopup
+          text={previewNote.text}
+          reference={formatNoteReference(previewNote)}
+          onEdit={() => {
+            const note = previewNote;
+            // eslint-disable-next-line unicorn/no-null
+            setPreviewNote(null);
+            navigation.navigate("NoteEditor", {
+              bookId: note.bookId,
+              chapter: note.chapter,
+              startVerse: note.startVerse,
+              endVerse: note.endVerse,
+              noteId: note.id,
+              initialText: note.text,
+            });
+          }}
+          onDismiss={() => {
+            // eslint-disable-next-line unicorn/no-null
+            setPreviewNote(null);
+          }}
+        />
       )}
-    </SafeAreaView>
+    </>
   );
 };
 

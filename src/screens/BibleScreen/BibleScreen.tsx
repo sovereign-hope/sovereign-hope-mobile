@@ -6,6 +6,7 @@ import React, {
   useRef,
   useState,
 } from "react";
+import type { Note } from "src/types/notes";
 import {
   Pressable,
   Text,
@@ -52,6 +53,9 @@ import { getPressFeedbackStyle } from "src/style/eink";
 import { playPassageAudio } from "src/services/passageAudio";
 import { colors } from "src/style/colors";
 import { useTabBarHeightContext } from "src/navigation/TabBarContext";
+import { selectNotesForChapter, buildNoteLookup } from "src/redux/notesSlice";
+import { NotePreviewPopup } from "src/components/NotePreviewPopup/NotePreviewPopup";
+import { BIBLE_BOOKS } from "src/constants/bibleBooks";
 import { styles } from "./BibleScreen.styles";
 
 export const BibleScreen: React.FunctionComponent = () => {
@@ -75,6 +79,8 @@ export const BibleScreen: React.FunctionComponent = () => {
   const uiPreferences = useUiPreferences();
   const pickerRef = useRef<BiblePickerHandle>(null);
   const [toolbarVisible, setToolbarVisible] = useState(true);
+  // eslint-disable-next-line unicorn/no-null
+  const [previewNote, setPreviewNote] = useState<Note | null>(null);
 
   const handleScrollDirection = useCallback((direction: "up" | "down") => {
     setToolbarVisible(direction === "up");
@@ -84,6 +90,18 @@ export const BibleScreen: React.FunctionComponent = () => {
   const chapter = useAppSelector(selectBibleChapter);
   const isLoading = useAppSelector(selectBibleIsLoading);
   const hasError = useAppSelector(selectBibleHasError);
+
+  // Notes for the current chapter — used for note lookup and finding existing notes
+  const selectChapterNotes = useMemo(
+    () => (state: Parameters<typeof selectNotesForChapter>[0]) =>
+      selectNotesForChapter(state, location.bookId, location.chapter),
+    [location.bookId, location.chapter]
+  );
+  const chapterNotes = useAppSelector(selectChapterNotes);
+  const noteLookup = useMemo(
+    () => buildNoteLookup(chapterNotes),
+    [chapterNotes]
+  );
 
   const locationLabel = formatBibleLocation(location);
   const prevChapter = getPreviousChapter(location);
@@ -324,14 +342,24 @@ export const BibleScreen: React.FunctionComponent = () => {
         onPress: () => void handlePlayAudio(),
       });
     }
-    actions.push({
-      key: "highlights",
-      icon: "star-outline",
-      label: "Highlights",
-      accessibilityLabel: "View Highlights",
-      accessibilityHint: "View all your saved highlights",
-      onPress: () => navigation.navigate("Highlights"),
-    });
+    actions.push(
+      {
+        key: "highlights",
+        icon: "star-outline",
+        label: "Highlights",
+        accessibilityLabel: "View Highlights",
+        accessibilityHint: "View all your saved highlights",
+        onPress: () => navigation.navigate("Highlights"),
+      },
+      {
+        key: "notes",
+        icon: "document-text-outline",
+        label: "Notes",
+        accessibilityLabel: "View Notes",
+        accessibilityHint: "View all your saved notes",
+        onPress: () => navigation.navigate("Notes"),
+      }
+    );
     if (prevChapter) {
       actions.push({
         key: "prev",
@@ -415,6 +443,23 @@ export const BibleScreen: React.FunctionComponent = () => {
           onScrollDirectionChange={handleScrollDirection}
           bookId={location.bookId}
           chapter={location.chapter}
+          onNote={(startVerse, endVerse) => {
+            // Find existing note that overlaps this verse range
+            const existing = chapterNotes.find(
+              (n) => n.startVerse <= endVerse && n.endVerse >= startVerse
+            );
+            if (existing) {
+              setPreviewNote(existing);
+            } else {
+              navigation.navigate("NoteEditor", {
+                bookId: location.bookId,
+                chapter: location.chapter,
+                startVerse,
+                endVerse,
+              });
+            }
+          }}
+          noteLookup={noteLookup}
         />
         <PassageToolbar
           actions={toolbarActions}
@@ -425,6 +470,24 @@ export const BibleScreen: React.FunctionComponent = () => {
     );
   }
 
+  const getBookName = useCallback(
+    (bookId: string) =>
+      BIBLE_BOOKS.find((b) => b.id === bookId)?.name ?? bookId,
+    []
+  );
+
+  const formatNoteReference = useCallback(
+    (note: Note) => {
+      const bookName = getBookName(note.bookId);
+      const range =
+        note.startVerse === note.endVerse
+          ? `${note.startVerse}`
+          : `${note.startVerse}-${note.endVerse}`;
+      return `${bookName} ${note.chapter}:${range}`;
+    },
+    [getBookName]
+  );
+
   return (
     <>
       {content}
@@ -433,6 +496,29 @@ export const BibleScreen: React.FunctionComponent = () => {
         currentLocation={location}
         onSelectLocation={handlePickerSelect}
       />
+      {previewNote && (
+        <NotePreviewPopup
+          text={previewNote.text}
+          reference={formatNoteReference(previewNote)}
+          onEdit={() => {
+            const note = previewNote;
+            // eslint-disable-next-line unicorn/no-null
+            setPreviewNote(null);
+            navigation.navigate("NoteEditor", {
+              bookId: note.bookId,
+              chapter: note.chapter,
+              startVerse: note.startVerse,
+              endVerse: note.endVerse,
+              noteId: note.id,
+              initialText: note.text,
+            });
+          }}
+          onDismiss={() => {
+            // eslint-disable-next-line unicorn/no-null
+            setPreviewNote(null);
+          }}
+        />
+      )}
     </>
   );
 };
