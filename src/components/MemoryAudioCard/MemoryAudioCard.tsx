@@ -101,7 +101,7 @@ export const MemoryAudioCard: React.FunctionComponent<Props> = ({
   const isActive = viewModel.isSessionActive;
   const sessionDetailsBody = (
     <>
-      <Text style={themedStyles.modalTitle}>Daily Listening</Text>
+      <Text style={themedStyles.modalTitle}>Scripture Memory Audio</Text>
       <Text style={themedStyles.modalBody}>
         A guided memory practice that alternates between listening and silence
         so you can recite from memory during the gaps.
@@ -141,7 +141,7 @@ export const MemoryAudioCard: React.FunctionComponent<Props> = ({
       <Pressable
         accessibilityRole="button"
         accessibilityLabel="Close details"
-        accessibilityHint="Closes daily listening details."
+        accessibilityHint="Closes scripture memory audio details."
         onPress={() => {
           void Haptics.selectionAsync();
           setShowSessionDetails(false);
@@ -168,7 +168,7 @@ export const MemoryAudioCard: React.FunctionComponent<Props> = ({
       {viewModel.isLoading ? (
         <View style={themedStyles.loadingState}>
           <Text style={themedStyles.loadingTitle}>
-            Preparing your daily listening
+            Preparing scripture memory
           </Text>
           <Text style={themedStyles.loadingCaption}>
             {viewModel.loadingMessage}
@@ -193,7 +193,7 @@ export const MemoryAudioCard: React.FunctionComponent<Props> = ({
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={
-              isActive ? "Stop daily listening" : "Start daily listening"
+              isActive ? "Stop scripture memory" : "Start scripture memory"
             }
             accessibilityHint={
               isActive
@@ -218,15 +218,21 @@ export const MemoryAudioCard: React.FunctionComponent<Props> = ({
               }),
             ]}
           >
+            <Ionicons
+              name={isActive ? "stop-circle-outline" : "volume-high-outline"}
+              size={16}
+              color={themedStyles.actionButtonLabel.color}
+              style={{ marginRight: 6 }}
+            />
             <Text style={themedStyles.actionButtonLabel}>
-              {isActive ? "Stop Listening" : "Start Daily Listening"}
+              {isActive ? "Stop" : "Scripture Memory"}
             </Text>
           </Pressable>
 
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="Daily listening settings"
-            accessibilityHint="Opens details and settings for daily listening."
+            accessibilityLabel="Scripture memory audio settings"
+            accessibilityHint="Opens details and settings for scripture memory audio."
             onPress={() => {
               void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
               setShowSessionDetails(true);
@@ -296,8 +302,8 @@ export const MemoryAudioCard: React.FunctionComponent<Props> = ({
       >
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Close daily listening details"
-          accessibilityHint="Dismisses daily listening details."
+          accessibilityLabel="Close scripture memory audio details"
+          accessibilityHint="Dismisses scripture memory audio details."
           style={themedStyles.modalBackdrop}
           onPress={() => {
             void Haptics.selectionAsync();
