@@ -213,8 +213,10 @@ export const HighlightsScreen: React.FunctionComponent<Props> = ({
                 pressed && { opacity: 0.6 },
               ]}
               onPress={() => {
-                navigation.navigate("Bible");
-                // TODO: Navigate to specific chapter — requires BibleScreen to accept initial location
+                navigation.navigate("Bible", {
+                  bookId: h.bookId,
+                  chapter: h.chapter,
+                });
               }}
               accessibilityRole="button"
               accessibilityLabel={`${item.bookName} ${formatVerseRange(h)}`}

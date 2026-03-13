@@ -14,3 +14,4 @@ export type { ReadScrollViewProps } from "./ReadScrollView/ReadScrollView";
 export { BiblePicker } from "./BiblePicker/BiblePicker";
 export type { BiblePickerHandle } from "./BiblePicker/BiblePicker";
 export { WeekGrid } from "./WeekGrid/WeekGrid";
+export { ScreenErrorBoundary } from "./ScreenErrorBoundary";

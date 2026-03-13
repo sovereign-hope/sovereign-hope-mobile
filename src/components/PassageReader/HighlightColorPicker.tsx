@@ -10,6 +10,7 @@ import {
 import type { HighlightColor } from "src/types/highlights";
 import { useAppSelector } from "src/hooks/store";
 import { selectHighlightPickerSide } from "src/redux/settingsSlice";
+import { useUiPreferences } from "src/hooks/useUiPreferences";
 
 const SLIDE_DURATION = 200;
 const PANEL_WIDTH = 48;
@@ -85,17 +86,24 @@ export const HighlightColorPicker: React.FunctionComponent<HighlightColorPickerP
     const theme = useTheme();
     const colorMode = theme.dark ? "dark" : "light";
     const side = useAppSelector(selectHighlightPickerSide);
+    const { disableAnimations } = useUiPreferences();
 
     // Slide animation: starts off-screen, slides to 0
-    const slideAnim = useRef(new Animated.Value(-PANEL_WIDTH)).current;
+    const slideAnim = useRef(
+      new Animated.Value(disableAnimations ? 0 : -PANEL_WIDTH)
+    ).current;
 
     useEffect(() => {
+      if (disableAnimations) {
+        slideAnim.setValue(0);
+        return;
+      }
       Animated.timing(slideAnim, {
         toValue: 0,
         duration: SLIDE_DURATION,
         useNativeDriver: true,
       }).start();
-    }, [slideAnim]);
+    }, [disableAnimations, slideAnim]);
 
     const handleColorPress = useCallback(
       (color: HighlightColor) => {

@@ -80,14 +80,22 @@ export const deleteHighlightDoc = async (
 
 export const subscribeToHighlights = (
   uid: string,
-  onUpdate: (highlights: Highlight[]) => void
+  onUpdate: (highlights: Highlight[]) => void,
+  onError?: (error: Error) => void
 ): Unsubscribe => {
   const q = query(getHighlightsCollection(uid));
-  return onSnapshot(q, (snapshot) => {
-    const highlights: Highlight[] = snapshot.docs.map((docSnap) => ({
-      id: docSnap.id,
-      ...(docSnap.data() as Omit<Highlight, "id">),
-    }));
-    onUpdate(highlights);
-  });
+  return onSnapshot(
+    q,
+    (snapshot) => {
+      const highlights: Highlight[] = snapshot.docs.map((docSnap) => ({
+        id: docSnap.id,
+        ...(docSnap.data() as Omit<Highlight, "id">),
+      }));
+      onUpdate(highlights);
+    },
+    (error) => {
+      console.warn("[Highlights] Firestore listener error:", error);
+      onError?.(error);
+    }
+  );
 };

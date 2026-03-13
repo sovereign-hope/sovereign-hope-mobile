@@ -12,6 +12,7 @@ import { RootStackParamList } from "src/navigation/RootNavigator";
 import { useTheme } from "@react-navigation/native";
 import * as Haptics from "expo-haptics";
 import { useMiniPlayerHeight } from "src/hooks/useMiniPlayerHeight";
+import { ScreenErrorBoundary } from "src/components";
 import {
   selectReadingPlan,
   ReadingPlanWeek,
@@ -359,41 +360,43 @@ export const ReadingPlanScreen: React.FunctionComponent<ReadingPlanProps> = ({
   const themedStyles = styles({ theme, isEinkMode: uiPreferences.isEinkMode });
 
   return (
-    <SafeAreaView edges={["left", "right"]} style={themedStyles.screen}>
-      <SectionList
-        ref={scrollViewRef}
-        stickySectionHeadersEnabled
-        bounces={false}
-        contentContainerStyle={{
-          paddingBottom: miniPlayerHeight + insets.bottom,
-        }}
-        onScrollToIndexFailed={() => {
-          // Handle scroll to index failure gracefully
-          // scrollToLocation may fail if item not yet rendered; initial scroll
-          // will retry after 1s which typically allows items to render
-        }}
-        sections={listData}
-        style={themedStyles.planList}
-        initialNumToRender={15}
-        maxToRenderPerBatch={10}
-        windowSize={21}
-        keyExtractor={(item: ReadingPlanListItemData) =>
-          `day-${item.displayDayNumber}-week-${item.weekIndex}`
-        }
-        renderItem={({ item }) => (
-          <ReadingPlanListItem
-            item={item}
-            isEinkMode={uiPreferences.isEinkMode}
-            handleRowPress={handleRowPress}
-          />
-        )}
-        renderSectionHeader={({ section: { title } }) => (
-          <View style={themedStyles.sectionHeaderContainer}>
-            <Text style={themedStyles.sectionHeaderText}>{title}</Text>
-          </View>
-        )}
-      />
-    </SafeAreaView>
+    <ScreenErrorBoundary>
+      <SafeAreaView edges={["left", "right"]} style={themedStyles.screen}>
+        <SectionList
+          ref={scrollViewRef}
+          stickySectionHeadersEnabled
+          bounces={false}
+          contentContainerStyle={{
+            paddingBottom: miniPlayerHeight + insets.bottom,
+          }}
+          onScrollToIndexFailed={() => {
+            // Handle scroll to index failure gracefully
+            // scrollToLocation may fail if item not yet rendered; initial scroll
+            // will retry after 1s which typically allows items to render
+          }}
+          sections={listData}
+          style={themedStyles.planList}
+          initialNumToRender={15}
+          maxToRenderPerBatch={10}
+          windowSize={21}
+          keyExtractor={(item: ReadingPlanListItemData) =>
+            `day-${item.displayDayNumber}-week-${item.weekIndex}`
+          }
+          renderItem={({ item }) => (
+            <ReadingPlanListItem
+              item={item}
+              isEinkMode={uiPreferences.isEinkMode}
+              handleRowPress={handleRowPress}
+            />
+          )}
+          renderSectionHeader={({ section: { title } }) => (
+            <View style={themedStyles.sectionHeaderContainer}>
+              <Text style={themedStyles.sectionHeaderText}>{title}</Text>
+            </View>
+          )}
+        />
+      </SafeAreaView>
+    </ScreenErrorBoundary>
   );
 };
 

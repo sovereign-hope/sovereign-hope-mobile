@@ -88,11 +88,17 @@ export const selectHighlightsForChapter = createSelector(
  * Build a lookup map for a specific chapter: "BOOKID:chapter:verse" → color.
  * Expands ranges so every verse in a range is individually keyed.
  */
+/** Max verse range to expand in the lookup — guards against malformed data. */
+const MAX_VERSE_RANGE = 200;
+
 export const buildHighlightLookup = (
   highlights: Highlight[]
 ): HighlightLookup => {
   const lookup: HighlightLookup = {};
   for (const h of highlights) {
+    // Skip highlights with unreasonable verse ranges (prevents DoS from
+    // malformed data where endVerse - startVerse could be enormous).
+    if (h.endVerse - h.startVerse > MAX_VERSE_RANGE) continue;
     for (let v = h.startVerse; v <= h.endVerse; v++) {
       lookup[`${h.bookId}:${h.chapter}:${v}`] = h.color;
     }

@@ -18,6 +18,8 @@ import {
   useTheme,
   useNavigation,
   NavigationProp,
+  useRoute,
+  RouteProp,
 } from "@react-navigation/native";
 import { RootStackParamList } from "src/navigation/RootNavigator";
 import { Ionicons } from "@expo/vector-icons";
@@ -53,6 +55,7 @@ import { styles } from "./BibleScreen.styles";
 
 export const BibleScreen: React.FunctionComponent = () => {
   const dispatch = useAppDispatch();
+  const route = useRoute<RouteProp<RootStackParamList, "Bible">>();
   const theme = useTheme();
   const { height: tabBarHeight } = useTabBarHeightContext();
   const miniPlayerHeight = useMiniPlayerHeight();
@@ -78,8 +81,19 @@ export const BibleScreen: React.FunctionComponent = () => {
     [theme, uiPreferences.isEinkMode]
   );
 
-  // Restore last-read location then fetch the chapter
+  // Restore last-read location then fetch the chapter.
+  // Skip restore when route params already specify a location (e.g. from HighlightsScreen).
   useEffect(() => {
+    if (route.params?.bookId && route.params?.chapter) {
+      void dispatch(
+        fetchBibleChapter({
+          bookId: route.params.bookId,
+          chapter: route.params.chapter,
+        })
+      );
+      return;
+    }
+
     const init = async () => {
       try {
         const result = await dispatch(restoreLastReadLocation()).unwrap();
@@ -90,7 +104,8 @@ export const BibleScreen: React.FunctionComponent = () => {
     };
 
     void init();
-  }, [dispatch]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- re-run when route params change (highlight navigation)
+  }, [dispatch, route.params?.bookId, route.params?.chapter]);
 
   const handlePickerSelect = useCallback(
     (newLocation: BibleLocation) => {

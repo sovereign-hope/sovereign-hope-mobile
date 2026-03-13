@@ -33,7 +33,10 @@ import RenderHtml, {
 import { styles } from "./PassageReader.styles";
 import { spacing } from "src/style/layout";
 import { selectReadingFontSize } from "src/redux/settingsSlice";
-import { DragPreviewContext } from "./useHighlightRenderer";
+import {
+  DragPreviewContext,
+  HighlightLookupContext,
+} from "./useHighlightRenderer";
 import type { GestureResponderEvent } from "react-native";
 import { useHighlightRenderer } from "./useHighlightRenderer";
 import { wrapVerseHtml } from "./wrapVerseHtml";
@@ -47,6 +50,12 @@ import { getPressFeedbackStyle } from "src/style/eink";
 
 const PASSAGE_FADE_DURATION_MS = 220;
 const PASSAGE_SCROLL_RESET_FALLBACK_MS = 700;
+
+// Touch gesture thresholds for highlight tap detection
+const LONG_PRESS_DELAY_MS = 400;
+const MOVE_CANCEL_THRESHOLD_PX = 10;
+const SCROLL_DELTA_THRESHOLD_PX = 2;
+const FINGER_DELTA_THRESHOLD_PX = 8;
 
 export interface PassageReaderProps {
   /** Heading text shown above the passage */
@@ -446,7 +455,7 @@ export const PassageReader: React.FunctionComponent<PassageReaderProps> = ({
         isDragActiveRef.current = true;
         setIsDragActive(true);
         onDragStartRef.current(lastTouchYRef.current);
-      }, 400);
+      }, LONG_PRESS_DELAY_MS);
     },
     [highlightEnabled]
   );
@@ -460,7 +469,7 @@ export const PassageReader: React.FunctionComponent<PassageReaderProps> = ({
       // Not in drag mode — cancel timer if finger moved (user is scrolling)
       if (
         longPressTimerRef.current &&
-        Math.abs(pageY - touchStartYRef.current) > 10
+        Math.abs(pageY - touchStartYRef.current) > MOVE_CANCEL_THRESHOLD_PX
       ) {
         clearTimeout(longPressTimerRef.current);
         // eslint-disable-next-line unicorn/no-null
@@ -505,8 +514,8 @@ export const PassageReader: React.FunctionComponent<PassageReaderProps> = ({
     const isCleanTap =
       !didMoveRef.current &&
       !isMomentumScrollingRef.current &&
-      scrollDelta < 2 &&
-      fingerDelta < 8;
+      scrollDelta < SCROLL_DELTA_THRESHOLD_PX &&
+      fingerDelta < FINGER_DELTA_THRESHOLD_PX;
     if (wasTap && highlightEnabled && isCleanTap) {
       handleTapRef.current(lastTouchYRef.current);
     }
@@ -574,20 +583,19 @@ export const PassageReader: React.FunctionComponent<PassageReaderProps> = ({
               <DragPreviewContext.Provider
                 value={highlightRenderer.dragPreviewRange}
               >
-                <RenderHtml
-                  key={
-                    highlightEnabled
-                      ? highlightRenderer.highlightKey
-                      : undefined
-                  }
-                  contentWidth={width}
-                  source={{ html: passageHtml }}
-                  tagsStyles={tagsStyles}
-                  customHTMLElementModels={customHTMLElementModels}
-                  renderers={
-                    highlightEnabled ? highlightRenderer.renderers : undefined
-                  }
-                />
+                <HighlightLookupContext.Provider
+                  value={highlightRenderer.highlightLookup}
+                >
+                  <RenderHtml
+                    contentWidth={width}
+                    source={{ html: passageHtml }}
+                    tagsStyles={tagsStyles}
+                    customHTMLElementModels={customHTMLElementModels}
+                    renderers={
+                      highlightEnabled ? highlightRenderer.renderers : undefined
+                    }
+                  />
+                </HighlightLookupContext.Provider>
               </DragPreviewContext.Provider>
               {!showMemoryButton && !passageData && commentaryHTML !== "" && (
                 <Pressable
