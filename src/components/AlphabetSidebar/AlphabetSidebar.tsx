@@ -28,7 +28,7 @@ export const AlphabetSidebar: React.FunctionComponent<AlphabetSidebarProps> = ({
   const theme = useTheme();
   const themedStyles = styles({ theme });
   const [containerHeight, setContainerHeight] = useState(0);
-  const lastTriggeredLetterRef = useRef<string>();
+  const lastTriggeredLetterRef = useRef("");
 
   const triggerLetterAtPosition = (positionY: number) => {
     if (containerHeight <= 0) {
@@ -68,7 +68,7 @@ export const AlphabetSidebar: React.FunctionComponent<AlphabetSidebarProps> = ({
         triggerLetterAtPosition(event.nativeEvent.locationY);
       }}
       onTouchEnd={() => {
-        lastTriggeredLetterRef.current = undefined;
+        lastTriggeredLetterRef.current = "";
       }}
       accessibilityRole="adjustable"
       accessibilityLabel="Directory alphabet index"
@@ -92,7 +92,7 @@ export const AlphabetSidebar: React.FunctionComponent<AlphabetSidebarProps> = ({
             accessibilityState={{ disabled: !isAvailable, selected: isActive }}
             onPress={() => {
               if (isAvailable) {
-                lastTriggeredLetterRef.current = undefined;
+                lastTriggeredLetterRef.current = "";
                 onSelectLetter(letter);
                 return;
               }
