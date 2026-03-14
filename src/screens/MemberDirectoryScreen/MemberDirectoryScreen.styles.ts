@@ -9,12 +9,20 @@ type Props = {
 };
 
 interface Style {
+  container: ViewStyle;
   screen: ViewStyle;
   contentContainer: ViewStyle;
+  emptyContentContainer: ViewStyle;
   searchInput: TextStyle;
+  letterHeaderContainer: ViewStyle;
+  letterHeaderText: TextStyle;
+  sectionHeaderContainer: ViewStyle;
+  sectionHeaderText: TextStyle;
   row: ViewStyle;
+  sectionSpacer: ViewStyle;
   rowName: TextStyle;
   rowDivider: ViewStyle;
+  alphabetSidebar: ViewStyle;
   centeredState: ViewStyle;
   stateText: TextStyle;
   retryButton: ViewStyle;
@@ -23,13 +31,21 @@ interface Style {
 
 export const styles = ({ theme }: Props): Style =>
   StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: theme.colors.background,
+    },
     screen: {
       flex: 1,
       backgroundColor: theme.colors.background,
     },
     contentContainer: {
       paddingHorizontal: spacing.large,
+      paddingRight: spacing.extraLarge + spacing.large,
       paddingBottom: spacing.extraLarge,
+    },
+    emptyContentContainer: {
+      flexGrow: 1,
     },
     searchInput: {
       borderWidth: StyleSheet.hairlineWidth,
@@ -43,12 +59,41 @@ export const styles = ({ theme }: Props): Style =>
       marginBottom: spacing.large,
       fontSize: 16,
     },
+    letterHeaderContainer: {
+      paddingTop: spacing.medium,
+      paddingBottom: spacing.small,
+      backgroundColor: theme.colors.background,
+    },
+    letterHeaderText: {
+      fontSize: 13,
+      fontWeight: "700",
+      letterSpacing: 0.8,
+      color: colors.accent,
+    },
+    sectionHeaderContainer: {
+      backgroundColor: theme.colors.card,
+      borderRadius: radius.medium,
+      paddingHorizontal: spacing.large,
+      paddingVertical: spacing.medium,
+      marginBottom: spacing.small,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: theme.colors.border,
+    },
+    sectionHeaderText: {
+      ...header3,
+      color: theme.colors.text,
+    },
     row: {
       flexDirection: "row",
       alignItems: "center",
       gap: spacing.lmedium,
-      paddingVertical: spacing.lmedium,
-      backgroundColor: theme.colors.background,
+      paddingVertical: spacing.medium,
+      paddingHorizontal: spacing.large,
+      backgroundColor: theme.colors.card,
+      borderRadius: radius.medium,
+    },
+    sectionSpacer: {
+      marginBottom: spacing.small,
     },
     rowName: {
       ...header3,
@@ -58,7 +103,15 @@ export const styles = ({ theme }: Props): Style =>
     rowDivider: {
       height: StyleSheet.hairlineWidth,
       backgroundColor: theme.colors.border,
-      marginLeft: 56,
+      marginLeft: 72,
+      marginBottom: spacing.small,
+    },
+    alphabetSidebar: {
+      position: "absolute",
+      right: spacing.small,
+      top: 88,
+      bottom: spacing.extraLarge,
+      justifyContent: "center",
     },
     centeredState: {
       flex: 1,

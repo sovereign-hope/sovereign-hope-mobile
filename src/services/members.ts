@@ -18,6 +18,12 @@ export interface MemberProfile {
   displayName: string;
   photoURL: string | null;
   createdAt: number;
+  firstName?: string | null;
+  lastName?: string | null;
+  householdId?: string | null;
+  householdName?: string | null;
+  householdLastName?: string | null;
+  isHeadOfHousehold?: boolean;
 }
 
 export interface PrayerMember {
@@ -95,6 +101,12 @@ export const fetchAllMembers = async (): Promise<Array<MemberProfile>> => {
       displayName?: string;
       photoURL?: string | null;
       createdAt?: unknown;
+      firstName?: string | null;
+      lastName?: string | null;
+      householdId?: string | null;
+      householdName?: string | null;
+      householdLastName?: string | null;
+      isHeadOfHousehold?: boolean;
     };
 
     return {
@@ -102,6 +114,12 @@ export const fetchAllMembers = async (): Promise<Array<MemberProfile>> => {
       displayName: data.displayName ?? "Church member",
       photoURL: data.photoURL ?? null,
       createdAt: timestampToMilliseconds(data.createdAt),
+      firstName: data.firstName ?? null,
+      lastName: data.lastName ?? null,
+      householdId: data.householdId ?? null,
+      householdName: data.householdName ?? null,
+      householdLastName: data.householdLastName ?? null,
+      isHeadOfHousehold: data.isHeadOfHousehold ?? false,
     };
   });
 };

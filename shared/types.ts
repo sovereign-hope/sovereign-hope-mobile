@@ -36,6 +36,12 @@ export interface MemberProfile {
   createdAt: number;
   email?: string | null;
   planningCenterPersonId?: string | null;
+  firstName?: string | null;
+  lastName?: string | null;
+  householdId?: string | null;
+  householdName?: string | null;
+  householdLastName?: string | null;
+  isHeadOfHousehold?: boolean;
 }
 
 export interface FirebaseUserRecord {
