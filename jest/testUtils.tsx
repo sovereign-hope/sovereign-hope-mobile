@@ -21,6 +21,7 @@ import { commentaryReducer } from "src/redux/commentarySlice";
 import { memberReducer } from "src/redux/memberSlice";
 import { bibleReducer } from "src/redux/bibleSlice";
 import { highlightsReducer } from "src/redux/highlightsSlice";
+import { notesReducer } from "src/redux/notesSlice";
 
 const rootReducer = {
   auth: authReducer,
@@ -35,6 +36,7 @@ const rootReducer = {
   commentary: commentaryReducer,
   member: memberReducer,
   highlights: highlightsReducer,
+  notes: notesReducer,
 };
 
 interface ExtendedRenderOptions extends Omit<RenderOptions, "wrapper"> {

@@ -302,6 +302,7 @@ export const clearLocalSyncedData = async (): Promise<void> => {
     ...LOCAL_ONLY_SETTINGS_KEYS,
     "@dismissedNotifications",
     "@highlights",
+    "@notes",
     STORAGE_KEYS.settingsMeta,
     STORAGE_KEYS.dismissedNotificationsUpdatedAt,
     STORAGE_KEYS.pendingPush,
@@ -335,6 +336,18 @@ export const deleteRemoteUserData = async (uid: string): Promise<void> => {
     const batch = writeBatch(db);
     highlightsSnapshot.docs.forEach((highlightDoc) => {
       batch.delete(highlightDoc.ref);
+    });
+    await batch.commit();
+  }
+
+  // Delete notes subcollection
+  const notesCollectionRef = collection(db, "users", uid, "notes");
+  const notesSnapshot = await getDocs(notesCollectionRef);
+
+  if (!notesSnapshot.empty) {
+    const batch = writeBatch(db);
+    notesSnapshot.docs.forEach((noteDoc) => {
+      batch.delete(noteDoc.ref);
     });
     await batch.commit();
   }

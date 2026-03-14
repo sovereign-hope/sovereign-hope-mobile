@@ -27,6 +27,10 @@ export interface ReadScrollViewProps {
   bookId?: string;
   /** Chapter number for verse highlighting */
   chapter?: number;
+  /** Called when the user taps the note button on a highlighted verse */
+  onNote?: (startVerse: number, endVerse: number) => void;
+  /** Lookup map: "BOOK:chapter:verse" → true if a note covers that verse */
+  noteLookup?: Record<string, boolean>;
 }
 
 export const ReadScrollView: React.FunctionComponent<ReadScrollViewProps> = ({
@@ -47,6 +51,8 @@ export const ReadScrollView: React.FunctionComponent<ReadScrollViewProps> = ({
   onScrollDirectionChange,
   bookId,
   chapter,
+  onNote,
+  noteLookup,
 }: ReadScrollViewProps) => {
   const theme = useTheme();
   const uiPreferences = useUiPreferences();
@@ -122,6 +128,8 @@ export const ReadScrollView: React.FunctionComponent<ReadScrollViewProps> = ({
       onScrollDirectionChange={onScrollDirectionChange}
       bookId={bookId}
       chapter={chapter}
+      onNote={onNote}
+      noteLookup={noteLookup}
     />
   );
 };

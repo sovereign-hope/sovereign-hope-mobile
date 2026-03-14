@@ -1,17 +1,16 @@
 import { Platform, StyleSheet, ViewStyle, TextStyle } from "react-native";
 import { Theme } from "@react-navigation/native";
-import { colors } from "src/style/colors";
 import { spacing, radius } from "src/style/layout";
 
 type Props = {
   theme: Theme;
-  isEinkMode: boolean;
   bottomInset: number;
 };
 
 interface Style {
   container: ViewStyle;
   containerSolid: ViewStyle;
+  containerBlurFallback: ViewStyle;
   glassBackground: ViewStyle;
   blurBackground: ViewStyle;
   blurOverlay: ViewStyle;
@@ -23,13 +22,7 @@ interface Style {
 
 const PILL_RADIUS = 24;
 
-export const styles = ({ theme, isEinkMode, bottomInset }: Props): Style => {
-  const actionColor = isEinkMode
-    ? theme.dark
-      ? colors.white
-      : colors.black
-    : colors.accent;
-
+export const styles = ({ theme, bottomInset }: Props): Style => {
   const cornerRadius = Platform.OS === "ios" ? PILL_RADIUS : radius.large;
 
   return StyleSheet.create({
@@ -45,6 +38,9 @@ export const styles = ({ theme, isEinkMode, bottomInset }: Props): Style => {
       backgroundColor: theme.colors.card,
       borderWidth: StyleSheet.hairlineWidth,
       borderColor: theme.colors.border,
+    },
+    containerBlurFallback: {
+      backgroundColor: theme.colors.card,
     },
     glassBackground: {
       ...StyleSheet.absoluteFillObject,
@@ -79,7 +75,7 @@ export const styles = ({ theme, isEinkMode, bottomInset }: Props): Style => {
     label: {
       fontSize: 12,
       marginTop: 2,
-      color: actionColor,
+      color: theme.colors.text,
     },
   });
 };

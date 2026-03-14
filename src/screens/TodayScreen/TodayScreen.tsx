@@ -71,6 +71,7 @@ import {
   getSubscribedPlans,
   selectHasLoadedSubscribedPlans,
   selectSubscribedPlans,
+  selectEnableSplitView,
   storeSubscribedPlans,
 } from "src/redux/settingsSlice";
 import Animated, {
@@ -103,7 +104,10 @@ import TrackPlayer, { Track } from "react-native-track-player";
 import { initializeTrackPlayer } from "src/services/trackPlayerSetup";
 import { playPassageAudio } from "src/services/passageAudio";
 import { store } from "src/app/store";
-import { passageToLocation } from "src/app/bibleUtils";
+import { passageToLocation, formatVerseReference } from "src/app/bibleUtils";
+import { selectNotesForChapter, buildNoteLookup } from "src/redux/notesSlice";
+import type { Note } from "src/types/notes";
+import { NotePreviewPopup } from "src/components/NotePreviewPopup/NotePreviewPopup";
 import { stopMemoryAudioSession } from "src/redux/memoryAudioSlice";
 import {
   GlassView,
@@ -180,14 +184,16 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
   const isLoadingPrayerAssignment = useAppSelector(selectIsLoadingPrayer);
   const hasPrayerAssignmentError = useAppSelector(selectHasPrayerError);
   const { isTablet } = useTabletLayout();
+  const enableSplitView = useAppSelector(selectEnableSplitView);
+  const useSplitView = isTablet && enableSplitView;
   const readingAudioUrl = useAppSelector(selectAudioUrl);
   const readingAudioTitle = useAppSelector(selectPassageHeader);
   const uiPreferences = useUiPreferences();
 
-  // Master-detail state (tablet only)
+  // Master-detail state (tablet split-view only)
   const [selectedDayIndex, setSelectedDayIndex] = useState<number>();
   // Wide layout is active on tablet only when the detail pane is closed
-  const useWideLayout = isTablet && selectedDayIndex === undefined;
+  const useWideLayout = useSplitView && selectedDayIndex === undefined;
   const [masterDetailPassages, setMasterDetailPassages] = useState<Passage[]>(
     []
   );
@@ -382,13 +388,54 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
     onMasterDetailDone
   );
 
-  // Derive bookId/chapter for highlight support
+  // Derive bookId/chapter for highlight + note support
   const currentDetailLocation = useMemo(
     () =>
       masterDetailPassages.length > 0
         ? passageToLocation(masterDetailPassages[passageLoader.passageIndex])
         : undefined,
     [masterDetailPassages, passageLoader.passageIndex]
+  );
+
+  // Notes for the detail pane (iPad split view)
+  const selectDetailNotes = useMemo(
+    () =>
+      currentDetailLocation
+        ? (state: Parameters<typeof selectNotesForChapter>[0]) =>
+            selectNotesForChapter(
+              state,
+              currentDetailLocation.bookId,
+              currentDetailLocation.chapter
+            )
+        : () => [] as ReturnType<typeof selectNotesForChapter>,
+    [currentDetailLocation]
+  );
+  const detailChapterNotes = useAppSelector(selectDetailNotes);
+  const detailNoteLookup = useMemo(
+    () => buildNoteLookup(detailChapterNotes),
+    [detailChapterNotes]
+  );
+  // eslint-disable-next-line unicorn/no-null
+  const [detailPreviewNote, setDetailPreviewNote] = useState<Note | null>(null);
+
+  const handleDetailNote = useCallback(
+    (startVerse: number, endVerse: number) => {
+      if (!currentDetailLocation) return;
+      const existing = detailChapterNotes.find(
+        (n) => n.startVerse <= endVerse && n.endVerse >= startVerse
+      );
+      if (existing) {
+        setDetailPreviewNote(existing);
+      } else {
+        navigation.navigate("NoteEditor", {
+          bookId: currentDetailLocation.bookId,
+          chapter: currentDetailLocation.chapter,
+          startVerse,
+          endVerse,
+        });
+      }
+    },
+    [detailChapterNotes, currentDetailLocation, navigation]
   );
 
   const handleDetailLayout = useCallback((event: LayoutChangeEvent) => {
@@ -412,7 +459,7 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
 
     const allPassages = [...readingPassages, memoryPassage];
 
-    if (isTablet) {
+    if (useSplitView) {
       setSelectedDayIndex(dayIndex);
       setMasterDetailPassages(allPassages);
     } else {
@@ -433,7 +480,7 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
 
       memoryPassage.isMemory = true;
 
-      if (isTablet) {
+      if (useSplitView) {
         setSelectedDayIndex(getDayOfYearIndices(currentDate).dayIndex);
         setMasterDetailPassages([memoryPassage]);
       } else {
@@ -874,7 +921,7 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
                 : LinearTransition.duration(280)
             }
             style={
-              isTablet && selectedDayIndex !== undefined
+              useSplitView && selectedDayIndex !== undefined
                 ? themedStyles.splitView
                 : themedStyles.splitViewSingle
             }
@@ -1173,7 +1220,7 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
                 </View>
               </Animated.ScrollView>
             </Animated.View>
-            {isTablet && selectedDayIndex !== undefined && (
+            {useSplitView && selectedDayIndex !== undefined && (
               <Animated.View
                 layout={
                   uiPreferences.disableAnimations
@@ -1347,6 +1394,10 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
                     adjustsForInsets
                     bookId={currentDetailLocation?.bookId}
                     chapter={currentDetailLocation?.chapter}
+                    onNote={
+                      currentDetailLocation ? handleDetailNote : undefined
+                    }
+                    noteLookup={detailNoteLookup}
                   />
                 )}
               </Animated.View>
@@ -1354,6 +1405,34 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
           </Animated.View>
         )}
       </SafeAreaView>
+      {detailPreviewNote && (
+        <NotePreviewPopup
+          text={detailPreviewNote.text}
+          reference={formatVerseReference(
+            detailPreviewNote.bookId,
+            detailPreviewNote.chapter,
+            detailPreviewNote.startVerse,
+            detailPreviewNote.endVerse
+          )}
+          onEdit={() => {
+            const note = detailPreviewNote;
+            // eslint-disable-next-line unicorn/no-null
+            setDetailPreviewNote(null);
+            navigation.navigate("NoteEditor", {
+              bookId: note.bookId,
+              chapter: note.chapter,
+              startVerse: note.startVerse,
+              endVerse: note.endVerse,
+              noteId: note.id,
+              initialText: note.text,
+            });
+          }}
+          onDismiss={() => {
+            // eslint-disable-next-line unicorn/no-null
+            setDetailPreviewNote(null);
+          }}
+        />
+      )}
     </ScreenErrorBoundary>
   );
 };

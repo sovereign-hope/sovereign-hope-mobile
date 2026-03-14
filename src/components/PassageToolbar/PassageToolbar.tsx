@@ -10,8 +10,6 @@ import {
 } from "expo-glass-effect";
 import { Ionicons } from "@expo/vector-icons";
 import { canUseLiquidGlass } from "src/services/liquidGlassSupport";
-import { useUiPreferences } from "src/hooks/useUiPreferences";
-import { colors } from "src/style/colors";
 import { styles } from "./PassageToolbar.styles";
 
 export interface PassageToolbarAction {
@@ -40,16 +38,14 @@ export const PassageToolbar: React.FunctionComponent<PassageToolbarProps> = ({
 }) => {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
-  const uiPreferences = useUiPreferences();
   const themedStyles = useMemo(
     () =>
       styles({
         theme,
-        isEinkMode: uiPreferences.isEinkMode,
         bottomInset:
           Platform.OS === "android" ? 0 : insets.bottom + bottomOffset,
       }),
-    [theme, uiPreferences.isEinkMode, insets.bottom, bottomOffset]
+    [theme, insets.bottom, bottomOffset]
   );
 
   const translateY = useRef(new Animated.Value(0)).current;
@@ -68,12 +64,6 @@ export const PassageToolbar: React.FunctionComponent<PassageToolbarProps> = ({
   });
   const shouldUseBlur = Platform.OS === "ios" && !shouldUseLiquidGlass;
 
-  const actionColor = uiPreferences.isEinkMode
-    ? theme.dark
-      ? colors.white
-      : colors.black
-    : colors.accent;
-
   if (actions.length === 0) {
     // eslint-disable-next-line unicorn/no-null
     return null;
@@ -86,6 +76,7 @@ export const PassageToolbar: React.FunctionComponent<PassageToolbarProps> = ({
       style={[
         themedStyles.container,
         !useGlassLayer && themedStyles.containerSolid,
+        shouldUseBlur && themedStyles.containerBlurFallback,
         { transform: [{ translateY }] },
       ]}
       pointerEvents="box-none"
@@ -123,7 +114,7 @@ export const PassageToolbar: React.FunctionComponent<PassageToolbarProps> = ({
               pressed && themedStyles.buttonPressed,
             ]}
           >
-            <Ionicons name={action.icon} size={22} color={actionColor} />
+            <Ionicons name={action.icon} size={22} color={theme.colors.text} />
             <Text style={themedStyles.label}>{action.label}</Text>
           </Pressable>
         ))}

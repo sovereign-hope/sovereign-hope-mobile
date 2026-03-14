@@ -372,3 +372,20 @@ const AUDIO_URL_REGEX = /https:\/\/audio\.esv\.org\/[^\s")]+\.mp3/;
 /** Extract the ESV audio URL from passage HTML, if present. */
 export const extractAudioUrl = (html: string | undefined): string | undefined =>
   html?.match(AUDIO_URL_REGEX)?.[0];
+
+/** Resolve a 3-letter book ID (e.g. "JHN") to its display name, falling back to the raw ID. */
+export const getBookName = (bookId: string): string =>
+  getBookById(bookId)?.name ?? bookId;
+
+/** Format a verse reference like "John 3:16" or "John 3:16-18". */
+export const formatVerseReference = (
+  bookId: string,
+  chapter: number,
+  startVerse: number,
+  endVerse: number
+): string => {
+  const bookName = getBookName(bookId);
+  const range =
+    startVerse === endVerse ? `${startVerse}` : `${startVerse}-${endVerse}`;
+  return `${bookName} ${chapter}:${range}`;
+};

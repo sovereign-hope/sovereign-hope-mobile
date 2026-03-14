@@ -7,8 +7,10 @@ import React, {
   useState,
 } from "react";
 import {
+  ActivityIndicator,
   Pressable,
   ScrollView,
+  StyleSheet,
   Text,
   useWindowDimensions,
   Animated,
@@ -36,6 +38,7 @@ import { selectReadingFontSize } from "src/redux/settingsSlice";
 import {
   DragPreviewContext,
   HighlightLookupContext,
+  NoteLookupContext,
 } from "./useHighlightRenderer";
 import type { GestureResponderEvent } from "react-native";
 import { useHighlightRenderer } from "./useHighlightRenderer";
@@ -88,6 +91,10 @@ export interface PassageReaderProps {
   bookId?: string;
   /** Chapter number — enables verse highlighting when combined with bookId */
   chapter?: number;
+  /** Called when the user taps the note button on a highlighted verse */
+  onNote?: (startVerse: number, endVerse: number) => void;
+  /** Lookup map: "BOOK:chapter:verse" → true if a note covers that verse */
+  noteLookup?: Record<string, boolean>;
 }
 
 export const PassageReader: React.FunctionComponent<PassageReaderProps> = ({
@@ -106,6 +113,8 @@ export const PassageReader: React.FunctionComponent<PassageReaderProps> = ({
   onScrollDirectionChange,
   bookId,
   chapter,
+  onNote,
+  noteLookup,
 }: PassageReaderProps) => {
   // State
   const [isPressingHideButton, setIsPressingHideButton] = useState(false);
@@ -161,6 +170,7 @@ export const PassageReader: React.FunctionComponent<PassageReaderProps> = ({
   // Ref Hooks
   const animation = useRef(new Animated.Value(1)).current;
   const passageTransitionOpacity = useRef(new Animated.Value(1)).current;
+  const transitionOverlayOpacity = useRef(new Animated.Value(0)).current;
   const mountAnimation = useRef(new Animated.Value(0)).current;
   const pendingRevealRef = useRef(false);
   const revealTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -196,11 +206,13 @@ export const PassageReader: React.FunctionComponent<PassageReaderProps> = ({
 
   const fadeInPassage = React.useCallback(() => {
     runTiming(passageTransitionOpacity, 1, PASSAGE_FADE_DURATION_MS);
-  }, [passageTransitionOpacity, runTiming]);
+    runTiming(transitionOverlayOpacity, 0, PASSAGE_FADE_DURATION_MS);
+  }, [passageTransitionOpacity, transitionOverlayOpacity, runTiming]);
 
   const fadeOutPassage = React.useCallback(() => {
     runTiming(passageTransitionOpacity, 0, PASSAGE_FADE_DURATION_MS);
-  }, [passageTransitionOpacity, runTiming]);
+    runTiming(transitionOverlayOpacity, 1, PASSAGE_FADE_DURATION_MS);
+  }, [passageTransitionOpacity, transitionOverlayOpacity, runTiming]);
 
   const revealPassageAfterScrollReset = React.useCallback(() => {
     if (isTransitioning || !pendingRevealRef.current) {
@@ -271,17 +283,30 @@ export const PassageReader: React.FunctionComponent<PassageReaderProps> = ({
 
   const handleScroll = React.useCallback(
     (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-      const offsetY = event.nativeEvent.contentOffset.y;
+      const { contentOffset, contentSize, layoutMeasurement } =
+        event.nativeEvent;
+      const offsetY = contentOffset.y;
 
       // Scroll-direction detection: ignore bounce region (offsetY <= 0)
       // and require minimum 4px delta to avoid jitter
       if (onScrollDirectionChange && offsetY > 0) {
-        const delta = offsetY - lastScrollOffsetRef.current;
-        if (Math.abs(delta) > 4) {
-          const direction = delta > 0 ? "down" : "up";
-          if (direction !== lastScrollDirectionRef.current) {
-            lastScrollDirectionRef.current = direction;
-            onScrollDirectionChange(direction);
+        // Hide toolbar when near the bottom to prevent overscroll bounce
+        // from showing it over the navigation buttons
+        const distanceFromBottom =
+          contentSize.height - layoutMeasurement.height - offsetY;
+        if (distanceFromBottom < 80) {
+          if (lastScrollDirectionRef.current !== "down") {
+            lastScrollDirectionRef.current = "down";
+            onScrollDirectionChange("down");
+          }
+        } else {
+          const delta = offsetY - lastScrollOffsetRef.current;
+          if (Math.abs(delta) > 4) {
+            const direction = delta > 0 ? "down" : "up";
+            if (direction !== lastScrollDirectionRef.current) {
+              lastScrollDirectionRef.current = direction;
+              onScrollDirectionChange(direction);
+            }
           }
         }
       }
@@ -586,15 +611,19 @@ export const PassageReader: React.FunctionComponent<PassageReaderProps> = ({
                 <HighlightLookupContext.Provider
                   value={highlightRenderer.highlightLookup}
                 >
-                  <RenderHtml
-                    contentWidth={width}
-                    source={{ html: passageHtml }}
-                    tagsStyles={tagsStyles}
-                    customHTMLElementModels={customHTMLElementModels}
-                    renderers={
-                      highlightEnabled ? highlightRenderer.renderers : undefined
-                    }
-                  />
+                  <NoteLookupContext.Provider value={noteLookup ?? {}}>
+                    <RenderHtml
+                      contentWidth={width}
+                      source={{ html: passageHtml }}
+                      tagsStyles={tagsStyles}
+                      customHTMLElementModels={customHTMLElementModels}
+                      renderers={
+                        highlightEnabled
+                          ? highlightRenderer.renderers
+                          : undefined
+                      }
+                    />
+                  </NoteLookupContext.Provider>
                 </HighlightLookupContext.Provider>
               </DragPreviewContext.Provider>
               {!showMemoryButton && !passageData && commentaryHTML !== "" && (
@@ -725,12 +754,53 @@ export const PassageReader: React.FunctionComponent<PassageReaderProps> = ({
         </Animated.View>
       </Animated.ScrollView>
 
+      {/* Transition overlay — covers content while loading next passage */}
+      <Animated.View
+        style={{
+          ...StyleSheet.absoluteFillObject,
+          backgroundColor: theme.colors.background,
+          justifyContent: "center",
+          alignItems: "center",
+          opacity: transitionOverlayOpacity,
+        }}
+        pointerEvents="none"
+      >
+        <ActivityIndicator size="large" color={theme.colors.text} />
+      </Animated.View>
+
       {/* Highlight color picker — positioned above the PassageToolbar */}
       {highlightEnabled && highlightRenderer.colorPickerTarget && (
         <HighlightColorPicker
           activeColor={highlightRenderer.colorPickerTarget.color}
           onSelectColor={highlightRenderer.changeColor}
           onDelete={highlightRenderer.deleteHighlight}
+          onNote={
+            onNote
+              ? () => {
+                  const target = highlightRenderer.colorPickerTarget;
+                  if (target) {
+                    highlightRenderer.dismissColorPicker();
+                    onNote(target.startVerse, target.endVerse);
+                  }
+                }
+              : undefined
+          }
+          hasNote={
+            noteLookup && highlightRenderer.colorPickerTarget
+              ? Array.from(
+                  {
+                    length:
+                      highlightRenderer.colorPickerTarget.endVerse -
+                      highlightRenderer.colorPickerTarget.startVerse +
+                      1,
+                  },
+                  (_, i) =>
+                    `${highlightRenderer.colorPickerTarget!.bookId}:${
+                      highlightRenderer.colorPickerTarget!.chapter
+                    }:${highlightRenderer.colorPickerTarget!.startVerse + i}`
+                ).some((key) => noteLookup[key])
+              : false
+          }
           onDismiss={highlightRenderer.dismissColorPicker}
         />
       )}

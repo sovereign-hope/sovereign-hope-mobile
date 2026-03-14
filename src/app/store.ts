@@ -11,6 +11,7 @@ import { commentaryReducer } from "src/redux/commentarySlice";
 import { memberReducer } from "src/redux/memberSlice";
 import { memoryAudioReducer } from "src/redux/memoryAudioSlice";
 import { highlightsReducer } from "src/redux/highlightsSlice";
+import { notesReducer } from "src/redux/notesSlice";
 
 export const store = configureStore({
   reducer: {
@@ -26,6 +27,7 @@ export const store = configureStore({
     commentary: commentaryReducer,
     member: memberReducer,
     highlights: highlightsReducer,
+    notes: notesReducer,
   },
 });
 
