@@ -242,6 +242,10 @@ export const MemberDirectoryScreen: React.FunctionComponent = () => {
         getItemLayout={getItemLayout}
         stickyHeaderIndices={stickyHeaderIndices}
         keyboardShouldPersistTaps="handled"
+        windowSize={5}
+        maxToRenderPerBatch={15}
+        initialNumToRender={20}
+        removeClippedSubviews={Platform.OS === "android"}
         contentContainerStyle={[
           themedStyles.contentContainer,
           flatData.length === 0 ? themedStyles.emptyContentContainer : null,
