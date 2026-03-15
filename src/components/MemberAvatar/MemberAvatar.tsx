@@ -1,6 +1,7 @@
 /* eslint-disable unicorn/no-null */
-import React, { useState } from "react";
-import { Image, Text, View } from "react-native";
+import React, { useMemo, useState } from "react";
+import { Text, View } from "react-native";
+import { Image } from "expo-image";
 import { useTheme } from "@react-navigation/native";
 import { styles } from "./MemberAvatar.styles";
 
@@ -25,7 +26,7 @@ export const MemberAvatar: React.FunctionComponent<Props> = ({
   size,
 }: Props) => {
   const theme = useTheme();
-  const themedStyles = styles({ theme, size });
+  const themedStyles = useMemo(() => styles({ theme, size }), [theme, size]);
   const [failedPhotoURL, setFailedPhotoURL] = useState<string | null>(null);
 
   if (photoURL && photoURL !== failedPhotoURL) {
@@ -33,6 +34,9 @@ export const MemberAvatar: React.FunctionComponent<Props> = ({
       <Image
         source={{ uri: photoURL }}
         style={themedStyles.image}
+        recyclingKey={photoURL}
+        cachePolicy="disk"
+        transition={150}
         onError={() => setFailedPhotoURL(photoURL)}
         accessibilityLabel={`Photo of ${displayName}`}
         accessibilityHint={`Member profile image for ${displayName}`}
