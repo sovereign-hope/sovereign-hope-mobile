@@ -1,7 +1,6 @@
 import React, { useMemo, useRef, useState } from "react";
 import {
   LayoutChangeEvent,
-  Pressable,
   StyleProp,
   Text,
   View,
@@ -25,24 +24,30 @@ export const AlphabetSidebar: React.FunctionComponent<AlphabetSidebarProps> = ({
 }: AlphabetSidebarProps) => {
   const theme = useTheme();
   const themedStyles = useMemo(() => styles({ theme }), [theme]);
-  const [containerHeight, setContainerHeight] = useState(0);
   const [scrubbingLetter, setScrubbingLetter] = useState("");
   const lastTriggeredLetterRef = useRef("");
+  const containerRef = useRef<View>(null);
+  const layoutRef = useRef({ pageY: 0, height: 0 });
 
-  const getLetterAtPosition = (positionY: number): string | undefined => {
-    if (containerHeight <= 0) {
+  const getLetterAtPageY = (pageY: number): string | undefined => {
+    const { pageY: containerPageY, height } = layoutRef.current;
+    if (height <= 0) {
       return undefined;
     }
 
-    const contentHeight = containerHeight - SIDEBAR_PADDING_VERTICAL * 2;
-    const relativeY = positionY - SIDEBAR_PADDING_VERTICAL;
+    const relativeY = pageY - containerPageY - SIDEBAR_PADDING_VERTICAL;
+    const contentHeight = height - SIDEBAR_PADDING_VERTICAL * 2;
+    if (contentHeight <= 0) {
+      return undefined;
+    }
+
     const ratio = Math.max(0, Math.min(1, relativeY / contentHeight));
     const letterIndex = Math.round(ratio * (ALPHABET.length - 1));
     return ALPHABET[letterIndex];
   };
 
-  const triggerLetterAtPosition = (positionY: number) => {
-    const nextLetter = getLetterAtPosition(positionY);
+  const triggerLetterAtPageY = (pageY: number) => {
+    const nextLetter = getLetterAtPageY(pageY);
     if (!nextLetter) {
       return;
     }
@@ -62,24 +67,29 @@ export const AlphabetSidebar: React.FunctionComponent<AlphabetSidebarProps> = ({
   };
 
   const handleLayout = (event: LayoutChangeEvent) => {
-    setContainerHeight(event.nativeEvent.layout.height);
+    const { height } = event.nativeEvent.layout;
+    containerRef.current?.measureInWindow((_x, y) => {
+      layoutRef.current = { pageY: y, height };
+    });
   };
 
   return (
     <View style={[themedStyles.wrapper, style]}>
       {scrubbingLetter ? (
-        <View style={themedStyles.indicator}>
+        <View style={themedStyles.indicator} pointerEvents="none">
           <Text style={themedStyles.indicatorText}>{scrubbingLetter}</Text>
         </View>
       ) : undefined}
       <View
+        ref={containerRef}
         style={themedStyles.container}
+        pointerEvents="box-only"
         onLayout={handleLayout}
         onTouchStart={(event) => {
-          triggerLetterAtPosition(event.nativeEvent.locationY);
+          triggerLetterAtPageY(event.nativeEvent.pageY);
         }}
         onTouchMove={(event) => {
-          triggerLetterAtPosition(event.nativeEvent.locationY);
+          triggerLetterAtPageY(event.nativeEvent.pageY);
         }}
         onTouchEnd={() => {
           lastTriggeredLetterRef.current = "";
@@ -94,7 +104,7 @@ export const AlphabetSidebar: React.FunctionComponent<AlphabetSidebarProps> = ({
           const isActive = scrubbingLetter === letter;
 
           return (
-            <Pressable
+            <View
               key={letter}
               style={[
                 themedStyles.letterButton,
@@ -111,13 +121,6 @@ export const AlphabetSidebar: React.FunctionComponent<AlphabetSidebarProps> = ({
                 disabled: !isAvailable,
                 selected: isActive,
               }}
-              onPress={() => {
-                if (isAvailable) {
-                  lastTriggeredLetterRef.current = "";
-                  onSelectLetter(letter);
-                  return;
-                }
-              }}
             >
               <Text
                 style={[
@@ -128,7 +131,7 @@ export const AlphabetSidebar: React.FunctionComponent<AlphabetSidebarProps> = ({
               >
                 {letter}
               </Text>
-            </Pressable>
+            </View>
           );
         })}
       </View>
