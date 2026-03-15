@@ -101,6 +101,11 @@ export const MemberDirectoryScreen: React.FunctionComponent = () => {
     return nextMap;
   }, [renderableSections]);
 
+  const lastScrollRequestRef = useRef<{
+    sectionIndex: number;
+    itemIndex: number;
+  } | null>(null);
+
   const handleSelectLetter = useCallback(
     (letter: string) => {
       const sectionIndex = sectionIndexByLetter.get(letter);
@@ -108,6 +113,7 @@ export const MemberDirectoryScreen: React.FunctionComponent = () => {
         return;
       }
 
+      lastScrollRequestRef.current = { sectionIndex, itemIndex: 0 };
       listRef.current.scrollToLocation({
         sectionIndex,
         itemIndex: 0,
@@ -184,11 +190,16 @@ export const MemberDirectoryScreen: React.FunctionComponent = () => {
             tintColor={theme.colors.primary}
           />
         }
-        onScrollToIndexFailed={(info) => {
+        onScrollToIndexFailed={() => {
+          const pending = lastScrollRequestRef.current;
+          if (!pending) {
+            return;
+          }
+
           setTimeout(() => {
             listRef.current?.scrollToLocation({
-              sectionIndex: info.index,
-              itemIndex: 0,
+              sectionIndex: pending.sectionIndex,
+              itemIndex: pending.itemIndex,
               viewOffset: 0,
               animated: false,
             });
