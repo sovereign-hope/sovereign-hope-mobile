@@ -181,10 +181,12 @@ export const MemberDirectoryScreen: React.FunctionComponent = () => {
   }
 
   return (
-    <View style={themedStyles.container}>
+    <>
       <SectionList
         ref={listRef}
         style={themedStyles.screen}
+        automaticallyAdjustsScrollIndicatorInsets={false}
+        scrollIndicatorInsets={{ right: 1 }}
         sections={renderableSections}
         keyExtractor={(item) => item.uid}
         stickySectionHeadersEnabled
@@ -272,7 +274,7 @@ export const MemberDirectoryScreen: React.FunctionComponent = () => {
           style={themedStyles.alphabetSidebar}
         />
       ) : undefined}
-    </View>
+    </>
   );
 };
 

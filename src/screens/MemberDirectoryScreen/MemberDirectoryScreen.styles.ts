@@ -9,7 +9,6 @@ type Props = {
 };
 
 interface Style {
-  container: ViewStyle;
   screen: ViewStyle;
   contentContainer: ViewStyle;
   emptyContentContainer: ViewStyle;
@@ -30,10 +29,6 @@ interface Style {
 
 export const styles = ({ theme }: Props): Style =>
   StyleSheet.create({
-    container: {
-      flex: 1,
-      backgroundColor: theme.colors.background,
-    },
     screen: {
       flex: 1,
       backgroundColor: theme.colors.background,

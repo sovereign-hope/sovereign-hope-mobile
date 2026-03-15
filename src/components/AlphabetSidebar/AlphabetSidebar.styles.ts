@@ -8,8 +8,12 @@ type Props = {
 };
 
 interface Style {
+  wrapper: ViewStyle;
   container: ViewStyle;
+  indicator: ViewStyle;
+  indicatorText: TextStyle;
   letterButton: ViewStyle;
+  activeLetterButton: ViewStyle;
   letterText: TextStyle;
   activeLetterText: TextStyle;
   disabledLetterText: TextStyle;
@@ -17,9 +21,16 @@ interface Style {
 
 export const styles = ({ theme }: Props): Style =>
   StyleSheet.create({
+    wrapper: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "flex-end",
+    },
     container: {
       borderRadius: radius.large,
-      backgroundColor: theme.dark ? theme.colors.card : "rgba(255,255,255,0.92)",
+      backgroundColor: theme.dark
+        ? theme.colors.card
+        : "rgba(255,255,255,0.92)",
       borderWidth: StyleSheet.hairlineWidth,
       borderColor: theme.colors.border,
       paddingVertical: spacing.small,
@@ -35,6 +46,28 @@ export const styles = ({ theme }: Props): Style =>
       },
       elevation: 2,
     },
+    indicator: {
+      width: 52,
+      height: 52,
+      borderRadius: 26,
+      backgroundColor: colors.accent,
+      alignItems: "center",
+      justifyContent: "center",
+      marginRight: spacing.medium,
+      shadowColor: colors.black,
+      shadowOpacity: 0.15,
+      shadowRadius: 8,
+      shadowOffset: {
+        width: 0,
+        height: 2,
+      },
+      elevation: 4,
+    },
+    indicatorText: {
+      fontSize: 24,
+      fontWeight: "700",
+      color: colors.white,
+    },
     letterButton: {
       minWidth: 18,
       paddingHorizontal: spacing.xs,
@@ -43,13 +76,17 @@ export const styles = ({ theme }: Props): Style =>
       justifyContent: "center",
       borderRadius: radius.small,
     },
+    activeLetterButton: {
+      backgroundColor: colors.accent,
+    },
     letterText: {
       fontSize: 10,
       fontWeight: "600",
       color: colors.accent,
     },
     activeLetterText: {
-      color: theme.colors.primary,
+      color: colors.white,
+      fontWeight: "700",
     },
     disabledLetterText: {
       color: theme.colors.border,
