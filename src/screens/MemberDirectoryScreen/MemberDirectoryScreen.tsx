@@ -2,22 +2,21 @@
 import React, {
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
 } from "react";
 import {
   ActivityIndicator,
-  LayoutChangeEvent,
   Platform,
   Pressable,
   RefreshControl,
   SectionList,
   Text,
-  TextInput,
   View,
 } from "react-native";
-import { useTheme } from "@react-navigation/native";
+import { useNavigation, useTheme } from "@react-navigation/native";
 import { useAppDispatch, useAppSelector } from "src/hooks/store";
 import { AlphabetSidebar, MemberAvatar } from "src/components";
 import { selectIsMember } from "src/redux/authSlice";
@@ -35,26 +34,38 @@ interface RenderableDirectorySection extends DirectorySection {
   showLetterHeader: boolean;
 }
 
+const ESTIMATED_ROW_HEIGHT = 60;
+const ESTIMATED_HEADER_HEIGHT = 30;
+
 export const MemberDirectoryScreen: React.FunctionComponent = () => {
   const dispatch = useAppDispatch();
+  const navigation = useNavigation();
   const theme = useTheme();
   const themedStyles = useMemo(() => styles({ theme }), [theme]);
   const isMember = useAppSelector(selectIsMember);
   const isLoadingDirectory = useAppSelector(selectIsLoadingDirectory);
   const hasDirectoryError = useAppSelector(selectHasDirectoryError);
   const [searchQuery, setSearchQuery] = useState("");
-  const [headerHeight, setHeaderHeight] = useState(0);
   const listRef = useRef<SectionList<
     MemberProfile,
     RenderableDirectorySection
   > | null>(null);
-  const lastScrollRequestRef = useRef<{
-    sectionIndex: number;
-    itemIndex: number;
-  } | null>(null);
   const sections = useAppSelector((state) =>
     selectFilteredDirectorySections(state, searchQuery)
   );
+
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerSearchBarOptions: {
+        placeholder: "Search families or members",
+        hideWhenScrolling: false,
+        autoCapitalize: "words" as const,
+        onChangeText: (event: { nativeEvent: { text: string } }) => {
+          setSearchQuery(event.nativeEvent.text);
+        },
+      },
+    });
+  }, [navigation]);
 
   useEffect(() => {
     if (!isMember) {
@@ -93,26 +104,44 @@ export const MemberDirectoryScreen: React.FunctionComponent = () => {
     return nextMap;
   }, [renderableSections]);
 
-  const handleHeaderLayout = useCallback((event: LayoutChangeEvent) => {
-    setHeaderHeight(event.nativeEvent.layout.height);
-  }, []);
+  const estimateOffsetForSection = useCallback(
+    (targetSectionIndex: number): number => {
+      let offset = 0;
 
-  const handleSelectLetter = (letter: string) => {
-    const sectionIndex = sectionIndexByLetter.get(letter);
-    if (sectionIndex === undefined || !listRef.current) {
-      return;
-    }
+      for (let index = 0; index < targetSectionIndex; index += 1) {
+        const section = renderableSections[index];
+        if (!section) {
+          break;
+        }
 
-    lastScrollRequestRef.current = {
-      sectionIndex,
-      itemIndex: 0,
-    };
-    listRef.current.scrollToLocation({
-      sectionIndex,
-      itemIndex: 0,
-      viewPosition: 0,
-    });
-  };
+        offset += ESTIMATED_HEADER_HEIGHT;
+        offset += section.data.length * ESTIMATED_ROW_HEIGHT;
+      }
+
+      return offset;
+    },
+    [renderableSections]
+  );
+
+  const handleSelectLetter = useCallback(
+    (letter: string) => {
+      const sectionIndex = sectionIndexByLetter.get(letter);
+      if (sectionIndex === undefined || !listRef.current) {
+        return;
+      }
+
+      const scrollableNode = listRef.current.getScrollResponder();
+      if (scrollableNode && "scrollTo" in scrollableNode) {
+        const offset = estimateOffsetForSection(sectionIndex);
+        (
+          scrollableNode as {
+            scrollTo: (options: { y: number; animated: boolean }) => void;
+          }
+        ).scrollTo({ y: offset, animated: true });
+      }
+    },
+    [sectionIndexByLetter, estimateOffsetForSection]
+  );
 
   if (!isMember) {
     return (
@@ -160,10 +189,9 @@ export const MemberDirectoryScreen: React.FunctionComponent = () => {
         keyExtractor={(item) => item.uid}
         stickySectionHeadersEnabled
         keyboardShouldPersistTaps="handled"
-        removeClippedSubviews
         maxToRenderPerBatch={10}
         windowSize={7}
-        initialNumToRender={15}
+        initialNumToRender={20}
         contentContainerStyle={[
           themedStyles.contentContainer,
           renderableSections.length === 0
@@ -181,34 +209,6 @@ export const MemberDirectoryScreen: React.FunctionComponent = () => {
             }}
             tintColor={theme.colors.primary}
           />
-        }
-        onScrollToIndexFailed={() => {
-          const lastScrollRequest = lastScrollRequestRef.current;
-          if (!lastScrollRequest || !listRef.current) {
-            return;
-          }
-
-          setTimeout(() => {
-            listRef.current?.scrollToLocation({
-              sectionIndex: lastScrollRequest.sectionIndex,
-              itemIndex: lastScrollRequest.itemIndex,
-              viewPosition: 0,
-            });
-          }, 250);
-        }}
-        ListHeaderComponent={
-          <View onLayout={handleHeaderLayout}>
-            <TextInput
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-              placeholder="Search families or members"
-              placeholderTextColor={theme.colors.border}
-              style={themedStyles.searchInput}
-              accessibilityLabel="Search families or members by name"
-              accessibilityHint="Type a family or member name to filter the directory."
-              autoCapitalize="words"
-            />
-          </View>
         }
         renderItem={({ item, index, section }) => {
           const isLastItemInSection = index === section.data.length - 1;
@@ -269,7 +269,7 @@ export const MemberDirectoryScreen: React.FunctionComponent = () => {
         <AlphabetSidebar
           availableLetters={availableLetters}
           onSelectLetter={handleSelectLetter}
-          style={[themedStyles.alphabetSidebar, { top: headerHeight }]}
+          style={themedStyles.alphabetSidebar}
         />
       ) : undefined}
     </View>

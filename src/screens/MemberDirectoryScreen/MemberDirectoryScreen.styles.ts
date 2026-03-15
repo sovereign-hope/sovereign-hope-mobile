@@ -13,7 +13,6 @@ interface Style {
   screen: ViewStyle;
   contentContainer: ViewStyle;
   emptyContentContainer: ViewStyle;
-  searchInput: TextStyle;
   letterHeaderContainer: ViewStyle;
   letterHeaderText: TextStyle;
   sectionHeaderContainer: ViewStyle;
@@ -46,18 +45,6 @@ export const styles = ({ theme }: Props): Style =>
     },
     emptyContentContainer: {
       flexGrow: 1,
-    },
-    searchInput: {
-      borderWidth: StyleSheet.hairlineWidth,
-      borderColor: theme.colors.border,
-      borderRadius: radius.medium,
-      backgroundColor: theme.colors.card,
-      color: theme.colors.text,
-      paddingHorizontal: spacing.large,
-      paddingVertical: spacing.lmedium,
-      marginTop: spacing.medium,
-      marginBottom: spacing.large,
-      fontSize: 16,
     },
     letterHeaderContainer: {
       paddingTop: spacing.medium,
@@ -109,6 +96,7 @@ export const styles = ({ theme }: Props): Style =>
     alphabetSidebar: {
       position: "absolute",
       right: spacing.small,
+      top: spacing.medium,
       bottom: spacing.extraLarge,
       justifyContent: "center",
     },
