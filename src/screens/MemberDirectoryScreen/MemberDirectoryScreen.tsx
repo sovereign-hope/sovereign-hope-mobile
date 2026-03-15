@@ -9,6 +9,8 @@ import React, {
 } from "react";
 import {
   ActivityIndicator,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
   Platform,
   Pressable,
   RefreshControl,
@@ -17,7 +19,6 @@ import {
   SectionList,
   Text,
   View,
-  findNodeHandle,
 } from "react-native";
 import { useNavigation, useTheme } from "@react-navigation/native";
 import { useAppDispatch, useAppSelector } from "src/hooks/store";
@@ -30,7 +31,6 @@ import {
   selectFilteredDirectorySections,
   selectIsLoadingDirectory,
 } from "src/redux/memberSlice";
-import { MemberProfile } from "src/services/members";
 import { styles } from "./MemberDirectoryScreen.styles";
 
 interface RenderableDirectorySection extends DirectorySection {
@@ -51,6 +51,14 @@ export const MemberDirectoryScreen: React.FunctionComponent = () => {
     selectFilteredDirectorySections(state, searchQuery)
   );
   const letterHeaderRefs = useRef(new Map<string, View>());
+  const scrollOffsetRef = useRef(0);
+
+  const handleScroll = useCallback(
+    (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+      scrollOffsetRef.current = event.nativeEvent.contentOffset.y;
+    },
+    []
+  );
 
   const renderScrollComponent = useCallback(
     (props: ScrollViewProps) => <ScrollView ref={scrollViewRef} {...props} />,
@@ -97,18 +105,24 @@ export const MemberDirectoryScreen: React.FunctionComponent = () => {
 
   const handleSelectLetter = useCallback((letter: string) => {
     const headerView = letterHeaderRefs.current.get(letter);
-    const scrollNode = findNodeHandle(scrollViewRef.current);
-    if (!headerView || !scrollNode) {
+    if (!headerView || !scrollViewRef.current) {
       return;
     }
 
-    headerView.measureLayout(
-      scrollNode,
-      (_x, y) => {
-        scrollViewRef.current?.scrollTo({ y, animated: false });
-      },
-      () => {}
-    );
+    headerView.measureInWindow((_hx: number, hy: number) => {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      const scrollNativeView: View | null =
+        scrollViewRef.current?.getInnerViewNode() ?? null;
+      if (!scrollNativeView) {
+        return;
+      }
+
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+      scrollNativeView.measureInWindow((_sx: number, sy: number) => {
+        const offset = hy - sy + scrollOffsetRef.current;
+        scrollViewRef.current?.scrollTo({ y: offset, animated: false });
+      });
+    });
   }, []);
 
   if (!isMember) {
@@ -159,6 +173,8 @@ export const MemberDirectoryScreen: React.FunctionComponent = () => {
         keyExtractor={(item) => item.uid}
         stickySectionHeadersEnabled
         keyboardShouldPersistTaps="handled"
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
         contentContainerStyle={[
           themedStyles.contentContainer,
           renderableSections.length === 0
