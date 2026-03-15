@@ -13,18 +13,8 @@ import {
   getFirebaseFunctions,
 } from "src/config/firebase";
 
-export interface MemberProfile {
-  uid: string;
-  displayName: string;
-  photoURL: string | null;
-  createdAt: number;
-  firstName?: string | null;
-  lastName?: string | null;
-  householdId?: string | null;
-  householdName?: string | null;
-  householdLastName?: string | null;
-  isHeadOfHousehold?: boolean;
-}
+import type { MemberProfile } from "shared/types";
+export type { MemberProfile } from "shared/types";
 
 export interface PrayerMember {
   uid: string;

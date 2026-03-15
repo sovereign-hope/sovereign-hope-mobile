@@ -109,7 +109,6 @@ export const styles = ({ theme }: Props): Style =>
     alphabetSidebar: {
       position: "absolute",
       right: spacing.small,
-      top: 88,
       bottom: spacing.extraLarge,
       justifyContent: "center",
     },

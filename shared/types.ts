@@ -1,6 +1,4 @@
 // Canonical type definitions shared between mobile app and admin dashboard.
-// Mobile app types in src/redux/readingPlanSlice.ts and src/services/members.ts
-// should eventually import from here.
 
 export interface ReadingPlanDay {
   reading: Array<string>;

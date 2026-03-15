@@ -1,7 +1,14 @@
 /* eslint-disable unicorn/no-null */
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   ActivityIndicator,
+  LayoutChangeEvent,
   Platform,
   Pressable,
   RefreshControl,
@@ -36,9 +43,11 @@ export const MemberDirectoryScreen: React.FunctionComponent = () => {
   const isLoadingDirectory = useAppSelector(selectIsLoadingDirectory);
   const hasDirectoryError = useAppSelector(selectHasDirectoryError);
   const [searchQuery, setSearchQuery] = useState("");
-  const listRef = useRef<
-    SectionList<MemberProfile, RenderableDirectorySection> | null
-  >(null);
+  const [headerHeight, setHeaderHeight] = useState(0);
+  const listRef = useRef<SectionList<
+    MemberProfile,
+    RenderableDirectorySection
+  > | null>(null);
   const lastScrollRequestRef = useRef<{
     sectionIndex: number;
     itemIndex: number;
@@ -83,6 +92,10 @@ export const MemberDirectoryScreen: React.FunctionComponent = () => {
 
     return nextMap;
   }, [renderableSections]);
+
+  const handleHeaderLayout = useCallback((event: LayoutChangeEvent) => {
+    setHeaderHeight(event.nativeEvent.layout.height);
+  }, []);
 
   const handleSelectLetter = (letter: string) => {
     const sectionIndex = sectionIndexByLetter.get(letter);
@@ -180,23 +193,29 @@ export const MemberDirectoryScreen: React.FunctionComponent = () => {
           }, 250);
         }}
         ListHeaderComponent={
-          <TextInput
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            placeholder="Search families or members"
-            placeholderTextColor={theme.colors.border}
-            style={themedStyles.searchInput}
-            accessibilityLabel="Search families or members by name"
-            accessibilityHint="Type a family or member name to filter the directory."
-            autoCapitalize="words"
-          />
+          <View onLayout={handleHeaderLayout}>
+            <TextInput
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              placeholder="Search families or members"
+              placeholderTextColor={theme.colors.border}
+              style={themedStyles.searchInput}
+              accessibilityLabel="Search families or members by name"
+              accessibilityHint="Type a family or member name to filter the directory."
+              autoCapitalize="words"
+            />
+          </View>
         }
         renderItem={({ item, index, section }) => {
           const isLastItemInSection = index === section.data.length - 1;
 
           return (
             <>
-              <View style={themedStyles.row} accessible accessibilityRole="text">
+              <View
+                style={themedStyles.row}
+                accessible
+                accessibilityRole="text"
+              >
                 <MemberAvatar
                   size={44}
                   photoURL={item.photoURL}
@@ -246,7 +265,7 @@ export const MemberDirectoryScreen: React.FunctionComponent = () => {
         <AlphabetSidebar
           availableLetters={availableLetters}
           onSelectLetter={handleSelectLetter}
-          style={themedStyles.alphabetSidebar}
+          style={[themedStyles.alphabetSidebar, { top: headerHeight }]}
         />
       ) : undefined}
     </View>
