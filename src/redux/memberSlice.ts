@@ -97,18 +97,6 @@ const sortMembersWithinSection = (
     return compareAlphabetically(left.displayName, right.displayName);
   });
 
-const buildSingleMemberSection = (member: MemberProfile): DirectorySection => {
-  const sortKey = getLastNameValue(member).toUpperCase();
-
-  return {
-    title: member.displayName,
-    sortKey,
-    letter: getSectionLetter(sortKey),
-    isSingleMember: true,
-    data: [member],
-  };
-};
-
 const buildHouseholdSection = (
   householdMembers: Array<MemberProfile>
 ): DirectorySection => {
