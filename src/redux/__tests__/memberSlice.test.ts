@@ -144,8 +144,8 @@ describe("memberSlice", () => {
 
     expect(sections).toEqual([
       expect.objectContaining({
-        title: "Aaron Anderson",
-        sortKey: "ANDERSON",
+        title: "A",
+        sortKey: "A",
         letter: "A",
         isSingleMember: true,
         data: [

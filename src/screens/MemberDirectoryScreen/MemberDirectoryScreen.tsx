@@ -38,7 +38,7 @@ interface RenderableDirectorySection extends DirectorySection {
 export const MemberDirectoryScreen: React.FunctionComponent = () => {
   const dispatch = useAppDispatch();
   const theme = useTheme();
-  const themedStyles = styles({ theme });
+  const themedStyles = useMemo(() => styles({ theme }), [theme]);
   const isMember = useAppSelector(selectIsMember);
   const isLoadingDirectory = useAppSelector(selectIsLoadingDirectory);
   const hasDirectoryError = useAppSelector(selectHasDirectoryError);
@@ -160,6 +160,10 @@ export const MemberDirectoryScreen: React.FunctionComponent = () => {
         keyExtractor={(item) => item.uid}
         stickySectionHeadersEnabled
         keyboardShouldPersistTaps="handled"
+        removeClippedSubviews
+        maxToRenderPerBatch={10}
+        windowSize={7}
+        initialNumToRender={15}
         contentContainerStyle={[
           themedStyles.contentContainer,
           renderableSections.length === 0

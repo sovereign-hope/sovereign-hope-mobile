@@ -59,10 +59,7 @@ const normalizeValue = (value?: string | null): string =>
   value?.trim().toLowerCase() ?? "";
 
 const getDisplayNameParts = (displayName: string): Array<string> =>
-  displayName
-    .trim()
-    .split(/\s+/)
-    .filter(Boolean);
+  displayName.trim().split(/\s+/).filter(Boolean);
 
 const getFirstNameValue = (member: MemberProfile): string =>
   member.firstName?.trim() || getDisplayNameParts(member.displayName)[0] || "";
@@ -117,12 +114,17 @@ const buildHouseholdSection = (
 ): DirectorySection => {
   const sortedMembers = sortMembersWithinSection(householdMembers);
   const headOfHousehold =
-    sortedMembers.find((member) => member.isHeadOfHousehold) ?? sortedMembers[0];
+    sortedMembers.find((member) => member.isHeadOfHousehold) ??
+    sortedMembers[0];
   const householdTitle =
-    sortedMembers.find((member) => member.householdName?.trim())?.householdName
-      ?.trim() || headOfHousehold?.displayName || "Church Household";
+    sortedMembers
+      .find((member) => member.householdName?.trim())
+      ?.householdName?.trim() ||
+    headOfHousehold?.displayName ||
+    "Church Household";
   const householdSortValue =
-    sortedMembers.find((member) => member.householdLastName?.trim())
+    sortedMembers
+      .find((member) => member.householdLastName?.trim())
       ?.householdLastName?.trim() ||
     (headOfHousehold ? getLastNameValue(headOfHousehold) : householdTitle);
   const sortKey = householdSortValue.toUpperCase();
@@ -265,12 +267,16 @@ export const selectGroupedDirectorySections = createSelector(
   [selectMemberDirectory],
   (directory): Array<DirectorySection> => {
     const householdMap = new Map<string, Array<MemberProfile>>();
-    const singleSections: Array<DirectorySection> = [];
+    const singlesByLetter = new Map<string, Array<MemberProfile>>();
 
     for (const member of directory) {
       const householdId = member.householdId?.trim();
       if (!householdId) {
-        singleSections.push(buildSingleMemberSection(member));
+        const sortKey = getLastNameValue(member).toUpperCase();
+        const letter = getSectionLetter(sortKey);
+        const existing = singlesByLetter.get(letter) ?? [];
+        existing.push(member);
+        singlesByLetter.set(letter, existing);
         continue;
       }
 
@@ -279,12 +285,30 @@ export const selectGroupedDirectorySections = createSelector(
       householdMap.set(householdId, existingMembers);
     }
 
+    const letterSections: Array<DirectorySection> = [
+      ...singlesByLetter.entries(),
+    ].map(([letter, members]) => ({
+      title: letter,
+      sortKey: letter,
+      letter,
+      isSingleMember: true,
+      data: [...members].sort((left, right) =>
+        compareAlphabetically(
+          getLastNameValue(left).toUpperCase(),
+          getLastNameValue(right).toUpperCase()
+        )
+      ),
+    }));
+
     const householdSections = [...householdMap.values()].map((members) =>
       buildHouseholdSection(members)
     );
 
-    return [...singleSections, ...householdSections].sort((left, right) => {
-      const sortKeyComparison = compareAlphabetically(left.sortKey, right.sortKey);
+    return [...letterSections, ...householdSections].sort((left, right) => {
+      const sortKeyComparison = compareAlphabetically(
+        left.sortKey,
+        right.sortKey
+      );
       if (sortKeyComparison !== 0) {
         return sortKeyComparison;
       }
