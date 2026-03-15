@@ -9,6 +9,7 @@ import React, {
 } from "react";
 import {
   ActivityIndicator,
+  LayoutChangeEvent,
   Platform,
   Pressable,
   RefreshControl,
@@ -50,6 +51,7 @@ export const MemberDirectoryScreen: React.FunctionComponent = () => {
   const sections = useAppSelector((state) =>
     selectFilteredDirectorySections(state, searchQuery)
   );
+  const letterOffsetRef = useRef(new Map<string, number>());
 
   useLayoutEffect(() => {
     navigation.setOptions({
@@ -89,40 +91,28 @@ export const MemberDirectoryScreen: React.FunctionComponent = () => {
     );
   }, [renderableSections]);
 
-  const sectionIndexByLetter = useMemo(() => {
-    const nextMap = new Map<string, number>();
-
-    renderableSections.forEach((section, index) => {
-      if (!nextMap.has(section.letter)) {
-        nextMap.set(section.letter, index);
-      }
-    });
-
-    return nextMap;
-  }, [renderableSections]);
-
-  const lastScrollRequestRef = useRef<{
-    sectionIndex: number;
-    itemIndex: number;
-  } | null>(null);
-
-  const handleSelectLetter = useCallback(
-    (letter: string) => {
-      const sectionIndex = sectionIndexByLetter.get(letter);
-      if (sectionIndex === undefined || !listRef.current) {
-        return;
-      }
-
-      lastScrollRequestRef.current = { sectionIndex, itemIndex: 0 };
-      listRef.current.scrollToLocation({
-        sectionIndex,
-        itemIndex: 0,
-        viewOffset: 0,
-        animated: false,
-      });
+  const handleLetterHeaderLayout = useCallback(
+    (letter: string, event: LayoutChangeEvent) => {
+      letterOffsetRef.current.set(letter, event.nativeEvent.layout.y);
     },
-    [sectionIndexByLetter]
+    []
   );
+
+  const handleSelectLetter = useCallback((letter: string) => {
+    const offset = letterOffsetRef.current.get(letter);
+    if (offset === undefined || !listRef.current) {
+      return;
+    }
+
+    const scrollResponder = listRef.current.getScrollResponder();
+    if (scrollResponder && "scrollTo" in scrollResponder) {
+      (
+        scrollResponder as {
+          scrollTo: (options: { y: number; animated: boolean }) => void;
+        }
+      ).scrollTo({ y: offset, animated: false });
+    }
+  }, []);
 
   if (!isMember) {
     return (
@@ -190,21 +180,6 @@ export const MemberDirectoryScreen: React.FunctionComponent = () => {
             tintColor={theme.colors.primary}
           />
         }
-        onScrollToIndexFailed={() => {
-          const pending = lastScrollRequestRef.current;
-          if (!pending) {
-            return;
-          }
-
-          setTimeout(() => {
-            listRef.current?.scrollToLocation({
-              sectionIndex: pending.sectionIndex,
-              itemIndex: pending.itemIndex,
-              viewOffset: 0,
-              animated: false,
-            });
-          }, 100);
-        }}
         renderItem={({ item, index, section }) => {
           const isLastItemInSection = index === section.data.length - 1;
 
@@ -233,7 +208,15 @@ export const MemberDirectoryScreen: React.FunctionComponent = () => {
           );
         }}
         renderSectionHeader={({ section }) => (
-          <View>
+          <View
+            onLayout={
+              section.showLetterHeader
+                ? (event) => {
+                    handleLetterHeaderLayout(section.letter, event);
+                  }
+                : undefined
+            }
+          >
             {section.showLetterHeader ? (
               <View style={themedStyles.letterHeaderContainer}>
                 <Text style={themedStyles.letterHeaderText}>
