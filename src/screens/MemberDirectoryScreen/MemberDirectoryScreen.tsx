@@ -184,6 +184,16 @@ export const MemberDirectoryScreen: React.FunctionComponent = () => {
             tintColor={theme.colors.primary}
           />
         }
+        onScrollToIndexFailed={(info) => {
+          setTimeout(() => {
+            listRef.current?.scrollToLocation({
+              sectionIndex: info.index,
+              itemIndex: 0,
+              viewOffset: 0,
+              animated: false,
+            });
+          }, 100);
+        }}
         renderItem={({ item, index, section }) => {
           const isLastItemInSection = index === section.data.length - 1;
 
