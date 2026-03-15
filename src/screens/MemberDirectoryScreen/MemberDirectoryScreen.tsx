@@ -9,14 +9,10 @@ import React, {
 } from "react";
 import {
   ActivityIndicator,
-  NativeScrollEvent,
-  NativeSyntheticEvent,
+  FlatList,
   Platform,
   Pressable,
   RefreshControl,
-  ScrollView,
-  ScrollViewProps,
-  SectionList,
   Text,
   View,
 } from "react-native";
@@ -25,17 +21,24 @@ import { useAppDispatch, useAppSelector } from "src/hooks/store";
 import { AlphabetSidebar, MemberAvatar } from "src/components";
 import { selectIsMember } from "src/redux/authSlice";
 import {
-  DirectorySection,
   fetchMemberDirectory,
   selectHasDirectoryError,
   selectFilteredDirectorySections,
   selectIsLoadingDirectory,
 } from "src/redux/memberSlice";
+import { MemberProfile } from "src/services/members";
 import { styles } from "./MemberDirectoryScreen.styles";
 
-interface RenderableDirectorySection extends DirectorySection {
-  showLetterHeader: boolean;
-}
+type DirectoryItem =
+  | { type: "letter"; letter: string; key: string }
+  | { type: "household"; title: string; letter: string; key: string }
+  | {
+      type: "member";
+      member: MemberProfile;
+      isLast: boolean;
+      inHousehold: boolean;
+      key: string;
+    };
 
 export const MemberDirectoryScreen: React.FunctionComponent = () => {
   const dispatch = useAppDispatch();
@@ -46,23 +49,9 @@ export const MemberDirectoryScreen: React.FunctionComponent = () => {
   const isLoadingDirectory = useAppSelector(selectIsLoadingDirectory);
   const hasDirectoryError = useAppSelector(selectHasDirectoryError);
   const [searchQuery, setSearchQuery] = useState("");
-  const scrollViewRef = useRef<ScrollView>(null);
+  const listRef = useRef<FlatList<DirectoryItem>>(null);
   const sections = useAppSelector((state) =>
     selectFilteredDirectorySections(state, searchQuery)
-  );
-  const letterHeaderRefs = useRef(new Map<string, View>());
-  const scrollOffsetRef = useRef(0);
-
-  const handleScroll = useCallback(
-    (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-      scrollOffsetRef.current = event.nativeEvent.contentOffset.y;
-    },
-    []
-  );
-
-  const renderScrollComponent = useCallback(
-    (props: ScrollViewProps) => <ScrollView ref={scrollViewRef} {...props} />,
-    []
   );
 
   useLayoutEffect(() => {
@@ -85,45 +74,136 @@ export const MemberDirectoryScreen: React.FunctionComponent = () => {
     void dispatch(fetchMemberDirectory());
   }, [dispatch, isMember]);
 
-  const renderableSections = useMemo<Array<RenderableDirectorySection>>(
-    () =>
-      sections.map((section, index) => ({
-        ...section,
-        showLetterHeader:
-          index === 0 || sections[index - 1]?.letter !== section.letter,
-      })),
-    [sections]
-  );
+  const { flatData, stickyHeaderIndices, letterOffsets } = useMemo(() => {
+    const items: Array<DirectoryItem> = [];
+    const stickyIndices: Array<number> = [];
+    const offsets = new Map<string, number>();
+    let lastLetter = "";
+
+    for (const section of sections) {
+      if (section.letter !== lastLetter) {
+        stickyIndices.push(items.length);
+        offsets.set(section.letter, items.length);
+        items.push({
+          type: "letter",
+          letter: section.letter,
+          key: `letter-${section.letter}`,
+        });
+        lastLetter = section.letter;
+      }
+
+      if (!section.isSingleMember) {
+        items.push({
+          type: "household",
+          title: section.title,
+          letter: section.letter,
+          key: `household-${section.title}-${section.letter}`,
+        });
+      }
+
+      section.data.forEach((member, memberIndex) => {
+        items.push({
+          type: "member",
+          member,
+          isLast: memberIndex === section.data.length - 1,
+          inHousehold: !section.isSingleMember,
+          key: member.uid,
+        });
+      });
+    }
+
+    return {
+      flatData: items,
+      stickyHeaderIndices: stickyIndices,
+      letterOffsets: offsets,
+    };
+  }, [sections]);
 
   const availableLetters = useMemo(() => {
     return new Set(
-      renderableSections
-        .map((section) => section.letter)
-        .filter((letter) => /^[A-Z]$/.test(letter))
+      [...letterOffsets.keys()].filter((letter) => /^[A-Z]$/.test(letter))
     );
-  }, [renderableSections]);
+  }, [letterOffsets]);
 
-  const handleSelectLetter = useCallback((letter: string) => {
-    const headerView = letterHeaderRefs.current.get(letter);
-    if (!headerView || !scrollViewRef.current) {
-      return;
-    }
-
-    headerView.measureInWindow((_hx: number, hy: number) => {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      const scrollNativeView: View | null =
-        scrollViewRef.current?.getInnerViewNode() ?? null;
-      if (!scrollNativeView) {
+  const handleSelectLetter = useCallback(
+    (letter: string) => {
+      const index = letterOffsets.get(letter);
+      if (index === undefined || !listRef.current) {
         return;
       }
 
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-      scrollNativeView.measureInWindow((_sx: number, sy: number) => {
-        const offset = hy - sy + scrollOffsetRef.current;
-        scrollViewRef.current?.scrollTo({ y: offset, animated: false });
-      });
-    });
-  }, []);
+      listRef.current.scrollToIndex({ index, animated: false });
+    },
+    [letterOffsets]
+  );
+
+  const renderItem = useCallback(
+    ({ item }: { item: DirectoryItem }) => {
+      if (item.type === "letter") {
+        return (
+          <View style={themedStyles.letterHeaderContainer}>
+            <Text style={themedStyles.letterHeaderText}>{item.letter}</Text>
+          </View>
+        );
+      }
+
+      if (item.type === "household") {
+        return (
+          <View style={themedStyles.sectionHeaderContainer}>
+            <Text style={themedStyles.sectionHeaderText}>{item.title}</Text>
+          </View>
+        );
+      }
+
+      return (
+        <>
+          <View style={themedStyles.row} accessible accessibilityRole="text">
+            <MemberAvatar
+              size={44}
+              photoURL={item.member.photoURL}
+              displayName={item.member.displayName}
+            />
+            <Text style={themedStyles.rowName}>{item.member.displayName}</Text>
+          </View>
+          {item.isLast ? (
+            item.inHousehold ? (
+              <View style={themedStyles.sectionSpacer} />
+            ) : undefined
+          ) : (
+            <View style={themedStyles.rowDivider} />
+          )}
+        </>
+      );
+    },
+    [themedStyles]
+  );
+
+  const getItemLayout = useCallback(
+    (_data: ArrayLike<DirectoryItem> | null | undefined, index: number) => {
+      // Letter headers: paddingTop(8) + lineHeight(~18) + paddingBottom(4) = 30
+      // Household headers: paddingVertical(8*2) + lineHeight(~24) + marginBottom(4) + border = 46
+      // Member rows: paddingVertical(8*2) + avatar(44) + divider/spacer(~5) = 65
+      // These are approximations - good enough for scrollToIndex
+      const item = flatData[index];
+      let offset = 0;
+
+      for (let idx = 0; idx < index; idx += 1) {
+        const prevItem = flatData[idx];
+        if (!prevItem) {
+          break;
+        }
+
+        offset += getItemHeight(prevItem);
+      }
+
+      return {
+        length: item ? getItemHeight(item) : 0,
+        offset,
+        index,
+      };
+    },
+    [flatData]
+  );
 
   if (!isMember) {
     return (
@@ -135,7 +215,7 @@ export const MemberDirectoryScreen: React.FunctionComponent = () => {
     );
   }
 
-  if (isLoadingDirectory && renderableSections.length === 0) {
+  if (isLoadingDirectory && flatData.length === 0) {
     return (
       <View style={themedStyles.centeredState}>
         <ActivityIndicator color={theme.colors.primary} />
@@ -143,7 +223,7 @@ export const MemberDirectoryScreen: React.FunctionComponent = () => {
     );
   }
 
-  if (hasDirectoryError && renderableSections.length === 0) {
+  if (hasDirectoryError && flatData.length === 0) {
     return (
       <View style={themedStyles.centeredState}>
         <Text style={themedStyles.stateText}>
@@ -164,22 +244,18 @@ export const MemberDirectoryScreen: React.FunctionComponent = () => {
 
   return (
     <>
-      <SectionList
-        renderScrollComponent={renderScrollComponent}
+      <FlatList
+        ref={listRef}
         style={themedStyles.screen}
-        automaticallyAdjustsScrollIndicatorInsets={false}
-        scrollIndicatorInsets={{ right: 1 }}
-        sections={renderableSections}
-        keyExtractor={(item) => item.uid}
-        stickySectionHeadersEnabled
+        data={flatData}
+        renderItem={renderItem}
+        keyExtractor={(item) => item.key}
+        getItemLayout={getItemLayout}
+        stickyHeaderIndices={stickyHeaderIndices}
         keyboardShouldPersistTaps="handled"
-        onScroll={handleScroll}
-        scrollEventThrottle={16}
         contentContainerStyle={[
           themedStyles.contentContainer,
-          renderableSections.length === 0
-            ? themedStyles.emptyContentContainer
-            : null,
+          flatData.length === 0 ? themedStyles.emptyContentContainer : null,
         ]}
         contentInsetAdjustmentBehavior={
           Platform.OS === "ios" ? "automatic" : undefined
@@ -193,61 +269,6 @@ export const MemberDirectoryScreen: React.FunctionComponent = () => {
             tintColor={theme.colors.primary}
           />
         }
-        renderItem={({ item, index, section }) => {
-          const isLastItemInSection = index === section.data.length - 1;
-
-          return (
-            <>
-              <View
-                style={themedStyles.row}
-                accessible
-                accessibilityRole="text"
-              >
-                <MemberAvatar
-                  size={44}
-                  photoURL={item.photoURL}
-                  displayName={item.displayName}
-                />
-                <Text style={themedStyles.rowName}>{item.displayName}</Text>
-              </View>
-              {isLastItemInSection ? (
-                section.isSingleMember ? undefined : (
-                  <View style={themedStyles.sectionSpacer} />
-                )
-              ) : (
-                <View style={themedStyles.rowDivider} />
-              )}
-            </>
-          );
-        }}
-        renderSectionHeader={({ section }) => (
-          <View
-            ref={
-              section.showLetterHeader
-                ? (ref) => {
-                    if (ref) {
-                      letterHeaderRefs.current.set(section.letter, ref);
-                    }
-                  }
-                : undefined
-            }
-          >
-            {section.showLetterHeader ? (
-              <View style={themedStyles.letterHeaderContainer}>
-                <Text style={themedStyles.letterHeaderText}>
-                  {section.letter}
-                </Text>
-              </View>
-            ) : undefined}
-            {section.isSingleMember ? undefined : (
-              <View style={themedStyles.sectionHeaderContainer}>
-                <Text style={themedStyles.sectionHeaderText}>
-                  {section.title}
-                </Text>
-              </View>
-            )}
-          </View>
-        )}
         ListEmptyComponent={
           <View style={themedStyles.centeredState}>
             <Text style={themedStyles.stateText}>
@@ -268,5 +289,23 @@ export const MemberDirectoryScreen: React.FunctionComponent = () => {
     </>
   );
 };
+
+const LETTER_HEADER_HEIGHT = 30;
+const HOUSEHOLD_HEADER_HEIGHT = 46;
+const MEMBER_ROW_HEIGHT = 65;
+
+function getItemHeight(item: DirectoryItem): number {
+  switch (item.type) {
+    case "letter": {
+      return LETTER_HEADER_HEIGHT;
+    }
+    case "household": {
+      return HOUSEHOLD_HEADER_HEIGHT;
+    }
+    case "member": {
+      return MEMBER_ROW_HEIGHT;
+    }
+  }
+}
 
 /* eslint-enable unicorn/no-null */
