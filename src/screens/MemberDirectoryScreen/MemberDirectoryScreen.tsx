@@ -9,7 +9,6 @@ import React, {
 } from "react";
 import {
   ActivityIndicator,
-  LayoutChangeEvent,
   Platform,
   Pressable,
   RefreshControl,
@@ -18,6 +17,7 @@ import {
   SectionList,
   Text,
   View,
+  findNodeHandle,
 } from "react-native";
 import { useNavigation, useTheme } from "@react-navigation/native";
 import { useAppDispatch, useAppSelector } from "src/hooks/store";
@@ -50,7 +50,7 @@ export const MemberDirectoryScreen: React.FunctionComponent = () => {
   const sections = useAppSelector((state) =>
     selectFilteredDirectorySections(state, searchQuery)
   );
-  const letterOffsetRef = useRef(new Map<string, number>());
+  const letterHeaderRefs = useRef(new Map<string, View>());
 
   const renderScrollComponent = useCallback(
     (props: ScrollViewProps) => <ScrollView ref={scrollViewRef} {...props} />,
@@ -95,20 +95,20 @@ export const MemberDirectoryScreen: React.FunctionComponent = () => {
     );
   }, [renderableSections]);
 
-  const handleLetterHeaderLayout = useCallback(
-    (letter: string, event: LayoutChangeEvent) => {
-      letterOffsetRef.current.set(letter, event.nativeEvent.layout.y);
-    },
-    []
-  );
-
   const handleSelectLetter = useCallback((letter: string) => {
-    const offset = letterOffsetRef.current.get(letter);
-    if (offset === undefined) {
+    const headerView = letterHeaderRefs.current.get(letter);
+    const scrollNode = findNodeHandle(scrollViewRef.current);
+    if (!headerView || !scrollNode) {
       return;
     }
 
-    scrollViewRef.current?.scrollTo({ y: offset, animated: false });
+    headerView.measureLayout(
+      scrollNode,
+      (_x, y) => {
+        scrollViewRef.current?.scrollTo({ y, animated: false });
+      },
+      () => {}
+    );
   }, []);
 
   if (!isMember) {
@@ -206,10 +206,12 @@ export const MemberDirectoryScreen: React.FunctionComponent = () => {
         }}
         renderSectionHeader={({ section }) => (
           <View
-            onLayout={
+            ref={
               section.showLetterHeader
-                ? (event) => {
-                    handleLetterHeaderLayout(section.letter, event);
+                ? (ref) => {
+                    if (ref) {
+                      letterHeaderRefs.current.set(section.letter, ref);
+                    }
                   }
                 : undefined
             }
