@@ -191,9 +191,6 @@ export const MemberDirectoryScreen: React.FunctionComponent = () => {
         keyExtractor={(item) => item.uid}
         stickySectionHeadersEnabled
         keyboardShouldPersistTaps="handled"
-        maxToRenderPerBatch={10}
-        windowSize={7}
-        initialNumToRender={20}
         contentContainerStyle={[
           themedStyles.contentContainer,
           renderableSections.length === 0
