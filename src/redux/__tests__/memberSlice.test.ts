@@ -5,6 +5,8 @@ import {
   fetchDailyPrayerAssignment,
   fetchMemberDirectory,
   memberReducer,
+  selectFilteredDirectorySections,
+  selectGroupedDirectorySections,
 } from "src/redux/memberSlice";
 import {
   fetchAllMembers,
@@ -84,6 +86,205 @@ describe("memberSlice", () => {
     expect(state.directory).toHaveLength(2);
     expect(state.hasDirectoryError).toBe(false);
     expect(state.isLoadingDirectory).toBe(false);
+  });
+
+  it("groups members into sorted directory sections", () => {
+    const state = {
+      member: {
+        directory: [
+          {
+            uid: "member-1",
+            displayName: "Sam Coe",
+            photoURL: null,
+            createdAt: 100,
+            firstName: "Sam",
+            lastName: "Coe",
+            householdId: "household-coe",
+            householdName: "The Coe Family",
+            householdLastName: "Coe",
+            isHeadOfHousehold: true,
+          },
+          {
+            uid: "member-2",
+            displayName: "Abby Coe",
+            photoURL: null,
+            createdAt: 101,
+            firstName: "Abby",
+            lastName: "Coe",
+            householdId: "household-coe",
+            householdName: "The Coe Family",
+            householdLastName: "Coe",
+            isHeadOfHousehold: false,
+          },
+          {
+            uid: "member-3",
+            displayName: "John Brown",
+            photoURL: null,
+            createdAt: 102,
+            firstName: "John",
+            lastName: "Brown",
+            householdId: "household-brown",
+            householdName: "Brown Household",
+            householdLastName: "Brown",
+            isHeadOfHousehold: true,
+          },
+          {
+            uid: "member-4",
+            displayName: "Aaron Anderson",
+            photoURL: null,
+            createdAt: 103,
+            firstName: "Aaron",
+            lastName: "Anderson",
+          },
+        ],
+      },
+    };
+
+    const sections = selectGroupedDirectorySections(state as never);
+
+    expect(sections).toEqual([
+      expect.objectContaining({
+        title: "Aaron Anderson",
+        sortKey: "ANDERSON",
+        letter: "A",
+        isSingleMember: true,
+        data: [
+          expect.objectContaining({
+            uid: "member-4",
+          }),
+        ],
+      }),
+      expect.objectContaining({
+        title: "Brown Household",
+        sortKey: "BROWN",
+        letter: "B",
+        isSingleMember: false,
+        data: [
+          expect.objectContaining({
+            uid: "member-3",
+          }),
+        ],
+      }),
+      expect.objectContaining({
+        title: "The Coe Family",
+        sortKey: "COE",
+        letter: "C",
+        isSingleMember: false,
+        data: [
+          expect.objectContaining({
+            uid: "member-1",
+          }),
+          expect.objectContaining({
+            uid: "member-2",
+          }),
+        ],
+      }),
+    ]);
+  });
+
+  it("filters by household name and includes all members in that family", () => {
+    const state = {
+      member: {
+        directory: [
+          {
+            uid: "member-1",
+            displayName: "Sam Coe",
+            photoURL: null,
+            createdAt: 100,
+            firstName: "Sam",
+            lastName: "Coe",
+            householdId: "household-coe",
+            householdName: "The Coe Family",
+            householdLastName: "Coe",
+            isHeadOfHousehold: true,
+          },
+          {
+            uid: "member-2",
+            displayName: "Abby Coe",
+            photoURL: null,
+            createdAt: 101,
+            firstName: "Abby",
+            lastName: "Coe",
+            householdId: "household-coe",
+            householdName: "The Coe Family",
+            householdLastName: "Coe",
+            isHeadOfHousehold: false,
+          },
+          {
+            uid: "member-3",
+            displayName: "John Brown",
+            photoURL: null,
+            createdAt: 102,
+            firstName: "John",
+            lastName: "Brown",
+          },
+        ],
+      },
+    };
+
+    const sections = selectFilteredDirectorySections(state as never, "coe");
+
+    expect(sections).toHaveLength(1);
+    expect(sections[0]?.data.map((member) => member.uid)).toEqual([
+      "member-1",
+      "member-2",
+    ]);
+  });
+
+  it("filters by individual name and only keeps matching members within a family", () => {
+    const state = {
+      member: {
+        directory: [
+          {
+            uid: "member-1",
+            displayName: "Sam Coe",
+            photoURL: null,
+            createdAt: 100,
+            firstName: "Sam",
+            lastName: "Coe",
+            householdId: "household-coe",
+            householdName: "The Coe Family",
+            householdLastName: "Coe",
+            isHeadOfHousehold: true,
+          },
+          {
+            uid: "member-2",
+            displayName: "Abby Coe",
+            photoURL: null,
+            createdAt: 101,
+            firstName: "Abby",
+            lastName: "Coe",
+            householdId: "household-coe",
+            householdName: "The Coe Family",
+            householdLastName: "Coe",
+            isHeadOfHousehold: false,
+          },
+          {
+            uid: "member-3",
+            displayName: "John Brown",
+            photoURL: null,
+            createdAt: 102,
+            firstName: "John",
+            lastName: "Brown",
+          },
+        ],
+      },
+    };
+
+    const sections = selectFilteredDirectorySections(state as never, "abby");
+
+    expect(sections).toHaveLength(1);
+    expect(sections[0]).toEqual(
+      expect.objectContaining({
+        title: "The Coe Family",
+        isSingleMember: false,
+        data: [
+          expect.objectContaining({
+            uid: "member-2",
+          }),
+        ],
+      })
+    );
   });
 
   it("loads today's prayer assignment when available", async () => {

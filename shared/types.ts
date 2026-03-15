@@ -1,6 +1,4 @@
 // Canonical type definitions shared between mobile app and admin dashboard.
-// Mobile app types in src/redux/readingPlanSlice.ts and src/services/members.ts
-// should eventually import from here.
 
 export interface ReadingPlanDay {
   reading: Array<string>;
@@ -36,6 +34,12 @@ export interface MemberProfile {
   createdAt: number;
   email?: string | null;
   planningCenterPersonId?: string | null;
+  firstName?: string | null;
+  lastName?: string | null;
+  householdId?: string | null;
+  householdName?: string | null;
+  householdLastName?: string | null;
+  isHeadOfHousehold?: boolean;
 }
 
 export interface FirebaseUserRecord {

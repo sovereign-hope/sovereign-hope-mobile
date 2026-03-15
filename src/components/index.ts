@@ -13,5 +13,6 @@ export { ReadScrollView } from "./ReadScrollView/ReadScrollView";
 export type { ReadScrollViewProps } from "./ReadScrollView/ReadScrollView";
 export { BiblePicker } from "./BiblePicker/BiblePicker";
 export type { BiblePickerHandle } from "./BiblePicker/BiblePicker";
+export { AlphabetSidebar } from "./AlphabetSidebar/AlphabetSidebar";
 export { WeekGrid } from "./WeekGrid/WeekGrid";
 export { ScreenErrorBoundary } from "./ScreenErrorBoundary";
