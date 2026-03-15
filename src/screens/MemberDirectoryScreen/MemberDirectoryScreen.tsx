@@ -13,6 +13,8 @@ import {
   Platform,
   Pressable,
   RefreshControl,
+  ScrollView,
+  ScrollViewProps,
   SectionList,
   Text,
   View,
@@ -44,14 +46,16 @@ export const MemberDirectoryScreen: React.FunctionComponent = () => {
   const isLoadingDirectory = useAppSelector(selectIsLoadingDirectory);
   const hasDirectoryError = useAppSelector(selectHasDirectoryError);
   const [searchQuery, setSearchQuery] = useState("");
-  const listRef = useRef<SectionList<
-    MemberProfile,
-    RenderableDirectorySection
-  > | null>(null);
+  const scrollViewRef = useRef<ScrollView>(null);
   const sections = useAppSelector((state) =>
     selectFilteredDirectorySections(state, searchQuery)
   );
   const letterOffsetRef = useRef(new Map<string, number>());
+
+  const renderScrollComponent = useCallback(
+    (props: ScrollViewProps) => <ScrollView ref={scrollViewRef} {...props} />,
+    []
+  );
 
   useLayoutEffect(() => {
     navigation.setOptions({
@@ -100,18 +104,11 @@ export const MemberDirectoryScreen: React.FunctionComponent = () => {
 
   const handleSelectLetter = useCallback((letter: string) => {
     const offset = letterOffsetRef.current.get(letter);
-    if (offset === undefined || !listRef.current) {
+    if (offset === undefined) {
       return;
     }
 
-    const scrollResponder = listRef.current.getScrollResponder();
-    if (scrollResponder && "scrollTo" in scrollResponder) {
-      (
-        scrollResponder as {
-          scrollTo: (options: { y: number; animated: boolean }) => void;
-        }
-      ).scrollTo({ y: offset, animated: false });
-    }
+    scrollViewRef.current?.scrollTo({ y: offset, animated: false });
   }, []);
 
   if (!isMember) {
@@ -154,7 +151,7 @@ export const MemberDirectoryScreen: React.FunctionComponent = () => {
   return (
     <>
       <SectionList
-        ref={listRef}
+        renderScrollComponent={renderScrollComponent}
         style={themedStyles.screen}
         automaticallyAdjustsScrollIndicatorInsets={false}
         scrollIndicatorInsets={{ right: 1 }}
