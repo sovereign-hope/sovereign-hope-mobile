@@ -8,7 +8,7 @@ import {
   ViewStyle,
 } from "react-native";
 import { useTheme } from "@react-navigation/native";
-import { styles } from "./AlphabetSidebar.styles";
+import { SIDEBAR_PADDING_VERTICAL, styles } from "./AlphabetSidebar.styles";
 
 const ALPHABET = [..."ABCDEFGHIJKLMNOPQRSTUVWXYZ"];
 
@@ -34,11 +34,10 @@ export const AlphabetSidebar: React.FunctionComponent<AlphabetSidebarProps> = ({
       return undefined;
     }
 
-    const letterHeight = containerHeight / ALPHABET.length;
-    const letterIndex = Math.max(
-      0,
-      Math.min(ALPHABET.length - 1, Math.floor(positionY / letterHeight))
-    );
+    const contentHeight = containerHeight - SIDEBAR_PADDING_VERTICAL * 2;
+    const relativeY = positionY - SIDEBAR_PADDING_VERTICAL;
+    const ratio = Math.max(0, Math.min(1, relativeY / contentHeight));
+    const letterIndex = Math.round(ratio * (ALPHABET.length - 1));
     return ALPHABET[letterIndex];
   };
 

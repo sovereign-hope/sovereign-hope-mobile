@@ -19,6 +19,8 @@ interface Style {
   disabledLetterText: TextStyle;
 }
 
+export const SIDEBAR_PADDING_VERTICAL = spacing.small;
+
 export const styles = ({ theme }: Props): Style =>
   StyleSheet.create({
     wrapper: {
@@ -33,7 +35,7 @@ export const styles = ({ theme }: Props): Style =>
         : "rgba(255,255,255,0.92)",
       borderWidth: StyleSheet.hairlineWidth,
       borderColor: theme.colors.border,
-      paddingVertical: spacing.small,
+      paddingVertical: SIDEBAR_PADDING_VERTICAL,
       paddingHorizontal: spacing.xs,
       justifyContent: "space-between",
       alignItems: "center",
