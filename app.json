@@ -78,6 +78,7 @@
           "android": {}
         }
       ],
+      "expo-image",
       "expo-notifications",
       "expo-secure-store",
       "@react-native-google-signin/google-signin",
