@@ -34,9 +34,6 @@ interface RenderableDirectorySection extends DirectorySection {
   showLetterHeader: boolean;
 }
 
-const ESTIMATED_ROW_HEIGHT = 60;
-const ESTIMATED_HEADER_HEIGHT = 30;
-
 export const MemberDirectoryScreen: React.FunctionComponent = () => {
   const dispatch = useAppDispatch();
   const navigation = useNavigation();
@@ -104,25 +101,6 @@ export const MemberDirectoryScreen: React.FunctionComponent = () => {
     return nextMap;
   }, [renderableSections]);
 
-  const estimateOffsetForSection = useCallback(
-    (targetSectionIndex: number): number => {
-      let offset = 0;
-
-      for (let index = 0; index < targetSectionIndex; index += 1) {
-        const section = renderableSections[index];
-        if (!section) {
-          break;
-        }
-
-        offset += ESTIMATED_HEADER_HEIGHT;
-        offset += section.data.length * ESTIMATED_ROW_HEIGHT;
-      }
-
-      return offset;
-    },
-    [renderableSections]
-  );
-
   const handleSelectLetter = useCallback(
     (letter: string) => {
       const sectionIndex = sectionIndexByLetter.get(letter);
@@ -130,17 +108,14 @@ export const MemberDirectoryScreen: React.FunctionComponent = () => {
         return;
       }
 
-      const scrollableNode = listRef.current.getScrollResponder();
-      if (scrollableNode && "scrollTo" in scrollableNode) {
-        const offset = estimateOffsetForSection(sectionIndex);
-        (
-          scrollableNode as {
-            scrollTo: (options: { y: number; animated: boolean }) => void;
-          }
-        ).scrollTo({ y: offset, animated: true });
-      }
+      listRef.current.scrollToLocation({
+        sectionIndex,
+        itemIndex: 0,
+        viewOffset: 0,
+        animated: false,
+      });
     },
-    [sectionIndexByLetter, estimateOffsetForSection]
+    [sectionIndexByLetter]
   );
 
   if (!isMember) {
