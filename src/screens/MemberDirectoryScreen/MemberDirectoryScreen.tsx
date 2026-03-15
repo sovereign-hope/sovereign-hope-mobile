@@ -74,50 +74,60 @@ export const MemberDirectoryScreen: React.FunctionComponent = () => {
     void dispatch(fetchMemberDirectory());
   }, [dispatch, isMember]);
 
-  const { flatData, stickyHeaderIndices, letterOffsets } = useMemo(() => {
-    const items: Array<DirectoryItem> = [];
-    const stickyIndices: Array<number> = [];
-    const offsets = new Map<string, number>();
-    let lastLetter = "";
+  const { flatData, stickyHeaderIndices, letterOffsets, layoutTable } =
+    useMemo(() => {
+      const items: Array<DirectoryItem> = [];
+      const stickyIndices: Array<number> = [];
+      const offsets = new Map<string, number>();
+      let lastLetter = "";
 
-    for (const section of sections) {
-      if (section.letter !== lastLetter) {
-        stickyIndices.push(items.length);
-        offsets.set(section.letter, items.length);
-        items.push({
-          type: "letter",
-          letter: section.letter,
-          key: `letter-${section.letter}`,
+      for (const section of sections) {
+        if (section.letter !== lastLetter) {
+          stickyIndices.push(items.length);
+          offsets.set(section.letter, items.length);
+          items.push({
+            type: "letter",
+            letter: section.letter,
+            key: `letter-${section.letter}`,
+          });
+          lastLetter = section.letter;
+        }
+
+        if (!section.isSingleMember) {
+          items.push({
+            type: "household",
+            title: section.title,
+            letter: section.letter,
+            key: `household-${section.title}-${section.letter}`,
+          });
+        }
+
+        section.data.forEach((member, memberIndex) => {
+          items.push({
+            type: "member",
+            member,
+            isLast: memberIndex === section.data.length - 1,
+            inHousehold: !section.isSingleMember,
+            key: member.uid,
+          });
         });
-        lastLetter = section.letter;
       }
 
-      if (!section.isSingleMember) {
-        items.push({
-          type: "household",
-          title: section.title,
-          letter: section.letter,
-          key: `household-${section.title}-${section.letter}`,
-        });
-      }
-
-      section.data.forEach((member, memberIndex) => {
-        items.push({
-          type: "member",
-          member,
-          isLast: memberIndex === section.data.length - 1,
-          inHousehold: !section.isSingleMember,
-          key: member.uid,
-        });
+      let cumulativeOffset = 0;
+      const layoutTable = items.map((item, index) => {
+        const length = getItemHeight(item);
+        const entry = { length, offset: cumulativeOffset, index };
+        cumulativeOffset += length;
+        return entry;
       });
-    }
 
-    return {
-      flatData: items,
-      stickyHeaderIndices: stickyIndices,
-      letterOffsets: offsets,
-    };
-  }, [sections]);
+      return {
+        flatData: items,
+        stickyHeaderIndices: stickyIndices,
+        letterOffsets: offsets,
+        layoutTable,
+      };
+    }, [sections]);
 
   const availableLetters = useMemo(() => {
     return new Set(
@@ -179,30 +189,9 @@ export const MemberDirectoryScreen: React.FunctionComponent = () => {
   );
 
   const getItemLayout = useCallback(
-    (_data: ArrayLike<DirectoryItem> | null | undefined, index: number) => {
-      // Letter headers: paddingTop(8) + lineHeight(~18) + paddingBottom(4) = 30
-      // Household headers: paddingVertical(8*2) + lineHeight(~24) + marginBottom(4) + border = 46
-      // Member rows: paddingVertical(8*2) + avatar(44) + divider/spacer(~5) = 65
-      // These are approximations - good enough for scrollToIndex
-      const item = flatData[index];
-      let offset = 0;
-
-      for (let idx = 0; idx < index; idx += 1) {
-        const prevItem = flatData[idx];
-        if (!prevItem) {
-          break;
-        }
-
-        offset += getItemHeight(prevItem);
-      }
-
-      return {
-        length: item ? getItemHeight(item) : 0,
-        offset,
-        index,
-      };
-    },
-    [flatData]
+    (_data: ArrayLike<DirectoryItem> | null | undefined, index: number) =>
+      layoutTable[index] ?? { length: 0, offset: 0, index },
+    [layoutTable]
   );
 
   if (!isMember) {
