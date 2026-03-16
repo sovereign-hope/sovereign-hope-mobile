@@ -75,13 +75,6 @@ export const AlphabetSidebar: React.FunctionComponent<AlphabetSidebarProps> = ({
 
   return (
     <View style={[themedStyles.wrapper, style]}>
-      {scrubbingLetter ? (
-        <View style={themedStyles.indicatorContainer} pointerEvents="none">
-          <View style={themedStyles.indicator}>
-            <Text style={themedStyles.indicatorText}>{scrubbingLetter}</Text>
-          </View>
-        </View>
-      ) : undefined}
       <View
         ref={containerRef}
         style={themedStyles.container}
@@ -101,6 +94,13 @@ export const AlphabetSidebar: React.FunctionComponent<AlphabetSidebarProps> = ({
         accessibilityLabel="Directory alphabet index"
         accessibilityHint="Tap and hold, then drag to jump through directory sections."
       >
+        {scrubbingLetter ? (
+          <View style={themedStyles.indicatorContainer} pointerEvents="none">
+            <View style={themedStyles.indicator}>
+              <Text style={themedStyles.indicatorText}>{scrubbingLetter}</Text>
+            </View>
+          </View>
+        ) : undefined}
         {ALPHABET.map((letter) => {
           const isAvailable = availableLetters.has(letter);
           const isActive = scrubbingLetter === letter;
