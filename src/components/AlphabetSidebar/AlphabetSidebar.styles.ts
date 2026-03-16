@@ -10,6 +10,7 @@ type Props = {
 interface Style {
   wrapper: ViewStyle;
   container: ViewStyle;
+  indicatorContainer: ViewStyle;
   indicator: ViewStyle;
   indicatorText: TextStyle;
   letterButton: ViewStyle;
@@ -24,9 +25,7 @@ export const SIDEBAR_PADDING_VERTICAL = spacing.small;
 export const styles = ({ theme }: Props): Style =>
   StyleSheet.create({
     wrapper: {
-      flexDirection: "row",
       alignItems: "center",
-      justifyContent: "flex-end",
     },
     container: {
       borderRadius: radius.large,
@@ -48,6 +47,12 @@ export const styles = ({ theme }: Props): Style =>
       },
       elevation: 2,
     },
+    indicatorContainer: {
+      position: "absolute",
+      bottom: "100%",
+      marginBottom: spacing.small,
+      alignItems: "center",
+    },
     indicator: {
       width: 52,
       height: 52,
@@ -55,7 +60,6 @@ export const styles = ({ theme }: Props): Style =>
       backgroundColor: colors.accent,
       alignItems: "center",
       justifyContent: "center",
-      marginRight: spacing.medium,
       shadowColor: colors.black,
       shadowOpacity: 0.15,
       shadowRadius: 8,

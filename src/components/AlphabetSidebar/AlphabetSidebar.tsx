@@ -76,8 +76,10 @@ export const AlphabetSidebar: React.FunctionComponent<AlphabetSidebarProps> = ({
   return (
     <View style={[themedStyles.wrapper, style]}>
       {scrubbingLetter ? (
-        <View style={themedStyles.indicator} pointerEvents="none">
-          <Text style={themedStyles.indicatorText}>{scrubbingLetter}</Text>
+        <View style={themedStyles.indicatorContainer} pointerEvents="none">
+          <View style={themedStyles.indicator}>
+            <Text style={themedStyles.indicatorText}>{scrubbingLetter}</Text>
+          </View>
         </View>
       ) : undefined}
       <View
