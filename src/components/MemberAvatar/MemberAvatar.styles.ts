@@ -1,12 +1,20 @@
 import { ImageStyle, StyleSheet, TextStyle, ViewStyle } from "react-native";
 import { Theme } from "@react-navigation/native";
 import { colors } from "src/style/colors";
+import { spacing } from "src/style/layout";
 
 interface Style {
   avatarBase: ViewStyle;
   fallbackContainer: ViewStyle;
   fallbackText: TextStyle;
   image: ImageStyle;
+}
+
+interface ModalStyle {
+  backdrop: ViewStyle;
+  content: ViewStyle;
+  enlargedImage: ImageStyle;
+  name: TextStyle;
 }
 
 type Props = {
@@ -39,5 +47,30 @@ export const styles = ({ theme, size }: Props): Style =>
       height: size,
       borderRadius: size / 2,
       backgroundColor: theme.colors.card,
+    },
+  });
+
+export const modalStyles = ({ theme, size }: Props): ModalStyle =>
+  StyleSheet.create({
+    backdrop: {
+      flex: 1,
+      backgroundColor: "rgba(0, 0, 0, 0.7)",
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    content: {
+      alignItems: "center",
+    },
+    enlargedImage: {
+      width: size,
+      height: size,
+      borderRadius: size / 2,
+      backgroundColor: theme.colors.card,
+    },
+    name: {
+      color: colors.white,
+      fontSize: 18,
+      fontWeight: "600",
+      marginTop: spacing.large,
     },
   });
