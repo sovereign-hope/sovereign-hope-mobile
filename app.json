@@ -50,8 +50,8 @@
         "backgroundColor": "#FFFFFF"
       },
       "splash": {
-        "image": "./assets/splash-android.png",
-        "resizeMode": "cover",
+        "image": "./assets/adaptive-icon.png",
+        "resizeMode": "contain",
         "backgroundColor": "#FFFFFF"
       },
       "permissions": [],
