@@ -127,30 +127,141 @@ function buildAssigneesByUid(allMembers) {
   return assigneesByUid;
 }
 
-function buildPrayerAssignmentPayload(allMembers, assignee) {
-  const eligibleMembers = allMembers.filter(
-    (candidate) =>
-      candidate.memberId !== assignee.memberId &&
-      candidate.linkedUid !== assignee.uid
+async function fetchPrayerQueueState(db) {
+  const prayerQueueSnapshot = await db.collection("prayerQueue").get();
+  const prayerQueueState = new Map();
+
+  prayerQueueSnapshot.docs.forEach((doc) => {
+    const data = doc.data() || {};
+    prayerQueueState.set(doc.id, {
+      lastPrayedFor: data.lastPrayedFor ?? null,
+      assignmentCount:
+        typeof data.assignmentCount === "number" ? data.assignmentCount : 0,
+    });
+  });
+
+  return prayerQueueState;
+}
+
+function getLastPrayedForMillis(queueEntry) {
+  if (typeof queueEntry?.lastPrayedFor?.toMillis === "function") {
+    return queueEntry.lastPrayedFor.toMillis();
+  }
+
+  return 0;
+}
+
+function buildSortedMemberQueue(
+  allMembers,
+  prayerQueueState,
+  shuffleFn = shuffleArray
+) {
+  return shuffleFn(allMembers).sort((leftMember, rightMember) => {
+    const leftMillis = getLastPrayedForMillis(
+      prayerQueueState.get(leftMember.memberId)
+    );
+    const rightMillis = getLastPrayedForMillis(
+      prayerQueueState.get(rightMember.memberId)
+    );
+
+    return leftMillis - rightMillis;
+  });
+}
+
+function pickFromQueue(
+  sortedQueue,
+  takenToday,
+  excludeUid,
+  count = MAX_PRAYER_PARTNERS,
+  excludeMemberId = null
+) {
+  const selectedMembers = [];
+  const selectedMemberIds = new Set();
+
+  const trySelect = (member, allowTakenToday) => {
+    if (
+      member.memberId === excludeMemberId ||
+      member.linkedUid === excludeUid ||
+      selectedMemberIds.has(member.memberId)
+    ) {
+      return false;
+    }
+
+    if (!allowTakenToday && takenToday.has(member.memberId)) {
+      return false;
+    }
+
+    selectedMembers.push(member);
+    selectedMemberIds.add(member.memberId);
+    return selectedMembers.length >= count;
+  };
+
+  for (const member of sortedQueue) {
+    if (trySelect(member, false)) {
+      return selectedMembers;
+    }
+  }
+
+  for (const member of sortedQueue) {
+    if (trySelect(member, true)) {
+      return selectedMembers;
+    }
+  }
+
+  return selectedMembers;
+}
+
+function buildPrayerAssignmentPayload(sortedQueue, assignee, takenToday) {
+  const selectedMembers = pickFromQueue(
+    sortedQueue,
+    takenToday,
+    assignee.uid,
+    MAX_PRAYER_PARTNERS,
+    assignee.memberId
   );
-  if (eligibleMembers.length === 0) {
+  if (selectedMembers.length === 0) {
     return null;
   }
 
-  const randomMembers = shuffleArray(eligibleMembers).slice(
-    0,
-    Math.min(MAX_PRAYER_PARTNERS, eligibleMembers.length)
-  );
-
   return {
-    memberIds: randomMembers.map((candidate) => candidate.memberId),
-    members: randomMembers.map((candidate) => ({
+    memberIds: selectedMembers.map((candidate) => candidate.memberId),
+    members: selectedMembers.map((candidate) => ({
       uid: candidate.memberId,
       displayName: candidate.displayName,
       photoURL: candidate.photoURL,
     })),
   };
 }
+
+function updatePrayerQueueBatch(batch, db, memberIds) {
+  const assignmentCountsByMemberId = new Map();
+
+  for (const memberId of memberIds) {
+    const nextCount = assignmentCountsByMemberId.get(memberId) ?? 0;
+    assignmentCountsByMemberId.set(memberId, nextCount + 1);
+  }
+
+  assignmentCountsByMemberId.forEach((count, memberId) => {
+    batch.set(
+      db.collection("prayerQueue").doc(memberId),
+      {
+        memberId,
+        lastPrayedFor: admin.firestore.FieldValue.serverTimestamp(),
+        assignmentCount: admin.firestore.FieldValue.increment(count),
+      },
+      { merge: true }
+    );
+  });
+
+  return assignmentCountsByMemberId.size;
+}
+
+exports.__test__ = {
+  fetchPrayerQueueState,
+  buildSortedMemberQueue,
+  pickFromQueue,
+  updatePrayerQueueBatch,
+};
 
 exports.cleanupDeletedUserData = functions.auth
   .user()
@@ -386,10 +497,29 @@ exports.generateDailyPrayerAssignments = functions.pubsub
   .timeZone(MOUNTAIN_TIME_ZONE)
   .onRun(async () => {
     const db = admin.firestore();
+    const date = getMountainDateString();
+    const parentDocRef = db.collection("prayerAssignments").doc(date);
+    const parentDoc = await parentDocRef.get();
+
+    if (parentDoc.data()?.generationCompletedAt) {
+      console.log(
+        "Skipping prayer assignment generation, day already complete.",
+        {
+          date,
+        }
+      );
+      return null;
+    }
+
     const membersSnapshot = await db.collection("members").get();
     const allMembers = membersSnapshot.docs.map(toPrayerMember);
     const assigneesByUid = buildAssigneesByUid(allMembers);
-    const assignees = [...assigneesByUid.values()];
+    const prayerQueueState = await fetchPrayerQueueState(db);
+    const sortedQueue = buildSortedMemberQueue(allMembers, prayerQueueState);
+    const assignees = shuffleArray([...assigneesByUid.values()]);
+    const existingAssignmentsSnapshot = await parentDocRef
+      .collection("assignments")
+      .get();
 
     if (assignees.length === 0) {
       console.log(
@@ -398,8 +528,20 @@ exports.generateDailyPrayerAssignments = functions.pubsub
       return null;
     }
 
-    const date = getMountainDateString();
-    const parentDocRef = db.collection("prayerAssignments").doc(date);
+    const takenToday = new Set();
+    const existingAssignmentUids = new Set();
+    existingAssignmentsSnapshot.docs.forEach((doc) => {
+      existingAssignmentUids.add(doc.id);
+      const memberIds = Array.isArray(doc.data()?.memberIds)
+        ? doc.data().memberIds
+        : [];
+      memberIds.forEach((memberId) => {
+        if (typeof memberId === "string") {
+          takenToday.add(memberId);
+        }
+      });
+    });
+
     let batch = db.batch();
     let operations = 0;
     let generatedCount = 0;
@@ -424,10 +566,24 @@ exports.generateDailyPrayerAssignments = functions.pubsub
     operations += 1;
 
     for (const assignee of assignees) {
-      const payload = buildPrayerAssignmentPayload(allMembers, assignee);
+      if (existingAssignmentUids.has(assignee.uid)) {
+        continue;
+      }
+
+      const payload = buildPrayerAssignmentPayload(
+        sortedQueue,
+        assignee,
+        takenToday
+      );
       if (!payload) {
         continue;
       }
+
+      const queueUpdatesCount = new Set(payload.memberIds).size;
+      if (operations + 1 + queueUpdatesCount > BATCH_WRITE_LIMIT) {
+        await flushBatch();
+      }
+
       const assignmentRef = parentDocRef
         .collection("assignments")
         .doc(assignee.uid);
@@ -439,16 +595,34 @@ exports.generateDailyPrayerAssignments = functions.pubsub
 
       operations += 1;
       generatedCount += 1;
+      payload.memberIds.forEach((memberId) => takenToday.add(memberId));
+      operations += updatePrayerQueueBatch(batch, db, payload.memberIds);
 
       if (operations >= BATCH_WRITE_LIMIT) {
         await flushBatch();
       }
     }
 
+    if (operations + 1 > BATCH_WRITE_LIMIT) {
+      await flushBatch();
+    }
+
+    batch.set(
+      parentDocRef,
+      {
+        date,
+        generatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        generationCompletedAt: admin.firestore.FieldValue.serverTimestamp(),
+      },
+      { merge: true }
+    );
+    operations += 1;
+
     await flushBatch();
     console.log("Generated daily prayer assignments.", {
       date,
       generatedCount,
+      existingAssignmentCount: existingAssignmentUids.size,
       totalMembers: allMembers.length,
       totalAssignees: assignees.length,
     });
@@ -487,6 +661,8 @@ exports.requestDailyPrayerAssignment = functions.https.onCall(
 
     const membersSnapshot = await db.collection("members").get();
     const allMembers = membersSnapshot.docs.map(toPrayerMember);
+    const prayerQueueState = await fetchPrayerQueueState(db);
+    const sortedQueue = buildSortedMemberQueue(allMembers, prayerQueueState);
     const assignee = buildAssigneesByUid(allMembers).get(uid);
 
     if (!assignee) {
@@ -496,7 +672,26 @@ exports.requestDailyPrayerAssignment = functions.https.onCall(
       );
     }
 
-    const payload = buildPrayerAssignmentPayload(allMembers, assignee);
+    const existingAssignmentsSnapshot = await parentDocRef
+      .collection("assignments")
+      .get();
+    const takenToday = new Set();
+    existingAssignmentsSnapshot.docs.forEach((doc) => {
+      const memberIds = Array.isArray(doc.data()?.memberIds)
+        ? doc.data().memberIds
+        : [];
+      memberIds.forEach((memberId) => {
+        if (typeof memberId === "string") {
+          takenToday.add(memberId);
+        }
+      });
+    });
+
+    const payload = buildPrayerAssignmentPayload(
+      sortedQueue,
+      assignee,
+      takenToday
+    );
     if (!payload) {
       throw new functions.https.HttpsError(
         "failed-precondition",
@@ -504,19 +699,22 @@ exports.requestDailyPrayerAssignment = functions.https.onCall(
       );
     }
 
-    await parentDocRef.set(
-      {
-        date,
-        generatedAt: admin.firestore.FieldValue.serverTimestamp(),
-      },
-      { merge: true }
-    );
-
     try {
-      await assignmentRef.create({
+      const batch = db.batch();
+      batch.set(
+        parentDocRef,
+        {
+          date,
+          generatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        },
+        { merge: true }
+      );
+      batch.create(assignmentRef, {
         ...payload,
         generatedAt: admin.firestore.FieldValue.serverTimestamp(),
       });
+      updatePrayerQueueBatch(batch, db, payload.memberIds);
+      await batch.commit();
     } catch (error) {
       const errorCode = String(error?.code ?? "");
       if (errorCode === "already-exists" || errorCode === "6") {
