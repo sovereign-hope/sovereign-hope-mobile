@@ -25,4 +25,3 @@ This directory contains internal planning and operational docs for Sovereign Hop
 - [PR Template](../PULL_REQUEST_TEMPLATE.md): Pull request checklist and release impact prompts.
 - [Comprehensive Testing Plan](../plans/comprehensive-testing-suite.md): Test strategy and quality goals.
 - [Solutions Archive](../plans/solutions/): Resolved issues and implementation notes.
-- [Engineering Todo Backlog](../todos/): Prioritized technical debt and follow-up items.

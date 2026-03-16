@@ -18,16 +18,20 @@ const initialState: PodcastState = {
   hasError: false,
 };
 
-export const getEpisodes = createAsyncThunk("podcast/getEpisodes", async () => {
-  try {
-    const response = await axios.get(routes.podcast());
-    const bodyText = response.data as string;
-    const feed = await rssParser.parse(bodyText);
-    return feed.items;
-  } catch (error) {
-    console.error(error);
+export const getEpisodes = createAsyncThunk(
+  "podcast/getEpisodes",
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await axios.get(routes.podcast());
+      const bodyText = response.data as string;
+      const feed = await rssParser.parse(bodyText);
+      return feed.items;
+    } catch (error) {
+      console.error(error);
+      return rejectWithValue("Failed to load podcast episodes");
+    }
   }
-});
+);
 
 export const podcastSlice = createSlice({
   name: "podcast",
