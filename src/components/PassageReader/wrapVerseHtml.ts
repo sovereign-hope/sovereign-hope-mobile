@@ -80,24 +80,35 @@ const wrapProseVerses = (html: string): string =>
   });
 
 /**
- * Group consecutive poetry line spans that share the same verse ID into
+ * Extract the verse portion from a poetry span ID. The full ID format is
+ * `p{8digits}_{indentLevel}-{appearance}` where different lines of the
+ * same verse may have different indent/appearance suffixes. The verse is
+ * identified by the first 9 characters: `p` + 8-digit book-chapter-verse.
+ */
+const poetryVerseKey = (spanId: string): string => spanId.slice(0, 9);
+
+/**
+ * Group consecutive poetry line spans that belong to the same verse into
  * a single `<verse-text>` wrapper so the tap target covers the entire
- * verse, not just one line.
+ * verse, not just one line. Grouping uses the verse portion of the span
+ * ID (first 9 chars) so that lines with different indent/appearance
+ * suffixes (e.g. `_01-1` vs `_02-1`) are still grouped together.
  */
 const wrapPoetryLines = (html: string): string => {
   const matches = [...html.matchAll(POETRY_LINE_RE)];
   if (matches.length === 0) return html;
 
-  // Group consecutive matches by verse ID
+  // Group consecutive matches by verse (first 9 chars of span ID)
   const groups: { verseId: string; start: number; end: number }[] = [];
 
   for (const match of matches) {
     const verseId = match[2];
+    const verseKey = poetryVerseKey(verseId);
     const start = match.index;
     const end = start + match[0].length;
 
     const lastGroup = groups.at(-1);
-    if (lastGroup && lastGroup.verseId === verseId) {
+    if (lastGroup && poetryVerseKey(lastGroup.verseId) === verseKey) {
       // Extend the group to include this match (and content between, e.g. <br />)
       lastGroup.end = end;
     } else {

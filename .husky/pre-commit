@@ -1,5 +1,9 @@
 #!/bin/sh
-. "$(dirname "$0")/_/husky.sh"
+
+hook_bootstrap="$(dirname "$0")/_/husky.sh"
+if [ -f "$hook_bootstrap" ]; then
+  . "$hook_bootstrap"
+fi
 
 # Typecheck
 npx tsc --noEmit

@@ -62,7 +62,9 @@ export type HighlightRendererResult = {
   // --- Tap & drag ---
   /** Handle a single tap at a screen coordinate (coordinate-based verse detection) */
   handleTapAtPageY: (pageY: number) => void;
-  onDragStart: (pageY: number) => void;
+  /** Ref to the last verse where onPressIn fired (set at touch start) */
+  lastPressInVerseRef: React.MutableRefObject<number | undefined>;
+  onDragStart: (pageY: number, preResolvedVerse?: number) => void;
   onDragUpdate: (pageY: number) => void;
   onDragEnd: () => void;
   /** Whether a drag selection is in progress (disable scroll) */
@@ -86,7 +88,8 @@ export const useHighlightRenderer = (
   scrollOffsetRef: React.MutableRefObject<number>,
   _fontSize: number,
   scrollViewRef: React.RefObject<ScrollView | null>,
-  containerHeightRef: React.RefObject<number>
+  containerHeightRef: React.RefObject<number>,
+  contentOffsetRef: React.RefObject<number>
 ): HighlightRendererResult => {
   // --- Compose sub-hooks ---
   const actions = useHighlightActions(bookId, chapter);
@@ -94,7 +97,8 @@ export const useHighlightRenderer = (
     bookId,
     chapter,
     containerYRef,
-    scrollOffsetRef
+    scrollOffsetRef,
+    contentOffsetRef
   );
   const drag = useDragSelection({
     scrollViewRef,
@@ -108,6 +112,12 @@ export const useHighlightRenderer = (
     createRangeHighlight: actions.createRangeHighlight,
     openColorPicker: actions.openColorPicker,
   });
+
+  // Track the verse under the user's finger at press-start. onPressIn fires
+  // on inline Text in Fabric (unlike onLayout) and uses the same responder
+  // mechanism that makes onPress work. PassageReader reads this ref when the
+  // long-press timer fires to get an accurate anchor verse.
+  const lastPressInVerseRef = useRef<number | undefined>(undefined); // eslint-disable-line unicorn/no-useless-undefined
 
   // ---------------------------------------------------------------------------
   // Tap handling
@@ -185,8 +195,11 @@ export const useHighlightRenderer = (
   );
   handleVerseTapRef.current = handleVerseTap;
 
-  // Timestamp of the last onPress on verse-text. Used to dedup against the
-  // View-level handleTapAtPageY fallback so a single tap isn't processed twice.
+  // Timestamp of the last onPressIn / onPress on verse-text. onPressIn is used
+  // to detect whether a gesture landed on verse text at all — if it didn't fire
+  // within the current gesture window, the tap hit non-verse content (footnotes,
+  // whitespace, etc.) and should be ignored.
+  const lastPressInTimeRef = useRef(0);
   const lastOnPressTimeRef = useRef(0);
 
   /**
@@ -200,13 +213,36 @@ export const useHighlightRenderer = (
       // Skip if onPress already handled this tap (dedup window 500ms)
       if (Date.now() - lastOnPressTimeRef.current < 500) return;
 
+      // If onPressIn didn't fire during this gesture (within 500ms), the
+      // tap landed on non-verse content (footnotes, whitespace, headings).
+      // Dismiss the color picker if open; otherwise ignore entirely.
+      const pressInFired = Date.now() - lastPressInTimeRef.current < 500;
+      if (!pressInFired) {
+        if (actions.colorPickerTarget) actions.dismissColorPicker();
+        return;
+      }
+
+      // Color picker open → extending highlights is handled via onPress
+      // (which uses the verse ID directly). This coordinate fallback should
+      // only dismiss, not extend, to avoid wrong-verse selection.
+      if (actions.colorPickerTarget) {
+        actions.dismissColorPicker();
+        return;
+      }
+
       const snapshot = positions.buildVerseAbsoluteY();
       const verse = positions.findVerseAtPageY(pageY, snapshot);
       if (verse === undefined) return;
       handleVerseTapRef.current({ bookId, chapter, verse });
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps -- stable callbacks from useVersePositionTracker
-    [bookId, chapter, positions.buildVerseAbsoluteY, positions.findVerseAtPageY]
+    [
+      bookId,
+      chapter,
+      positions.buildVerseAbsoluteY,
+      positions.findVerseAtPageY,
+      actions,
+    ]
   );
 
   // ---------------------------------------------------------------------------
@@ -302,11 +338,22 @@ export const useHighlightRenderer = (
                     e.nativeEvent.layout.y
                   );
                 },
+                // Capture native node ref for direct measureInWindow lookups.
+                // Unlike onLayout (which doesn't fire for inline Text in Fabric),
+                // ref callbacks always fire during the commit phase.
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                ref: (node: any) => {
+                  if (node) positions.registerVerseNode(parsed.verse, node);
+                },
               } as typeof props.nativeProps
             }
             textProps={{
               ...props.textProps,
               suppressHighlighting: true,
+              onPressIn: () => {
+                lastPressInVerseRef.current = parsed.verse;
+                lastPressInTimeRef.current = Date.now();
+              },
             }}
             onPress={() => {
               // Suppress taps that arrive right after a drag-end
@@ -344,6 +391,7 @@ export const useHighlightRenderer = (
     changeColor: actions.changeColor,
     deleteHighlight: actions.deleteHighlight,
     handleTapAtPageY,
+    lastPressInVerseRef,
     onDragStart: drag.onDragStart,
     onDragUpdate: drag.onDragUpdate,
     onDragEnd: drag.onDragEnd,

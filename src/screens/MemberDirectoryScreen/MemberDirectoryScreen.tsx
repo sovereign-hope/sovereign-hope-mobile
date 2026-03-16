@@ -1,5 +1,12 @@
 /* eslint-disable unicorn/no-null */
-import React, { useEffect, useMemo, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -7,30 +14,56 @@ import {
   Pressable,
   RefreshControl,
   Text,
-  TextInput,
   View,
 } from "react-native";
-import { useTheme } from "@react-navigation/native";
+import { useNavigation, useTheme } from "@react-navigation/native";
 import { useAppDispatch, useAppSelector } from "src/hooks/store";
-import { MemberAvatar } from "src/components";
+import { AlphabetSidebar, MemberAvatar } from "src/components";
 import { selectIsMember } from "src/redux/authSlice";
 import {
   fetchMemberDirectory,
   selectHasDirectoryError,
+  selectFilteredDirectorySections,
   selectIsLoadingDirectory,
-  selectMemberDirectory,
 } from "src/redux/memberSlice";
+import { MemberProfile } from "src/services/members";
 import { styles } from "./MemberDirectoryScreen.styles";
+
+type DirectoryItem =
+  | { type: "letter"; letter: string; key: string }
+  | {
+      type: "member";
+      member: MemberProfile;
+      isLast: boolean;
+      key: string;
+    };
 
 export const MemberDirectoryScreen: React.FunctionComponent = () => {
   const dispatch = useAppDispatch();
+  const navigation = useNavigation();
   const theme = useTheme();
-  const themedStyles = styles({ theme });
+  const themedStyles = useMemo(() => styles({ theme }), [theme]);
   const isMember = useAppSelector(selectIsMember);
-  const members = useAppSelector(selectMemberDirectory);
   const isLoadingDirectory = useAppSelector(selectIsLoadingDirectory);
   const hasDirectoryError = useAppSelector(selectHasDirectoryError);
   const [searchQuery, setSearchQuery] = useState("");
+  const listRef = useRef<FlatList<DirectoryItem>>(null);
+  const sections = useAppSelector((state) =>
+    selectFilteredDirectorySections(state, searchQuery)
+  );
+
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerSearchBarOptions: {
+        placeholder: "Search members",
+        hideWhenScrolling: false,
+        autoCapitalize: "words" as const,
+        onChangeText: (event: { nativeEvent: { text: string } }) => {
+          setSearchQuery(event.nativeEvent.text);
+        },
+      },
+    });
+  }, [navigation]);
 
   useEffect(() => {
     if (!isMember) {
@@ -39,16 +72,101 @@ export const MemberDirectoryScreen: React.FunctionComponent = () => {
     void dispatch(fetchMemberDirectory());
   }, [dispatch, isMember]);
 
-  const filteredMembers = useMemo(() => {
-    const trimmedQuery = searchQuery.trim().toLowerCase();
-    if (!trimmedQuery) {
-      return members;
-    }
+  const { flatData, stickyHeaderIndices, letterOffsets, layoutTable } =
+    useMemo(() => {
+      const items: Array<DirectoryItem> = [];
+      const stickyIndices: Array<number> = [];
+      const offsets = new Map<string, number>();
+      let lastLetter = "";
 
-    return members.filter((member) =>
-      member.displayName.toLowerCase().includes(trimmedQuery)
+      for (const section of sections) {
+        if (section.letter !== lastLetter) {
+          stickyIndices.push(items.length);
+          offsets.set(section.letter, items.length);
+          items.push({
+            type: "letter",
+            letter: section.letter,
+            key: `letter-${section.letter}`,
+          });
+          lastLetter = section.letter;
+        }
+
+        section.data.forEach((member, memberIndex) => {
+          items.push({
+            type: "member",
+            member,
+            isLast: memberIndex === section.data.length - 1,
+            key: member.uid,
+          });
+        });
+      }
+
+      let cumulativeOffset = 0;
+      const layoutTable = items.map((item, index) => {
+        const length = getItemHeight(item);
+        const entry = { length, offset: cumulativeOffset, index };
+        cumulativeOffset += length;
+        return entry;
+      });
+
+      return {
+        flatData: items,
+        stickyHeaderIndices: stickyIndices,
+        letterOffsets: offsets,
+        layoutTable,
+      };
+    }, [sections]);
+
+  const availableLetters = useMemo(() => {
+    return new Set(
+      [...letterOffsets.keys()].filter((letter) => /^[A-Z]$/.test(letter))
     );
-  }, [members, searchQuery]);
+  }, [letterOffsets]);
+
+  const handleSelectLetter = useCallback(
+    (letter: string) => {
+      const index = letterOffsets.get(letter);
+      if (index === undefined || !listRef.current) {
+        return;
+      }
+
+      listRef.current.scrollToIndex({ index, animated: false });
+    },
+    [letterOffsets]
+  );
+
+  const renderItem = useCallback(
+    ({ item }: { item: DirectoryItem }) => {
+      if (item.type === "letter") {
+        return (
+          <View style={themedStyles.letterHeaderContainer}>
+            <Text style={themedStyles.letterHeaderText}>{item.letter}</Text>
+          </View>
+        );
+      }
+
+      return (
+        <>
+          <View style={themedStyles.row} accessible accessibilityRole="text">
+            <MemberAvatar
+              size={44}
+              photoURL={item.member.photoURL}
+              displayName={item.member.displayName}
+            />
+            <Text style={themedStyles.rowName}>{item.member.displayName}</Text>
+          </View>
+          {item.isLast ? undefined : <View style={themedStyles.rowDivider} />}
+        </>
+      );
+    },
+    [themedStyles]
+  );
+
+  const getItemLayout = useCallback(
+    (_data: ArrayLike<DirectoryItem> | null | undefined, index: number) =>
+      layoutTable[index] ?? { length: 0, offset: 0, index },
+    [layoutTable]
+  );
 
   if (!isMember) {
     return (
@@ -60,7 +178,7 @@ export const MemberDirectoryScreen: React.FunctionComponent = () => {
     );
   }
 
-  if (isLoadingDirectory && members.length === 0) {
+  if (isLoadingDirectory && flatData.length === 0) {
     return (
       <View style={themedStyles.centeredState}>
         <ActivityIndicator color={theme.colors.primary} />
@@ -68,7 +186,7 @@ export const MemberDirectoryScreen: React.FunctionComponent = () => {
     );
   }
 
-  if (hasDirectoryError && members.length === 0) {
+  if (hasDirectoryError && flatData.length === 0) {
     return (
       <View style={themedStyles.centeredState}>
         <Text style={themedStyles.stateText}>
@@ -88,61 +206,69 @@ export const MemberDirectoryScreen: React.FunctionComponent = () => {
   }
 
   return (
-    <FlatList
-      style={themedStyles.screen}
-      data={filteredMembers}
-      keyExtractor={(item) => item.uid}
-      contentContainerStyle={themedStyles.contentContainer}
-      contentInsetAdjustmentBehavior={
-        Platform.OS === "ios" ? "automatic" : undefined
-      }
-      refreshControl={
-        <RefreshControl
-          refreshing={isLoadingDirectory}
-          onRefresh={() => {
-            void dispatch(fetchMemberDirectory());
-          }}
-          tintColor={theme.colors.primary}
-        />
-      }
-      ListHeaderComponent={
-        <TextInput
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-          placeholder="Search members"
-          placeholderTextColor={theme.colors.border}
-          style={themedStyles.searchInput}
-          accessibilityLabel="Search members by name"
-          accessibilityHint="Type a name to filter the member directory."
-          autoCapitalize="words"
-        />
-      }
-      renderItem={({ item, index }) => (
-        <>
-          <View style={themedStyles.row} accessible accessibilityRole="text">
-            <MemberAvatar
-              size={44}
-              photoURL={item.photoURL}
-              displayName={item.displayName}
-            />
-            <Text style={themedStyles.rowName}>{item.displayName}</Text>
+    <>
+      <FlatList
+        ref={listRef}
+        style={themedStyles.screen}
+        data={flatData}
+        renderItem={renderItem}
+        keyExtractor={(item) => item.key}
+        getItemLayout={getItemLayout}
+        stickyHeaderIndices={stickyHeaderIndices}
+        keyboardShouldPersistTaps="handled"
+        windowSize={5}
+        maxToRenderPerBatch={15}
+        initialNumToRender={20}
+        removeClippedSubviews={Platform.OS === "android"}
+        contentContainerStyle={[
+          themedStyles.contentContainer,
+          flatData.length === 0 ? themedStyles.emptyContentContainer : null,
+        ]}
+        contentInsetAdjustmentBehavior={
+          Platform.OS === "ios" ? "automatic" : undefined
+        }
+        refreshControl={
+          <RefreshControl
+            refreshing={isLoadingDirectory}
+            onRefresh={() => {
+              void dispatch(fetchMemberDirectory());
+            }}
+            tintColor={theme.colors.primary}
+          />
+        }
+        ListEmptyComponent={
+          <View style={themedStyles.centeredState}>
+            <Text style={themedStyles.stateText}>
+              {searchQuery.trim()
+                ? "No members match your search."
+                : "No members have been added yet."}
+            </Text>
           </View>
-          {index < filteredMembers.length - 1 ? (
-            <View style={themedStyles.rowDivider} />
-          ) : null}
-        </>
-      )}
-      ListEmptyComponent={
-        <View style={themedStyles.centeredState}>
-          <Text style={themedStyles.stateText}>
-            {searchQuery.trim()
-              ? "No members match your search."
-              : "No members have been added yet."}
-          </Text>
-        </View>
-      }
-    />
+        }
+      />
+      {!searchQuery.trim() && availableLetters.size > 0 ? (
+        <AlphabetSidebar
+          availableLetters={availableLetters}
+          onSelectLetter={handleSelectLetter}
+          style={themedStyles.alphabetSidebar}
+        />
+      ) : undefined}
+    </>
   );
 };
+
+const LETTER_HEADER_HEIGHT = 30;
+const MEMBER_ROW_HEIGHT = 65;
+
+function getItemHeight(item: DirectoryItem): number {
+  switch (item.type) {
+    case "letter": {
+      return LETTER_HEADER_HEIGHT;
+    }
+    case "member": {
+      return MEMBER_ROW_HEIGHT;
+    }
+  }
+}
 
 /* eslint-enable unicorn/no-null */

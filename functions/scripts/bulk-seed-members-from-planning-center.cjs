@@ -332,11 +332,11 @@ async function resolveMembersList(credentials, listName, listId) {
 
 async function fetchAllPeopleFromList(credentials, listId, perPage) {
   const allPeople = [];
-  const allIncludedEmails = [];
+  const allIncludedResources = [];
   let nextUrl =
     `${PCO_API_BASE_URL}/lists/${encodeURIComponent(listId)}/people` +
     `?per_page=${perPage}` +
-    "&include=emails";
+    "&include=emails,households,household_memberships";
   const visitedUrls = new Set();
 
   while (nextUrl) {
@@ -349,28 +349,85 @@ async function fetchAllPeopleFromList(credentials, listId, perPage) {
 
     const json = await fetchPcoJson(nextUrl, credentials);
     const people = (json?.data || []).filter((item) => item.type === "Person");
-    const emails = (json?.included || []).filter(
-      (item) => item.type === "Email"
-    );
 
     allPeople.push(...people);
-    allIncludedEmails.push(...emails);
+    allIncludedResources.push(...(json?.included || []));
 
     nextUrl = json?.links?.next || null;
   }
 
-  return { people: allPeople, includedEmails: allIncludedEmails };
+  return { people: allPeople, includedResources: allIncludedResources };
 }
 
-function buildCandidates(people, includedEmails, limit) {
+function buildPcoResourceMaps(includedResources) {
   const emailsById = new Map();
-  for (const emailResource of includedEmails) {
-    emailsById.set(String(emailResource.id), {
-      address: emailResource.attributes?.address || "",
-      primary: emailResource.attributes?.primary === true,
-      blocked: emailResource.attributes?.blocked === true,
-    });
+  const householdsById = new Map();
+  const householdMembershipsById = new Map();
+
+  for (const resource of includedResources) {
+    const resourceId = String(resource.id);
+
+    if (resource.type === "Email") {
+      emailsById.set(resourceId, {
+        address: resource.attributes?.address || "",
+        primary: resource.attributes?.primary === true,
+        blocked: resource.attributes?.blocked === true,
+      });
+      continue;
+    }
+
+    if (resource.type === "Household") {
+      householdsById.set(resourceId, {
+        id: resourceId,
+        name: resource.attributes?.name?.trim() || null,
+      });
+      continue;
+    }
+
+    if (resource.type === "HouseholdMembership") {
+      householdMembershipsById.set(resourceId, resource);
+    }
   }
+
+  return { emailsById, householdsById, householdMembershipsById };
+}
+
+function getHouseholdContextForPerson(
+  person,
+  householdsById,
+  householdMembershipsById
+) {
+  const membershipRefs =
+    person.relationships?.household_memberships?.data || [];
+  const householdMemberships = membershipRefs
+    .map((membershipRef) =>
+      householdMembershipsById.get(String(membershipRef.id || ""))
+    )
+    .filter(Boolean);
+
+  const chosenMembership =
+    householdMemberships.find(
+      (membership) => membership.attributes?.primary_contact === true
+    ) || householdMemberships[0];
+  const householdId =
+    chosenMembership?.relationships?.household?.data?.id ||
+    person.relationships?.households?.data?.[0]?.id ||
+    null;
+  const normalizedHouseholdId = householdId ? String(householdId).trim() : "";
+  const household = normalizedHouseholdId
+    ? householdsById.get(normalizedHouseholdId)
+    : null;
+
+  return {
+    householdId: normalizedHouseholdId || null,
+    householdName: household?.name || null,
+    isHeadOfHousehold: chosenMembership?.attributes?.primary_contact === true,
+  };
+}
+
+function buildCandidates(people, includedResources, limit) {
+  const { emailsById, householdsById, householdMembershipsById } =
+    buildPcoResourceMaps(includedResources);
 
   const dedupeByPersonId = new Map();
   for (const person of people) {
@@ -384,6 +441,11 @@ function buildCandidates(people, includedEmails, limit) {
       emails.find((entry) => entry.primary === true)?.address ||
       emails[0]?.address ||
       null;
+    const householdContext = getHouseholdContextForPerson(
+      person,
+      householdsById,
+      householdMembershipsById
+    );
 
     dedupeByPersonId.set(personId, {
       personId,
@@ -395,10 +457,37 @@ function buildCandidates(people, includedEmails, limit) {
       emails,
       emailsNormalized: emails.map((entry) => entry.address),
       personApiUrl: person.links?.self || null,
+      firstName: person.attributes?.first_name?.trim() || null,
+      lastName: person.attributes?.last_name?.trim() || null,
+      householdId: householdContext.householdId,
+      householdName: householdContext.householdName,
+      isHeadOfHousehold: householdContext.isHeadOfHousehold,
     });
   }
 
-  const values = [...dedupeByPersonId.values()];
+  const candidates = [...dedupeByPersonId.values()];
+  const householdLastNamesById = new Map();
+
+  for (const candidate of candidates) {
+    if (!candidate.householdId || !candidate.lastName) {
+      continue;
+    }
+
+    if (
+      candidate.isHeadOfHousehold ||
+      !householdLastNamesById.has(candidate.householdId)
+    ) {
+      householdLastNamesById.set(candidate.householdId, candidate.lastName);
+    }
+  }
+
+  const values = candidates.map((candidate) => ({
+    ...candidate,
+    householdLastName: candidate.householdId
+      ? householdLastNamesById.get(candidate.householdId) || candidate.lastName
+      : null,
+  }));
+
   if (limit > 0) {
     return values.slice(0, limit);
   }
@@ -441,6 +530,12 @@ async function upsertSeedMember(db, listInfo, candidate, dryRun) {
         emailsNormalized: candidate.emailsNormalized,
         displayName: candidate.displayName,
         photoURL: candidate.photoURL,
+        firstName: candidate.firstName,
+        lastName: candidate.lastName,
+        householdId: candidate.householdId,
+        householdName: candidate.householdName,
+        householdLastName: candidate.householdLastName,
+        isHeadOfHousehold: candidate.isHeadOfHousehold,
         source: "planning_center",
         planningCenterPersonId: candidate.personId,
         planningCenterPersonUrl: candidate.personApiUrl,
@@ -465,12 +560,12 @@ async function seedMembers(options) {
   const pcoCredentials = getPcoCredentials();
   const { db, authMode } = initializeFirebaseAdmin(projectId);
   const listInfo = await resolveMembersList(pcoCredentials, listName, listId);
-  const { people, includedEmails } = await fetchAllPeopleFromList(
+  const { people, includedResources } = await fetchAllPeopleFromList(
     pcoCredentials,
     listInfo.id,
     perPage
   );
-  const candidates = buildCandidates(people, includedEmails, limit);
+  const candidates = buildCandidates(people, includedResources, limit);
 
   const summary = {
     ok: true,
@@ -478,7 +573,7 @@ async function seedMembers(options) {
     authMode,
     list: listInfo,
     totalPeopleInList: people.length,
-    includedEmailRecords: includedEmails.length,
+    includedResourceRecords: includedResources.length,
     candidates: candidates.length,
     seededCreated: 0,
     seededUpdated: 0,
@@ -509,6 +604,8 @@ async function seedMembers(options) {
         personId: candidate.personId,
         email: candidate.email,
         displayName: candidate.displayName,
+        householdId: candidate.householdId,
+        householdName: candidate.householdName,
         existed: result.existed,
         alreadyLinked: result.linked,
       });

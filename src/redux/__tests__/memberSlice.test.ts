@@ -5,6 +5,8 @@ import {
   fetchDailyPrayerAssignment,
   fetchMemberDirectory,
   memberReducer,
+  selectFilteredDirectorySections,
+  selectGroupedDirectorySections,
 } from "src/redux/memberSlice";
 import {
   fetchAllMembers,
@@ -84,6 +86,148 @@ describe("memberSlice", () => {
     expect(state.directory).toHaveLength(2);
     expect(state.hasDirectoryError).toBe(false);
     expect(state.isLoadingDirectory).toBe(false);
+  });
+
+  it("groups members alphabetically by last name into letter sections", () => {
+    const state = {
+      member: {
+        directory: [
+          {
+            uid: "member-1",
+            displayName: "Sam Coe",
+            photoURL: null,
+            createdAt: 100,
+            firstName: "Sam",
+            lastName: "Coe",
+          },
+          {
+            uid: "member-2",
+            displayName: "Abby Coe",
+            photoURL: null,
+            createdAt: 101,
+            firstName: "Abby",
+            lastName: "Coe",
+          },
+          {
+            uid: "member-3",
+            displayName: "John Brown",
+            photoURL: null,
+            createdAt: 102,
+            firstName: "John",
+            lastName: "Brown",
+          },
+          {
+            uid: "member-4",
+            displayName: "Aaron Anderson",
+            photoURL: null,
+            createdAt: 103,
+            firstName: "Aaron",
+            lastName: "Anderson",
+          },
+        ],
+      },
+    };
+
+    const sections = selectGroupedDirectorySections(state as never);
+
+    expect(sections).toEqual([
+      expect.objectContaining({
+        letter: "A",
+        data: [expect.objectContaining({ uid: "member-4" })],
+      }),
+      expect.objectContaining({
+        letter: "B",
+        data: [expect.objectContaining({ uid: "member-3" })],
+      }),
+      expect.objectContaining({
+        letter: "C",
+        data: [
+          expect.objectContaining({ uid: "member-2" }),
+          expect.objectContaining({ uid: "member-1" }),
+        ],
+      }),
+    ]);
+  });
+
+  it("filters by last name and returns matching members", () => {
+    const state = {
+      member: {
+        directory: [
+          {
+            uid: "member-1",
+            displayName: "Sam Coe",
+            photoURL: null,
+            createdAt: 100,
+            firstName: "Sam",
+            lastName: "Coe",
+          },
+          {
+            uid: "member-2",
+            displayName: "Abby Coe",
+            photoURL: null,
+            createdAt: 101,
+            firstName: "Abby",
+            lastName: "Coe",
+          },
+          {
+            uid: "member-3",
+            displayName: "John Brown",
+            photoURL: null,
+            createdAt: 102,
+            firstName: "John",
+            lastName: "Brown",
+          },
+        ],
+      },
+    };
+
+    const sections = selectFilteredDirectorySections(state as never, "coe");
+
+    expect(sections).toHaveLength(1);
+    expect(sections[0]?.data.map((member) => member.uid)).toEqual([
+      "member-2",
+      "member-1",
+    ]);
+  });
+
+  it("filters by first name and returns only the matching member", () => {
+    const state = {
+      member: {
+        directory: [
+          {
+            uid: "member-1",
+            displayName: "Sam Coe",
+            photoURL: null,
+            createdAt: 100,
+            firstName: "Sam",
+            lastName: "Coe",
+          },
+          {
+            uid: "member-2",
+            displayName: "Abby Coe",
+            photoURL: null,
+            createdAt: 101,
+            firstName: "Abby",
+            lastName: "Coe",
+          },
+          {
+            uid: "member-3",
+            displayName: "John Brown",
+            photoURL: null,
+            createdAt: 102,
+            firstName: "John",
+            lastName: "Brown",
+          },
+        ],
+      },
+    };
+
+    const sections = selectFilteredDirectorySections(state as never, "abby");
+
+    expect(sections).toHaveLength(1);
+    expect(sections[0]?.data).toEqual([
+      expect.objectContaining({ uid: "member-2" }),
+    ]);
   });
 
   it("loads today's prayer assignment when available", async () => {

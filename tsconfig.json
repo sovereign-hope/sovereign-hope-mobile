@@ -6,8 +6,9 @@
     "module": "ESNext",
     "paths": {
       "src/*": ["./src/*"],
-      "assets/*": ["./assets/*"]
+      "assets/*": ["./assets/*"],
+      "shared/*": ["./shared/*"]
     }
   },
-  "exclude": ["admin", "shared"]
+  "exclude": ["admin"]
 }

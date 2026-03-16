@@ -31,7 +31,7 @@ type UseDragSelectionParams = {
 };
 
 export type DragSelectionResult = {
-  onDragStart: (pageY: number) => void;
+  onDragStart: (pageY: number, preResolvedVerse?: number) => void;
   onDragUpdate: (pageY: number) => void;
   onDragEnd: () => void;
   isDragSelecting: boolean;
@@ -68,6 +68,7 @@ export const useDragSelection = ({
   const lastDragVerseRef = useRef<number | null>(null);
   const dragEndTimeRef = useRef(0);
   const lastDragPageYRef = useRef(0);
+  const dragStartPageYRef = useRef(0);
   const autoScrollRAFRef = useRef<number | null>(null);
   const autoScrollSpeedRef = useRef(0);
   /* eslint-enable unicorn/no-null */
@@ -136,9 +137,9 @@ export const useDragSelection = ({
   // ---------------------------------------------------------------------------
 
   const onDragStart = useCallback(
-    (pageY: number) => {
+    (pageY: number, preResolvedVerse?: number) => {
       const snapshot = buildVerseAbsoluteY();
-      const anchorVerse = findVerseAtPageY(pageY, snapshot);
+      const anchorVerse = preResolvedVerse ?? findVerseAtPageY(pageY, snapshot);
       if (anchorVerse === undefined) return;
 
       const sorted = [...knownVersesRef.current].sort((a, b) => a - b);
@@ -147,8 +148,9 @@ export const useDragSelection = ({
       // eslint-disable-next-line no-param-reassign -- ref is intentionally set by consumer
       verseAbsoluteYRef.current = snapshot;
 
-      // Store finger position for auto-scroll hit-testing
+      // Store finger position for auto-scroll hit-testing and dead zone
       lastDragPageYRef.current = pageY;
+      dragStartPageYRef.current = pageY;
 
       if (Platform.OS === "ios")
         void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
@@ -161,12 +163,25 @@ export const useDragSelection = ({
     [buildVerseAbsoluteY, findVerseAtPageY, knownVersesRef, verseAbsoluteYRef]
   );
 
+  // Minimum distance from drag start before the coordinate-based verse
+  // lookup kicks in. Prevents tiny finger jitter from changing the selection
+  // away from the accurate onPressIn-resolved anchor verse.
+  const DRAG_DEAD_ZONE_PX = 30;
+
   const onDragUpdate = useCallback(
     (pageY: number) => {
       if (!dragSelectionRef.current) return;
 
       // Store latest finger position for auto-scroll re-hit-testing
       lastDragPageYRef.current = pageY;
+
+      // Don't update the verse until the finger has moved meaningfully
+      // from the drag start. The coordinate-based verse lookup is
+      // inaccurate for inline Text (Fabric), so we stay on the accurate
+      // onPressIn anchor until the user deliberately drags.
+      if (Math.abs(pageY - dragStartPageYRef.current) < DRAG_DEAD_ZONE_PX) {
+        return;
+      }
 
       // Find the verse under the user's finger
       updateDragVerse(pageY);

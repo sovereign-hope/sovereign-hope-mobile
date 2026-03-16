@@ -16,7 +16,19 @@ describe("MemberAvatar", () => {
     expect(screen.getByText("J")).toBeTruthy();
   });
 
-  it("renders image when photoURL exists and falls back after load error", () => {
+  it("renders image when photoURL is provided", () => {
+    const screen = renderWithTheme(
+      <MemberAvatar
+        photoURL="https://example.com/jane.jpg"
+        displayName="Jane Doe"
+        size={40}
+      />
+    );
+
+    expect(screen.getByLabelText("Photo of Jane Doe")).toBeTruthy();
+  });
+
+  it("falls back to initials after image load error", () => {
     const screen = renderWithTheme(
       <MemberAvatar
         photoURL="https://example.com/jane.jpg"
@@ -26,12 +38,37 @@ describe("MemberAvatar", () => {
     );
 
     const image = screen.getByLabelText("Photo of Jane Doe");
-    expect(image).toBeTruthy();
 
     void act(() => {
-      fireEvent(image, "error");
+      fireEvent(image, "error", { nativeEvent: { error: "load failed" } });
     });
+
     expect(screen.getByText("J")).toBeTruthy();
+  });
+
+  it("opens modal when photo avatar is tapped", () => {
+    const screen = renderWithTheme(
+      <MemberAvatar
+        photoURL="https://example.com/jane.jpg"
+        displayName="Jane Doe"
+        size={40}
+      />
+    );
+
+    void act(() => {
+      fireEvent.press(screen.getByLabelText("Photo of Jane Doe"));
+    });
+
+    expect(screen.getByLabelText("Enlarged photo of Jane Doe")).toBeTruthy();
+    expect(screen.getByText("Jane Doe")).toBeTruthy();
+  });
+
+  it("does not render modal for initials-only avatar", () => {
+    const screen = renderWithTheme(
+      <MemberAvatar photoURL={null} displayName="Jane Doe" size={40} />
+    );
+
+    expect(screen.queryByLabelText("Close photo")).toBeNull();
   });
 });
 

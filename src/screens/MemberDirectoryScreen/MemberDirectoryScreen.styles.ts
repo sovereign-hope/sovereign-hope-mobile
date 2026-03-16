@@ -11,10 +11,13 @@ type Props = {
 interface Style {
   screen: ViewStyle;
   contentContainer: ViewStyle;
-  searchInput: TextStyle;
+  emptyContentContainer: ViewStyle;
+  letterHeaderContainer: ViewStyle;
+  letterHeaderText: TextStyle;
   row: ViewStyle;
   rowName: TextStyle;
   rowDivider: ViewStyle;
+  alphabetSidebar: ViewStyle;
   centeredState: ViewStyle;
   stateText: TextStyle;
   retryButton: ViewStyle;
@@ -29,26 +32,31 @@ export const styles = ({ theme }: Props): Style =>
     },
     contentContainer: {
       paddingHorizontal: spacing.large,
+      paddingRight: spacing.extraLarge + spacing.large,
       paddingBottom: spacing.extraLarge,
     },
-    searchInput: {
-      borderWidth: StyleSheet.hairlineWidth,
-      borderColor: theme.colors.border,
-      borderRadius: radius.medium,
-      backgroundColor: theme.colors.card,
-      color: theme.colors.text,
-      paddingHorizontal: spacing.large,
-      paddingVertical: spacing.lmedium,
-      marginTop: spacing.medium,
-      marginBottom: spacing.large,
-      fontSize: 16,
+    emptyContentContainer: {
+      flexGrow: 1,
+    },
+    letterHeaderContainer: {
+      paddingTop: spacing.medium,
+      paddingBottom: spacing.small,
+      backgroundColor: theme.colors.background,
+    },
+    letterHeaderText: {
+      fontSize: 13,
+      fontWeight: "700",
+      letterSpacing: 0.8,
+      color: colors.accent,
     },
     row: {
       flexDirection: "row",
       alignItems: "center",
       gap: spacing.lmedium,
-      paddingVertical: spacing.lmedium,
-      backgroundColor: theme.colors.background,
+      paddingVertical: spacing.medium,
+      paddingHorizontal: spacing.large,
+      backgroundColor: theme.colors.card,
+      borderRadius: radius.medium,
     },
     rowName: {
       ...header3,
@@ -58,7 +66,15 @@ export const styles = ({ theme }: Props): Style =>
     rowDivider: {
       height: StyleSheet.hairlineWidth,
       backgroundColor: theme.colors.border,
-      marginLeft: 56,
+      marginLeft: 72,
+      marginBottom: spacing.small,
+    },
+    alphabetSidebar: {
+      position: "absolute",
+      right: spacing.small,
+      top: spacing.medium,
+      bottom: spacing.extraLarge,
+      justifyContent: "center",
     },
     centeredState: {
       flex: 1,

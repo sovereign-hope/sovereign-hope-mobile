@@ -1,5 +1,9 @@
 /* eslint-disable unicorn/no-null */
-import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
+import {
+  createAsyncThunk,
+  createSelector,
+  createSlice,
+} from "@reduxjs/toolkit";
 import { RootState } from "src/app/store";
 import {
   MemberProfile,
@@ -32,6 +36,14 @@ interface MemberState {
   hasPrayerError: boolean;
 }
 
+export interface DirectorySection {
+  title: string;
+  sortKey: string;
+  letter: string;
+  isSingleMember: boolean;
+  data: Array<MemberProfile>;
+}
+
 const initialState: MemberState = {
   directory: [],
   prayerAssignment: null,
@@ -42,6 +54,45 @@ const initialState: MemberState = {
   hasDirectoryError: false,
   hasPrayerError: false,
 };
+
+const normalizeValue = (value?: string | null): string =>
+  value?.trim().toLowerCase() ?? "";
+
+const getDisplayNameParts = (displayName: string): Array<string> =>
+  displayName.trim().split(/\s+/).filter(Boolean);
+
+const getFirstNameValue = (member: MemberProfile): string =>
+  member.firstName?.trim() || getDisplayNameParts(member.displayName)[0] || "";
+
+const getLastNameValue = (member: MemberProfile): string =>
+  member.lastName?.trim() ||
+  getDisplayNameParts(member.displayName).at(-1) ||
+  member.displayName.trim();
+
+const getSectionLetter = (value: string): string => {
+  const trimmedValue = value.trim().toUpperCase();
+  const firstCharacter = trimmedValue[0] ?? "#";
+  return /[A-Z]/.test(firstCharacter) ? firstCharacter : "#";
+};
+
+const compareAlphabetically = (left: string, right: string): number =>
+  left.localeCompare(right, undefined, { sensitivity: "base" });
+
+const filterSectionMembers = (
+  section: DirectorySection,
+  searchQuery: string
+): Array<MemberProfile> =>
+  section.data.filter((member) => {
+    const normalizedDisplayName = normalizeValue(member.displayName);
+    const normalizedFirstName = normalizeValue(member.firstName);
+    const normalizedLastName = normalizeValue(member.lastName);
+
+    return (
+      normalizedDisplayName.includes(searchQuery) ||
+      normalizedFirstName.includes(searchQuery) ||
+      normalizedLastName.includes(searchQuery)
+    );
+  });
 
 export const fetchMemberDirectory = createAsyncThunk(
   "member/fetchMemberDirectory",
@@ -151,6 +202,68 @@ const memberSlice = createSlice({
 
 export const selectMemberDirectory = (state: RootState): Array<MemberProfile> =>
   state.member.directory;
+
+export const selectGroupedDirectorySections = createSelector(
+  [selectMemberDirectory],
+  (directory): Array<DirectorySection> => {
+    const sorted = [...directory].sort((left, right) => {
+      const lastNameComparison = compareAlphabetically(
+        getLastNameValue(left),
+        getLastNameValue(right)
+      );
+      if (lastNameComparison !== 0) {
+        return lastNameComparison;
+      }
+
+      return compareAlphabetically(
+        getFirstNameValue(left),
+        getFirstNameValue(right)
+      );
+    });
+
+    const letterMap = new Map<string, Array<MemberProfile>>();
+    for (const member of sorted) {
+      const letter = getSectionLetter(getLastNameValue(member));
+      const existing = letterMap.get(letter) ?? [];
+      existing.push(member);
+      letterMap.set(letter, existing);
+    }
+
+    return [...letterMap.entries()]
+      .sort(([a], [b]) => compareAlphabetically(a, b))
+      .map(([letter, members]) => ({
+        title: letter,
+        sortKey: letter,
+        letter,
+        isSingleMember: true,
+        data: members,
+      }));
+  }
+);
+
+const selectDirectorySearchQuery = (
+  _state: RootState,
+  searchQuery: string
+): string => searchQuery;
+
+export const selectFilteredDirectorySections = createSelector(
+  [selectGroupedDirectorySections, selectDirectorySearchQuery],
+  (sections, rawSearchQuery): Array<DirectorySection> => {
+    const searchQuery = normalizeValue(rawSearchQuery);
+    if (!searchQuery) {
+      return sections;
+    }
+
+    return sections.flatMap((section) => {
+      const matchingMembers = filterSectionMembers(section, searchQuery);
+      if (matchingMembers.length === 0) {
+        return [];
+      }
+
+      return [{ ...section, data: matchingMembers }];
+    });
+  }
+);
 
 export const selectPrayerAssignment = (
   state: RootState
