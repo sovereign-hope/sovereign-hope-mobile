@@ -88,7 +88,7 @@ describe("memberSlice", () => {
     expect(state.isLoadingDirectory).toBe(false);
   });
 
-  it("groups members into sorted directory sections", () => {
+  it("groups members alphabetically by last name into letter sections", () => {
     const state = {
       member: {
         directory: [
@@ -99,10 +99,6 @@ describe("memberSlice", () => {
             createdAt: 100,
             firstName: "Sam",
             lastName: "Coe",
-            householdId: "household-coe",
-            householdName: "The Coe Family",
-            householdLastName: "Coe",
-            isHeadOfHousehold: true,
           },
           {
             uid: "member-2",
@@ -111,10 +107,6 @@ describe("memberSlice", () => {
             createdAt: 101,
             firstName: "Abby",
             lastName: "Coe",
-            householdId: "household-coe",
-            householdName: "The Coe Family",
-            householdLastName: "Coe",
-            isHeadOfHousehold: false,
           },
           {
             uid: "member-3",
@@ -123,10 +115,6 @@ describe("memberSlice", () => {
             createdAt: 102,
             firstName: "John",
             lastName: "Brown",
-            householdId: "household-brown",
-            householdName: "Brown Household",
-            householdLastName: "Brown",
-            isHeadOfHousehold: true,
           },
           {
             uid: "member-4",
@@ -144,45 +132,24 @@ describe("memberSlice", () => {
 
     expect(sections).toEqual([
       expect.objectContaining({
-        title: "A",
-        sortKey: "A",
         letter: "A",
-        isSingleMember: true,
-        data: [
-          expect.objectContaining({
-            uid: "member-4",
-          }),
-        ],
+        data: [expect.objectContaining({ uid: "member-4" })],
       }),
       expect.objectContaining({
-        title: "Brown Household",
-        sortKey: "BROWN",
         letter: "B",
-        isSingleMember: false,
-        data: [
-          expect.objectContaining({
-            uid: "member-3",
-          }),
-        ],
+        data: [expect.objectContaining({ uid: "member-3" })],
       }),
       expect.objectContaining({
-        title: "The Coe Family",
-        sortKey: "COE",
         letter: "C",
-        isSingleMember: false,
         data: [
-          expect.objectContaining({
-            uid: "member-1",
-          }),
-          expect.objectContaining({
-            uid: "member-2",
-          }),
+          expect.objectContaining({ uid: "member-2" }),
+          expect.objectContaining({ uid: "member-1" }),
         ],
       }),
     ]);
   });
 
-  it("filters by household name and includes all members in that family", () => {
+  it("filters by last name and returns matching members", () => {
     const state = {
       member: {
         directory: [
@@ -193,10 +160,6 @@ describe("memberSlice", () => {
             createdAt: 100,
             firstName: "Sam",
             lastName: "Coe",
-            householdId: "household-coe",
-            householdName: "The Coe Family",
-            householdLastName: "Coe",
-            isHeadOfHousehold: true,
           },
           {
             uid: "member-2",
@@ -205,10 +168,6 @@ describe("memberSlice", () => {
             createdAt: 101,
             firstName: "Abby",
             lastName: "Coe",
-            householdId: "household-coe",
-            householdName: "The Coe Family",
-            householdLastName: "Coe",
-            isHeadOfHousehold: false,
           },
           {
             uid: "member-3",
@@ -226,12 +185,12 @@ describe("memberSlice", () => {
 
     expect(sections).toHaveLength(1);
     expect(sections[0]?.data.map((member) => member.uid)).toEqual([
-      "member-1",
       "member-2",
+      "member-1",
     ]);
   });
 
-  it("filters by individual name and only keeps matching members within a family", () => {
+  it("filters by first name and returns only the matching member", () => {
     const state = {
       member: {
         directory: [
@@ -242,10 +201,6 @@ describe("memberSlice", () => {
             createdAt: 100,
             firstName: "Sam",
             lastName: "Coe",
-            householdId: "household-coe",
-            householdName: "The Coe Family",
-            householdLastName: "Coe",
-            isHeadOfHousehold: true,
           },
           {
             uid: "member-2",
@@ -254,10 +209,6 @@ describe("memberSlice", () => {
             createdAt: 101,
             firstName: "Abby",
             lastName: "Coe",
-            householdId: "household-coe",
-            householdName: "The Coe Family",
-            householdLastName: "Coe",
-            isHeadOfHousehold: false,
           },
           {
             uid: "member-3",
@@ -274,17 +225,9 @@ describe("memberSlice", () => {
     const sections = selectFilteredDirectorySections(state as never, "abby");
 
     expect(sections).toHaveLength(1);
-    expect(sections[0]).toEqual(
-      expect.objectContaining({
-        title: "The Coe Family",
-        isSingleMember: false,
-        data: [
-          expect.objectContaining({
-            uid: "member-2",
-          }),
-        ],
-      })
-    );
+    expect(sections[0]?.data).toEqual([
+      expect.objectContaining({ uid: "member-2" }),
+    ]);
   });
 
   it("loads today's prayer assignment when available", async () => {

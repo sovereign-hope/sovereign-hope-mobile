@@ -14,10 +14,7 @@ interface Style {
   emptyContentContainer: ViewStyle;
   letterHeaderContainer: ViewStyle;
   letterHeaderText: TextStyle;
-  sectionHeaderContainer: ViewStyle;
-  sectionHeaderText: TextStyle;
   row: ViewStyle;
-  sectionSpacer: ViewStyle;
   rowName: TextStyle;
   rowDivider: ViewStyle;
   alphabetSidebar: ViewStyle;
@@ -52,19 +49,6 @@ export const styles = ({ theme }: Props): Style =>
       letterSpacing: 0.8,
       color: colors.accent,
     },
-    sectionHeaderContainer: {
-      backgroundColor: theme.colors.card,
-      borderRadius: radius.medium,
-      paddingHorizontal: spacing.large,
-      paddingVertical: spacing.medium,
-      marginBottom: spacing.small,
-      borderWidth: StyleSheet.hairlineWidth,
-      borderColor: theme.colors.border,
-    },
-    sectionHeaderText: {
-      ...header3,
-      color: theme.colors.text,
-    },
     row: {
       flexDirection: "row",
       alignItems: "center",
@@ -73,9 +57,6 @@ export const styles = ({ theme }: Props): Style =>
       paddingHorizontal: spacing.large,
       backgroundColor: theme.colors.card,
       borderRadius: radius.medium,
-    },
-    sectionSpacer: {
-      marginBottom: spacing.small,
     },
     rowName: {
       ...header3,

@@ -31,12 +31,10 @@ import { styles } from "./MemberDirectoryScreen.styles";
 
 type DirectoryItem =
   | { type: "letter"; letter: string; key: string }
-  | { type: "household"; title: string; letter: string; key: string }
   | {
       type: "member";
       member: MemberProfile;
       isLast: boolean;
-      inHousehold: boolean;
       key: string;
     };
 
@@ -57,7 +55,7 @@ export const MemberDirectoryScreen: React.FunctionComponent = () => {
   useLayoutEffect(() => {
     navigation.setOptions({
       headerSearchBarOptions: {
-        placeholder: "Search families or members",
+        placeholder: "Search members",
         hideWhenScrolling: false,
         autoCapitalize: "words" as const,
         onChangeText: (event: { nativeEvent: { text: string } }) => {
@@ -93,21 +91,11 @@ export const MemberDirectoryScreen: React.FunctionComponent = () => {
           lastLetter = section.letter;
         }
 
-        if (!section.isSingleMember) {
-          items.push({
-            type: "household",
-            title: section.title,
-            letter: section.letter,
-            key: `household-${section.title}-${section.letter}`,
-          });
-        }
-
         section.data.forEach((member, memberIndex) => {
           items.push({
             type: "member",
             member,
             isLast: memberIndex === section.data.length - 1,
-            inHousehold: !section.isSingleMember,
             key: member.uid,
           });
         });
@@ -157,14 +145,6 @@ export const MemberDirectoryScreen: React.FunctionComponent = () => {
         );
       }
 
-      if (item.type === "household") {
-        return (
-          <View style={themedStyles.sectionHeaderContainer}>
-            <Text style={themedStyles.sectionHeaderText}>{item.title}</Text>
-          </View>
-        );
-      }
-
       return (
         <>
           <View style={themedStyles.row} accessible accessibilityRole="text">
@@ -175,13 +155,7 @@ export const MemberDirectoryScreen: React.FunctionComponent = () => {
             />
             <Text style={themedStyles.rowName}>{item.member.displayName}</Text>
           </View>
-          {item.isLast ? (
-            item.inHousehold ? (
-              <View style={themedStyles.sectionSpacer} />
-            ) : undefined
-          ) : (
-            <View style={themedStyles.rowDivider} />
-          )}
+          {item.isLast ? undefined : <View style={themedStyles.rowDivider} />}
         </>
       );
     },
@@ -266,7 +240,7 @@ export const MemberDirectoryScreen: React.FunctionComponent = () => {
           <View style={themedStyles.centeredState}>
             <Text style={themedStyles.stateText}>
               {searchQuery.trim()
-                ? "No families or members match your search."
+                ? "No members match your search."
                 : "No members have been added yet."}
             </Text>
           </View>
@@ -284,16 +258,12 @@ export const MemberDirectoryScreen: React.FunctionComponent = () => {
 };
 
 const LETTER_HEADER_HEIGHT = 30;
-const HOUSEHOLD_HEADER_HEIGHT = 46;
 const MEMBER_ROW_HEIGHT = 65;
 
 function getItemHeight(item: DirectoryItem): number {
   switch (item.type) {
     case "letter": {
       return LETTER_HEADER_HEIGHT;
-    }
-    case "household": {
-      return HOUSEHOLD_HEADER_HEIGHT;
     }
     case "member": {
       return MEMBER_ROW_HEIGHT;

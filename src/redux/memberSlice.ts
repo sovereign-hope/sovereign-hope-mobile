@@ -78,54 +78,6 @@ const getSectionLetter = (value: string): string => {
 const compareAlphabetically = (left: string, right: string): number =>
   left.localeCompare(right, undefined, { sensitivity: "base" });
 
-const sortMembersWithinSection = (
-  members: Array<MemberProfile>
-): Array<MemberProfile> =>
-  [...members].sort((left, right) => {
-    if (left.isHeadOfHousehold !== right.isHeadOfHousehold) {
-      return left.isHeadOfHousehold ? -1 : 1;
-    }
-
-    const firstNameComparison = compareAlphabetically(
-      getFirstNameValue(left),
-      getFirstNameValue(right)
-    );
-    if (firstNameComparison !== 0) {
-      return firstNameComparison;
-    }
-
-    return compareAlphabetically(left.displayName, right.displayName);
-  });
-
-const buildHouseholdSection = (
-  householdMembers: Array<MemberProfile>
-): DirectorySection => {
-  const sortedMembers = sortMembersWithinSection(householdMembers);
-  const headOfHousehold =
-    sortedMembers.find((member) => member.isHeadOfHousehold) ??
-    sortedMembers[0];
-  const householdTitle =
-    sortedMembers
-      .find((member) => member.householdName?.trim())
-      ?.householdName?.trim() ||
-    headOfHousehold?.displayName ||
-    "Church Household";
-  const householdSortValue =
-    sortedMembers
-      .find((member) => member.householdLastName?.trim())
-      ?.householdLastName?.trim() ||
-    (headOfHousehold ? getLastNameValue(headOfHousehold) : householdTitle);
-  const sortKey = householdSortValue.toUpperCase();
-
-  return {
-    title: householdTitle,
-    sortKey,
-    letter: getSectionLetter(sortKey),
-    isSingleMember: false,
-    data: sortedMembers,
-  };
-};
-
 const filterSectionMembers = (
   section: DirectorySection,
   searchQuery: string
@@ -254,55 +206,38 @@ export const selectMemberDirectory = (state: RootState): Array<MemberProfile> =>
 export const selectGroupedDirectorySections = createSelector(
   [selectMemberDirectory],
   (directory): Array<DirectorySection> => {
-    const householdMap = new Map<string, Array<MemberProfile>>();
-    const singlesByLetter = new Map<string, Array<MemberProfile>>();
-
-    for (const member of directory) {
-      const householdId = member.householdId?.trim();
-      if (!householdId) {
-        const sortKey = getLastNameValue(member).toUpperCase();
-        const letter = getSectionLetter(sortKey);
-        const existing = singlesByLetter.get(letter) ?? [];
-        existing.push(member);
-        singlesByLetter.set(letter, existing);
-        continue;
+    const sorted = [...directory].sort((left, right) => {
+      const lastNameComparison = compareAlphabetically(
+        getLastNameValue(left),
+        getLastNameValue(right)
+      );
+      if (lastNameComparison !== 0) {
+        return lastNameComparison;
       }
 
-      const existingMembers = householdMap.get(householdId) ?? [];
-      existingMembers.push(member);
-      householdMap.set(householdId, existingMembers);
+      return compareAlphabetically(
+        getFirstNameValue(left),
+        getFirstNameValue(right)
+      );
+    });
+
+    const letterMap = new Map<string, Array<MemberProfile>>();
+    for (const member of sorted) {
+      const letter = getSectionLetter(getLastNameValue(member));
+      const existing = letterMap.get(letter) ?? [];
+      existing.push(member);
+      letterMap.set(letter, existing);
     }
 
-    const letterSections: Array<DirectorySection> = [
-      ...singlesByLetter.entries(),
-    ].map(([letter, members]) => ({
-      title: letter,
-      sortKey: letter,
-      letter,
-      isSingleMember: true,
-      data: [...members].sort((left, right) =>
-        compareAlphabetically(
-          getLastNameValue(left).toUpperCase(),
-          getLastNameValue(right).toUpperCase()
-        )
-      ),
-    }));
-
-    const householdSections = [...householdMap.values()].map((members) =>
-      buildHouseholdSection(members)
-    );
-
-    return [...letterSections, ...householdSections].sort((left, right) => {
-      const sortKeyComparison = compareAlphabetically(
-        left.sortKey,
-        right.sortKey
-      );
-      if (sortKeyComparison !== 0) {
-        return sortKeyComparison;
-      }
-
-      return compareAlphabetically(left.title, right.title);
-    });
+    return [...letterMap.entries()]
+      .sort(([a], [b]) => compareAlphabetically(a, b))
+      .map(([letter, members]) => ({
+        title: letter,
+        sortKey: letter,
+        letter,
+        isSingleMember: true,
+        data: members,
+      }));
   }
 );
 
@@ -320,14 +255,6 @@ export const selectFilteredDirectorySections = createSelector(
     }
 
     return sections.flatMap((section) => {
-      const normalizedTitle = normalizeValue(section.title);
-      const householdMatch =
-        !section.isSingleMember && normalizedTitle.includes(searchQuery);
-
-      if (householdMatch) {
-        return [section];
-      }
-
       const matchingMembers = filterSectionMembers(section, searchQuery);
       if (matchingMembers.length === 0) {
         return [];
