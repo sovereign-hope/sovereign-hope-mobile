@@ -139,6 +139,13 @@ export const PassageReader: React.FunctionComponent<PassageReaderProps> = ({
   const lastScrollOffsetRef = useRef(0);
   const containerHeightRef = useRef(0);
   const scrollViewRef = useRef<ScrollView>(null);
+  // Y offset from scroll content top to the RenderHtml root. Content above
+  // the touch handler View (heading, close button) creates a gap between
+  // scroll-content coordinates and verse-position coordinates. Computed
+  // from synchronous onLayout.y values (no async measureInWindow timing issues).
+  const contentOffsetRef = useRef(0);
+  // Touch handler View's Y within its parent Animated.View (= heading height)
+  const touchHandlerYRef = useRef(0);
 
   // Highlight rendering — always call hook (hooks rules), use results only when both props are set
   const highlightEnabled = bookId !== undefined && chapter !== undefined;
@@ -150,12 +157,48 @@ export const PassageReader: React.FunctionComponent<PassageReaderProps> = ({
     lastScrollOffsetRef,
     fontSize,
     scrollViewRef,
-    containerHeightRef
+    containerHeightRef,
+    contentOffsetRef
   );
   const handleContainerLayout = useCallback((event: LayoutChangeEvent) => {
     containerHeightRef.current = event.nativeEvent.layout.height;
     event.target.measureInWindow((_x, y) => {
       containerYRef.current = y;
+    });
+  }, []);
+
+  // Record the touch handler View's Y within its parent Animated.View.
+  // This equals the heading height (if present). Children's onLayout fires
+  // before parents, so this value is ready when the parent's onLayout fires.
+  const handleContentLayout = useCallback((event: LayoutChangeEvent) => {
+    touchHandlerYRef.current = event.nativeEvent.layout.y;
+  }, []);
+
+  // Compute the total offset: Animated.View's Y within scroll content
+  // (= close button height, if present) + touch handler View's Y within
+  // Animated.View (= heading height, if present). Parent onLayout fires
+  // after children, so touchHandlerYRef is already set.
+  //
+  // Also bootstraps lastScrollOffsetRef on mount. When adjustsForInsets is
+  // true, iOS sets the resting contentOffset.y to a negative value (the
+  // adjusted content inset). But onScroll doesn't fire until the user
+  // scrolls, so the ref stays at 0, creating a ~59px offset that shifts
+  // coordinate-based verse detection by ~2 verses. We derive the initial
+  // scroll offset from the gap between onLayout.y (scroll-content-relative)
+  // and measureInWindow (window-relative).
+  const handlePassageWrapperLayout = useCallback((event: LayoutChangeEvent) => {
+    contentOffsetRef.current =
+      event.nativeEvent.layout.y + touchHandlerYRef.current;
+
+    // Bootstrap initial scroll offset before onScroll fires
+    const layoutY = event.nativeEvent.layout.y;
+    event.target.measureInWindow((_x, windowY) => {
+      const containerY = containerYRef.current;
+      if (containerY > 0 && lastScrollOffsetRef.current === 0) {
+        // scrollContentY = windowY - containerY + scrollOffset
+        // At mount, scrollContentY = layoutY, so:
+        lastScrollOffsetRef.current = layoutY - (windowY - containerY);
+      }
     });
   }, []);
 
@@ -464,7 +507,6 @@ export const PassageReader: React.FunctionComponent<PassageReaderProps> = ({
   // Whether the scroll view is decelerating (momentum scroll). A tap
   // during momentum is a "tap to stop", not a highlight tap.
   const isMomentumScrollingRef = useRef(false);
-
   const handleTouchStart = useCallback(
     (event: GestureResponderEvent) => {
       if (!highlightEnabled) return;
@@ -479,7 +521,13 @@ export const PassageReader: React.FunctionComponent<PassageReaderProps> = ({
         longPressTimerRef.current = null;
         isDragActiveRef.current = true;
         setIsDragActive(true);
-        onDragStartRef.current(lastTouchYRef.current);
+        // Use the verse from onPressIn (fires on inline Text in Fabric)
+        // as the anchor. Falls back to coordinate-based lookup if
+        // onPressIn didn't fire (tap on whitespace).
+        onDragStartRef.current(
+          lastTouchYRef.current,
+          highlightRenderer.lastPressInVerseRef.current
+        );
       }, LONG_PRESS_DELAY_MS);
     },
     [highlightEnabled]
@@ -594,11 +642,15 @@ export const PassageReader: React.FunctionComponent<PassageReaderProps> = ({
             </Pressable>
           </View>
         )}
-        <Animated.View style={{ opacity: passageTransitionOpacity }}>
+        <Animated.View
+          style={{ opacity: passageTransitionOpacity }}
+          onLayout={handlePassageWrapperLayout}
+        >
           {heading.length > 0 && (
             <Text style={themedStyles.title}>{heading}</Text>
           )}
           <View
+            onLayout={handleContentLayout}
             onTouchStart={handleTouchStart}
             onTouchMove={handleTouchMove}
             onTouchEnd={handleTouchEnd}

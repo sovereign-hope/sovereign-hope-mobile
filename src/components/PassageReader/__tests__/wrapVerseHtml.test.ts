@@ -216,6 +216,28 @@ describe("wrapVerseHtml", () => {
       expect(result).toContain("stir up the mighty men.");
     });
 
+    it("groups poetry lines with different suffixes but same verse into one <verse-text>", () => {
+      // ESV poetry lines for the same verse can have different indent/appearance
+      // suffixes (e.g. _01-1 vs _02-1). These should still be grouped together
+      // since the verse portion (first 9 chars) is the same.
+      const html =
+        '<p class="block-indent"><span class="begin-line-group"></span>\n' +
+        '<span id="p19002005_01-1" class="line"><b class="verse-num inline" id="v19002005-1">5\u00A0</b>\u00A0\u00A0He who sits in the heavens laughs;</span><br />' +
+        '<span id="p19002005_02-1" class="indent line">\u00A0\u00A0\u00A0\u00A0the Lord holds them in derision.</span><br />' +
+        '<span class="end-line-group"></span></p>';
+
+      const result = wrapVerseHtml(html);
+
+      // Both lines belong to verse 5 → one <verse-text> wrapper
+      // Uses the first line's ID as the wrapper ID
+      expect(result).toContain('<verse-text id="p19002005_01-1">');
+      const verseTextCount = (result.match(/<verse-text /g) ?? []).length;
+      expect(verseTextCount).toBe(1);
+
+      // Both lines should be inside the wrapper
+      expect(result).toMatch(/laughs;.*derision\./s);
+    });
+
     it("handles mixed prose and poetry", () => {
       const prose =
         '<p id="p01001001_01-1" class="virtual">' +
