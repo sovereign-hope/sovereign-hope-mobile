@@ -38,15 +38,14 @@ export const PassageToolbar: React.FunctionComponent<PassageToolbarProps> = ({
 }) => {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
-  const themedStyles = useMemo(
-    () =>
-      styles({
-        theme,
-        bottomInset:
-          Platform.OS === "android" ? 0 : insets.bottom + bottomOffset,
-      }),
-    [theme, insets.bottom, bottomOffset]
+  const bottomInset =
+    Platform.OS === "android" ? 0 : insets.bottom + bottomOffset;
+
+  const stableStyles = useMemo(
+    () => styles.stable({ bottomInset }),
+    [bottomInset]
   );
+  const themedStyles = useMemo(() => styles.themed({ theme }), [theme]);
 
   const translateY = useRef(new Animated.Value(0)).current;
 
@@ -74,7 +73,7 @@ export const PassageToolbar: React.FunctionComponent<PassageToolbarProps> = ({
   return (
     <Animated.View
       style={[
-        themedStyles.container,
+        stableStyles.container,
         !useGlassLayer && themedStyles.containerSolid,
         shouldUseBlur && themedStyles.containerBlurFallback,
         { transform: [{ translateY }] },
@@ -83,7 +82,7 @@ export const PassageToolbar: React.FunctionComponent<PassageToolbarProps> = ({
     >
       {shouldUseLiquidGlass && (
         <GlassView
-          style={themedStyles.glassBackground}
+          style={stableStyles.glassBackground}
           glassEffectStyle="regular"
           colorScheme="auto"
           isInteractive={false}
@@ -93,7 +92,7 @@ export const PassageToolbar: React.FunctionComponent<PassageToolbarProps> = ({
       {shouldUseBlur && (
         <>
           <BlurView
-            style={themedStyles.blurBackground}
+            style={stableStyles.blurBackground}
             tint={theme.dark ? "dark" : "light"}
             intensity={80}
             pointerEvents="none"
@@ -101,7 +100,7 @@ export const PassageToolbar: React.FunctionComponent<PassageToolbarProps> = ({
           <View style={themedStyles.blurOverlay} pointerEvents="none" />
         </>
       )}
-      <View style={themedStyles.row}>
+      <View style={stableStyles.row}>
         {actions.map((action) => (
           <Pressable
             key={action.key}

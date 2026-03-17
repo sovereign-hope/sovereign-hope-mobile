@@ -514,8 +514,14 @@ const BibleStack = (): React.JSX.Element => {
   );
   const actionColor = getActionColor(uiPreferences.isEinkMode, colorScheme);
 
+  // Key the navigator on colorScheme so the native screen container is
+  // fully torn down and recreated on theme change. expo-glass-effect's
+  // UIVisualEffectView loses its backdrop compositing when the native
+  // screen container's appearance changes, and only a full re-insertion
+  // into the view hierarchy recovers it.
   return (
     <Stack.Navigator
+      key={colorScheme}
       screenOptions={{
         headerTintColor: actionColor,
         headerShadowVisible: false,
