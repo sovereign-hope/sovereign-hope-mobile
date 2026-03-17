@@ -97,6 +97,7 @@ import {
   selectPrayerAssignmentDate,
 } from "src/redux/memberSlice";
 import { MemberAvatar } from "src/components";
+import type { MemberAvatarHandle } from "src/components";
 import thumbnail from "../../../assets/podcast-icon.png";
 import icon from "../../../assets/icon.png";
 import { FeedItem } from "react-native-rss-parser";
@@ -145,6 +146,36 @@ const playEpisode = async (episode: FeedItem) => {
 };
 
 type Props = NativeStackScreenProps<RootStackParamList, "This Week">;
+
+const PrayerAssignmentRow = ({
+  member,
+  themedStyles,
+}: {
+  member: { uid: string; displayName: string; photoURL: string | null };
+  themedStyles: ReturnType<typeof import("./TodayScreen.styles").styles>;
+}) => {
+  const avatarRef = React.useRef<MemberAvatarHandle>(null);
+  return (
+    <Pressable
+      key={member.uid}
+      style={themedStyles.prayerAssignmentRow}
+      onPress={() => avatarRef.current?.showPhoto()}
+      accessibilityRole="button"
+      accessibilityLabel={`View photo of ${member.displayName}`}
+      accessibilityHint="Opens an enlarged view of the member's photo"
+    >
+      <MemberAvatar
+        ref={avatarRef}
+        size={44}
+        photoURL={member.photoURL}
+        displayName={member.displayName}
+      />
+      <Text style={themedStyles.prayerAssignmentName}>
+        {member.displayName}
+      </Text>
+    </Pressable>
+  );
+};
 
 export const TodayScreen: React.FunctionComponent<Props> = ({
   navigation,
@@ -843,16 +874,11 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
             ) : undefined}
             <View style={themedStyles.prayerAssignmentList}>
               {prayerAssignment.members.map((member) => (
-                <View key={member.uid} style={themedStyles.prayerAssignmentRow}>
-                  <MemberAvatar
-                    size={44}
-                    photoURL={member.photoURL}
-                    displayName={member.displayName}
-                  />
-                  <Text style={themedStyles.prayerAssignmentName}>
-                    {member.displayName}
-                  </Text>
-                </View>
+                <PrayerAssignmentRow
+                  key={member.uid}
+                  member={member}
+                  themedStyles={themedStyles}
+                />
               ))}
             </View>
           </>
@@ -863,6 +889,64 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
 
   const renderResourcesCard = (tabletStyle?: object) => (
     <>
+      {isMember && (
+        <Pressable
+          onPress={() => void Linking.openURL("https://mealtrain.com/sohope")}
+          accessibilityRole="button"
+          style={({ pressed }) => [
+            themedStyles.contentCard,
+            tabletStyle,
+            getPressFeedbackStyle(pressed, uiPreferences.isEinkMode),
+          ]}
+        >
+          <View
+            style={{
+              width: 50,
+              height: 50,
+              borderRadius: 10,
+              backgroundColor: theme.dark ? "#2A2A2A" : "#FFF0E6",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Ionicons
+              name="restaurant-outline"
+              size={24}
+              color={
+                uiPreferences.isEinkMode ? theme.colors.primary : "#FF8C42"
+              }
+            />
+          </View>
+          <View
+            style={{
+              ...themedStyles.contentCardColumn,
+              marginLeft: spacing.medium,
+            }}
+          >
+            <Text style={[themedStyles.contentCardHeader, { marginBottom: 0 }]}>
+              Meal Train
+            </Text>
+            <Text
+              style={{
+                fontSize: 11,
+                color: theme.dark ? "#666666" : "#AAAAAA",
+                marginBottom: spacing.medium,
+              }}
+            >
+              Members only
+            </Text>
+            <Text style={themedStyles.text}>
+              Sign up to provide meals for church members in need.
+            </Text>
+          </View>
+          <Ionicons
+            name="chevron-forward"
+            size={24}
+            color={theme.colors.border}
+            style={themedStyles.disclosureIcon}
+          />
+        </Pressable>
+      )}
       {podcastEpisode && (
         <Pressable
           onPress={() => void playEpisode(podcastEpisode)}

@@ -19,6 +19,7 @@ import {
 import { useNavigation, useTheme } from "@react-navigation/native";
 import { useAppDispatch, useAppSelector } from "src/hooks/store";
 import { AlphabetSidebar, MemberAvatar } from "src/components";
+import type { MemberAvatarHandle } from "src/components";
 import { selectIsMember } from "src/redux/authSlice";
 import {
   fetchMemberDirectory,
@@ -37,6 +38,38 @@ type DirectoryItem =
       isLast: boolean;
       key: string;
     };
+
+const DirectoryMemberRow = ({
+  member,
+  isLast,
+  themedStyles,
+}: {
+  member: MemberProfile;
+  isLast: boolean;
+  themedStyles: ReturnType<typeof styles>;
+}) => {
+  const avatarRef = useRef<MemberAvatarHandle>(null);
+  return (
+    <>
+      <Pressable
+        style={themedStyles.row}
+        onPress={() => avatarRef.current?.showPhoto()}
+        accessibilityRole="button"
+        accessibilityLabel={`View photo of ${member.displayName}`}
+        accessibilityHint="Opens an enlarged view of the member's photo"
+      >
+        <MemberAvatar
+          ref={avatarRef}
+          size={44}
+          photoURL={member.photoURL}
+          displayName={member.displayName}
+        />
+        <Text style={themedStyles.rowName}>{member.displayName}</Text>
+      </Pressable>
+      {isLast ? undefined : <View style={themedStyles.rowDivider} />}
+    </>
+  );
+};
 
 export const MemberDirectoryScreen: React.FunctionComponent = () => {
   const dispatch = useAppDispatch();
@@ -146,17 +179,11 @@ export const MemberDirectoryScreen: React.FunctionComponent = () => {
       }
 
       return (
-        <>
-          <View style={themedStyles.row} accessible accessibilityRole="text">
-            <MemberAvatar
-              size={44}
-              photoURL={item.member.photoURL}
-              displayName={item.member.displayName}
-            />
-            <Text style={themedStyles.rowName}>{item.member.displayName}</Text>
-          </View>
-          {item.isLast ? undefined : <View style={themedStyles.rowDivider} />}
-        </>
+        <DirectoryMemberRow
+          member={item.member}
+          isLast={item.isLast}
+          themedStyles={themedStyles}
+        />
       );
     },
     [themedStyles]

@@ -1,5 +1,11 @@
 /* eslint-disable unicorn/no-null */
-import React, { useCallback, useMemo, useState } from "react";
+import React, {
+  forwardRef,
+  useCallback,
+  useImperativeHandle,
+  useMemo,
+  useState,
+} from "react";
 import { Modal, Pressable, Text, View } from "react-native";
 import { Image } from "expo-image";
 import { useTheme } from "@react-navigation/native";
@@ -9,6 +15,11 @@ type Props = {
   photoURL: string | null;
   displayName: string;
   size: number;
+};
+
+export type MemberAvatarHandle = {
+  /** Open the enlarged photo modal (no-op when the member has no photo). */
+  showPhoto: () => void;
 };
 
 const ENLARGED_SIZE = 240;
@@ -22,11 +33,10 @@ const getDisplayInitial = (displayName: string): string => {
   return trimmedName[0].toUpperCase();
 };
 
-export const MemberAvatar: React.FunctionComponent<Props> = ({
-  photoURL,
-  displayName,
-  size,
-}: Props) => {
+const MemberAvatarInner: React.ForwardRefRenderFunction<
+  MemberAvatarHandle,
+  Props
+> = ({ photoURL, displayName, size }, ref) => {
   const theme = useTheme();
   const themedStyles = useMemo(() => styles({ theme, size }), [theme, size]);
   const themedModalStyles = useMemo(
@@ -47,6 +57,8 @@ export const MemberAvatar: React.FunctionComponent<Props> = ({
   const handleDismiss = useCallback(() => {
     setIsModalVisible(false);
   }, []);
+
+  useImperativeHandle(ref, () => ({ showPhoto: handlePress }), [handlePress]);
 
   if (!hasPhoto) {
     return (
@@ -108,5 +120,7 @@ export const MemberAvatar: React.FunctionComponent<Props> = ({
     </>
   );
 };
+
+export const MemberAvatar = forwardRef(MemberAvatarInner);
 
 /* eslint-enable unicorn/no-null */

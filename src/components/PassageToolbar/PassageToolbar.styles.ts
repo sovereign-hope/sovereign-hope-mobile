@@ -2,30 +2,23 @@ import { Platform, StyleSheet, ViewStyle, TextStyle } from "react-native";
 import { Theme } from "@react-navigation/native";
 import { spacing, radius } from "src/style/layout";
 
-type Props = {
-  theme: Theme;
-  bottomInset: number;
-};
+const PILL_RADIUS = 24;
+const cornerRadius = Platform.OS === "ios" ? PILL_RADIUS : radius.large;
 
-interface Style {
+// ── Theme-independent styles ─────────────────────────────────────
+// These must remain referentially stable across theme changes so
+// the Animated.View's native layer is never torn down — which would
+// destroy the GlassView's UIVisualEffectView compositing.
+
+interface StableStyle {
   container: ViewStyle;
-  containerSolid: ViewStyle;
-  containerBlurFallback: ViewStyle;
   glassBackground: ViewStyle;
   blurBackground: ViewStyle;
-  blurOverlay: ViewStyle;
   row: ViewStyle;
-  button: ViewStyle;
-  buttonPressed: ViewStyle;
-  label: TextStyle;
 }
 
-const PILL_RADIUS = 24;
-
-export const styles = ({ theme, bottomInset }: Props): Style => {
-  const cornerRadius = Platform.OS === "ios" ? PILL_RADIUS : radius.large;
-
-  return StyleSheet.create({
+const stableStyles = ({ bottomInset }: { bottomInset: number }): StableStyle =>
+  StyleSheet.create({
     container: {
       position: "absolute",
       bottom: bottomInset + spacing.medium,
@@ -33,14 +26,6 @@ export const styles = ({ theme, bottomInset }: Props): Style => {
       right: spacing.medium,
       borderRadius: cornerRadius,
       overflow: "hidden",
-    },
-    containerSolid: {
-      backgroundColor: theme.colors.card,
-      borderWidth: StyleSheet.hairlineWidth,
-      borderColor: theme.colors.border,
-    },
-    containerBlurFallback: {
-      backgroundColor: theme.colors.card,
     },
     glassBackground: {
       ...StyleSheet.absoluteFillObject,
@@ -50,18 +35,41 @@ export const styles = ({ theme, bottomInset }: Props): Style => {
       ...StyleSheet.absoluteFillObject,
       borderRadius: cornerRadius,
     },
+    row: {
+      flexDirection: "row",
+      alignItems: "center",
+      paddingVertical: spacing.medium,
+      paddingHorizontal: spacing.medium,
+    },
+  });
+
+// ── Theme-dependent styles ───────────────────────────────────────
+
+interface ThemedStyle {
+  containerSolid: ViewStyle;
+  containerBlurFallback: ViewStyle;
+  blurOverlay: ViewStyle;
+  button: ViewStyle;
+  buttonPressed: ViewStyle;
+  label: TextStyle;
+}
+
+const themedStyles = ({ theme }: { theme: Theme }): ThemedStyle =>
+  StyleSheet.create({
+    containerSolid: {
+      backgroundColor: theme.colors.card,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: theme.colors.border,
+    },
+    containerBlurFallback: {
+      backgroundColor: theme.colors.card,
+    },
     blurOverlay: {
       ...StyleSheet.absoluteFillObject,
       backgroundColor: theme.dark
         ? "rgba(0,0,0,0.15)"
         : "rgba(255,255,255,0.15)",
       borderRadius: cornerRadius,
-    },
-    row: {
-      flexDirection: "row",
-      alignItems: "center",
-      paddingVertical: spacing.medium,
-      paddingHorizontal: spacing.medium,
     },
     button: {
       flex: 1,
@@ -78,4 +86,8 @@ export const styles = ({ theme, bottomInset }: Props): Style => {
       color: theme.colors.text,
     },
   });
+
+export const styles = {
+  stable: stableStyles,
+  themed: themedStyles,
 };

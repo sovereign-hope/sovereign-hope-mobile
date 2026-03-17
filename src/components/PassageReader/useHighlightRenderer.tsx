@@ -53,6 +53,8 @@ export type HighlightRendererResult = {
   highlightKey: string;
   /** Open the color picker for a highlighted verse */
   colorPickerTarget: Highlight | undefined;
+  /** Find the highlight covering a given verse number, if any */
+  findHighlightForVerse: (verse: number) => Highlight | undefined;
   /** Dismiss the color picker */
   dismissColorPicker: () => void;
   /** Change color of the picker target */
@@ -387,6 +389,7 @@ export const useHighlightRenderer = (
     highlightLookup: actions.highlightLookup,
     highlightKey: actions.highlightKey,
     colorPickerTarget: actions.colorPickerTarget,
+    findHighlightForVerse: actions.findHighlightForVerse,
     dismissColorPicker: actions.dismissColorPicker,
     changeColor: actions.changeColor,
     deleteHighlight: actions.deleteHighlight,

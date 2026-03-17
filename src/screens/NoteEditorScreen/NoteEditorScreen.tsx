@@ -1,14 +1,20 @@
-import React, { useCallback, useMemo, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   Alert,
-  KeyboardAvoidingView,
+  Animated,
+  Keyboard,
   Platform,
   Pressable,
   Text,
   TextInput,
   View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "@react-navigation/native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { RootStackParamList } from "src/navigation/RootNavigator";
@@ -35,6 +41,34 @@ export const NoteEditorScreen: React.FunctionComponent<Props> = ({
   const [text, setText] = useState(initialText ?? "");
   const inputRef = useRef<TextInput>(null);
   const isEditing = !!noteId;
+  const keyboardPadding = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    const showEvent =
+      Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
+    const hideEvent =
+      Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide";
+
+    const showSub = Keyboard.addListener(showEvent, (e) => {
+      Animated.timing(keyboardPadding, {
+        toValue: e.endCoordinates.height,
+        duration: e.duration ?? 250,
+        useNativeDriver: false,
+      }).start();
+    });
+    const hideSub = Keyboard.addListener(hideEvent, (e) => {
+      Animated.timing(keyboardPadding, {
+        toValue: 0,
+        duration: e.duration ?? 250,
+        useNativeDriver: false,
+      }).start();
+    });
+
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, [keyboardPadding]);
 
   const accentColor = uiPreferences.isEinkMode
     ? theme.dark
@@ -137,78 +171,75 @@ export const NoteEditorScreen: React.FunctionComponent<Props> = ({
   const canSave = text.trim().length > 0;
 
   return (
-    <SafeAreaView edges={["bottom"]} style={themedStyles.container}>
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-      >
-        <View style={themedStyles.header}>
+    <Animated.View
+      style={[themedStyles.container, { paddingBottom: keyboardPadding }]}
+    >
+      <View style={themedStyles.header}>
+        <Pressable
+          onPress={handleCancel}
+          style={themedStyles.headerButton}
+          accessibilityRole="button"
+          accessibilityLabel="Cancel"
+          accessibilityHint="Discard changes and go back"
+        >
+          <Text style={themedStyles.headerButtonText}>Cancel</Text>
+        </Pressable>
+
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+          {isEditing && (
+            <Pressable
+              onPress={handleDelete}
+              style={({ pressed }) => [
+                themedStyles.headerDeleteButton,
+                pressed && { opacity: 0.6 },
+              ]}
+              accessibilityRole="button"
+              accessibilityLabel="Delete note"
+              accessibilityHint="Permanently delete this note"
+            >
+              <Text style={{ fontSize: 17, color: "#FF3B30" }}>Delete</Text>
+            </Pressable>
+          )}
           <Pressable
-            onPress={handleCancel}
+            onPress={handleSave}
+            disabled={!canSave}
             style={themedStyles.headerButton}
             accessibilityRole="button"
-            accessibilityLabel="Cancel"
-            accessibilityHint="Discard changes and go back"
+            accessibilityLabel="Save note"
+            accessibilityHint="Save your note for this passage"
+            accessibilityState={{ disabled: !canSave }}
           >
-            <Text style={themedStyles.headerButtonText}>Cancel</Text>
-          </Pressable>
-
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-            {isEditing && (
-              <Pressable
-                onPress={handleDelete}
-                style={({ pressed }) => [
-                  themedStyles.headerDeleteButton,
-                  pressed && { opacity: 0.6 },
-                ]}
-                accessibilityRole="button"
-                accessibilityLabel="Delete note"
-                accessibilityHint="Permanently delete this note"
-              >
-                <Text style={{ fontSize: 17, color: "#FF3B30" }}>Delete</Text>
-              </Pressable>
-            )}
-            <Pressable
-              onPress={handleSave}
-              disabled={!canSave}
-              style={themedStyles.headerButton}
-              accessibilityRole="button"
-              accessibilityLabel="Save note"
-              accessibilityHint="Save your note for this passage"
-              accessibilityState={{ disabled: !canSave }}
+            <Text
+              style={[
+                themedStyles.headerButtonText,
+                { fontWeight: "600" },
+                !canSave && themedStyles.headerButtonTextDisabled,
+              ]}
             >
-              <Text
-                style={[
-                  themedStyles.headerButtonText,
-                  { fontWeight: "600" },
-                  !canSave && themedStyles.headerButtonTextDisabled,
-                ]}
-              >
-                Save
-              </Text>
-            </Pressable>
-          </View>
+              Save
+            </Text>
+          </Pressable>
         </View>
+      </View>
 
-        <Text style={themedStyles.reference}>
-          {formatVerseReference(bookId, chapter, startVerse, endVerse)}
-        </Text>
+      <Text style={themedStyles.reference}>
+        {formatVerseReference(bookId, chapter, startVerse, endVerse)}
+      </Text>
 
-        <TextInput
-          ref={inputRef}
-          style={themedStyles.input}
-          value={text}
-          onChangeText={setText}
-          placeholder="Write your note..."
-          placeholderTextColor={theme.dark ? "#666666" : "#AAAAAA"}
-          multiline
-          maxLength={5000}
-          autoFocus
-          textAlignVertical="top"
-          accessibilityLabel="Note text"
-          accessibilityHint="Enter your note for this passage"
-        />
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+      <TextInput
+        ref={inputRef}
+        style={themedStyles.input}
+        value={text}
+        onChangeText={setText}
+        placeholder="Write your note..."
+        placeholderTextColor={theme.dark ? "#666666" : "#AAAAAA"}
+        multiline
+        maxLength={5000}
+        autoFocus
+        textAlignVertical="top"
+        accessibilityLabel="Note text"
+        accessibilityHint="Enter your note for this passage"
+      />
+    </Animated.View>
   );
 };

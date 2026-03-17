@@ -17,6 +17,7 @@ import {
 } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useAppSelector, useAppDispatch } from "src/hooks/store";
+import { selectIsMember } from "src/redux/authSlice";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { RootStackParamList } from "src/navigation/RootNavigator";
 import { useTheme } from "@react-navigation/native";
@@ -128,6 +129,7 @@ export const PodcastScreen: React.FunctionComponent<Props> = ({
   const theme = useTheme();
   const episodes = useAppSelector(selectEpisodes);
   const isLoading = useAppSelector(selectIsLoading);
+  const isMember = useAppSelector(selectIsMember);
   const miniPlayerHeight = useMiniPlayerHeight();
   const insets = useSafeAreaInsets();
   const uiPreferences = useUiPreferences();
@@ -310,7 +312,30 @@ export const PodcastScreen: React.FunctionComponent<Props> = ({
                 getPressFeedbackStyle(pressed, uiPreferences.isEinkMode),
               ]}
             >
-              <View style={themedStyles.contentCardColumn}>
+              <View
+                style={{
+                  width: 50,
+                  height: 50,
+                  borderRadius: 10,
+                  backgroundColor: theme.dark ? "#2A2A2A" : "#EEF0FF",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <Ionicons
+                  name="sunny-outline"
+                  size={24}
+                  color={
+                    uiPreferences.isEinkMode ? theme.colors.primary : "#5B6ABF"
+                  }
+                />
+              </View>
+              <View
+                style={{
+                  ...themedStyles.contentCardColumn,
+                  marginLeft: spacing.medium,
+                }}
+              >
                 <Text style={themedStyles.contentCardHeader}>
                   Sunday Mornings
                 </Text>
@@ -361,7 +386,30 @@ export const PodcastScreen: React.FunctionComponent<Props> = ({
                 getPressFeedbackStyle(pressed, uiPreferences.isEinkMode),
               ]}
             >
-              <View style={themedStyles.contentCardColumn}>
+              <View
+                style={{
+                  width: 50,
+                  height: 50,
+                  borderRadius: 10,
+                  backgroundColor: theme.dark ? "#2A2A2A" : "#E8F5E9",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <Ionicons
+                  name="calendar-outline"
+                  size={24}
+                  color={
+                    uiPreferences.isEinkMode ? theme.colors.primary : "#4CAF50"
+                  }
+                />
+              </View>
+              <View
+                style={{
+                  ...themedStyles.contentCardColumn,
+                  marginLeft: spacing.medium,
+                }}
+              >
                 <Text style={themedStyles.contentCardHeader}>
                   Church Schedule
                 </Text>
@@ -376,6 +424,72 @@ export const PodcastScreen: React.FunctionComponent<Props> = ({
                 style={themedStyles.disclosureIcon}
               />
             </Pressable>
+            {isMember && (
+              <Pressable
+                onPress={() =>
+                  void Linking.openURL("https://mealtrain.com/sohope")
+                }
+                accessibilityRole="button"
+                style={({ pressed }) => [
+                  themedStyles.contentCard,
+                  getPressFeedbackStyle(pressed, uiPreferences.isEinkMode),
+                ]}
+              >
+                <View
+                  style={{
+                    width: 50,
+                    height: 50,
+                    borderRadius: 10,
+                    backgroundColor: theme.dark ? "#2A2A2A" : "#FFF0E6",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <Ionicons
+                    name="restaurant-outline"
+                    size={24}
+                    color={
+                      uiPreferences.isEinkMode
+                        ? theme.colors.primary
+                        : "#FF8C42"
+                    }
+                  />
+                </View>
+                <View
+                  style={{
+                    ...themedStyles.contentCardColumn,
+                    marginLeft: spacing.medium,
+                  }}
+                >
+                  <Text
+                    style={[
+                      themedStyles.contentCardHeader,
+                      { marginBottom: 0 },
+                    ]}
+                  >
+                    Meal Train
+                  </Text>
+                  <Text
+                    style={{
+                      fontSize: 11,
+                      color: theme.dark ? "#666666" : "#AAAAAA",
+                      marginBottom: spacing.medium,
+                    }}
+                  >
+                    Members only
+                  </Text>
+                  <Text style={themedStyles.text}>
+                    Sign up to provide meals for church members in need.
+                  </Text>
+                </View>
+                <Ionicons
+                  name="chevron-forward"
+                  size={24}
+                  color={theme.colors.border}
+                  style={themedStyles.disclosureIcon}
+                />
+              </Pressable>
+            )}
             <Pressable
               onPress={() => {
                 const churchCenterUrl =
@@ -390,7 +504,30 @@ export const PodcastScreen: React.FunctionComponent<Props> = ({
                 getPressFeedbackStyle(pressed, uiPreferences.isEinkMode),
               ]}
             >
-              <View style={themedStyles.contentCardColumn}>
+              <View
+                style={{
+                  width: 50,
+                  height: 50,
+                  borderRadius: 10,
+                  backgroundColor: theme.dark ? "#2A2A2A" : "#E3F2FD",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <Ionicons
+                  name="phone-portrait-outline"
+                  size={24}
+                  color={
+                    uiPreferences.isEinkMode ? theme.colors.primary : "#2196F3"
+                  }
+                />
+              </View>
+              <View
+                style={{
+                  ...themedStyles.contentCardColumn,
+                  marginLeft: spacing.medium,
+                }}
+              >
                 <Text style={themedStyles.contentCardHeader}>
                   Church Center App
                 </Text>

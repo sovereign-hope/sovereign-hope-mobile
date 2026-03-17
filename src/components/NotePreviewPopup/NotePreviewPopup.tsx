@@ -103,18 +103,24 @@ export const NotePreviewPopup: React.FunctionComponent<NotePreviewPopupProps> =
         onRequestClose={onDismiss}
         statusBarTranslucent
       >
-        <Pressable
-          style={themedStyles.overlay}
-          onPress={onDismiss}
-          accessibilityRole="button"
-          accessibilityLabel="Dismiss note preview"
-          accessibilityHint="Closes the note preview popup"
-        >
+        <View style={themedStyles.overlay} pointerEvents="box-none">
           <Pressable
-            style={themedStyles.card}
-            onPress={() => {}}
-            accessibilityRole="none"
-          >
+            style={{
+              ...themedStyles.overlay,
+              position: "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              paddingHorizontal: 0,
+              paddingVertical: 0,
+            }}
+            onPress={onDismiss}
+            accessibilityRole="button"
+            accessibilityLabel="Dismiss note preview"
+            accessibilityHint="Closes the note preview popup"
+          />
+          <View style={themedStyles.card}>
             <View style={themedStyles.header}>
               <Text style={themedStyles.reference} numberOfLines={1}>
                 {reference}
@@ -154,8 +160,8 @@ export const NotePreviewPopup: React.FunctionComponent<NotePreviewPopupProps> =
                 <Text style={themedStyles.footerButtonText}>Close</Text>
               </Pressable>
             </View>
-          </Pressable>
-        </Pressable>
+          </View>
+        </View>
       </Modal>
     );
   };

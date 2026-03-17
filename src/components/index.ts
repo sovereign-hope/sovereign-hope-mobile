@@ -4,6 +4,7 @@ export { SecureInput } from "./SecureInput/SecureInput";
 export { NoNetworkComponent } from "./NoNetworkComponent/NoNetworkComponent";
 export { MediaPlayer } from "./MediaPlayer/MediaPlayer";
 export { MemberAvatar } from "./MemberAvatar/MemberAvatar";
+export type { MemberAvatarHandle } from "./MemberAvatar/MemberAvatar";
 export { MemoryAudioCard } from "./MemoryAudioCard/MemoryAudioCard";
 export { PassageReader } from "./PassageReader/PassageReader";
 export { PassageToolbar } from "./PassageToolbar/PassageToolbar";
