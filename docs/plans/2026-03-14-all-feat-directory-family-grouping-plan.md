@@ -200,7 +200,7 @@ Single React Native codebase — one implementation serves both iOS and Android.
 
 ## Sources & References
 
-- **Origin brainstorm:** [docs/brainstorms/2026-03-13-directory-family-grouping-brainstorm.md](docs/brainstorms/2026-03-13-directory-family-grouping-brainstorm.md) — Key decisions: enrich at sync time (not separate collection), use PC households, head of household first, PC household name for headers.
+- **Origin brainstorm:** [docs/brainstorms/2026-03-13-directory-family-grouping-brainstorm.md](../brainstorms/2026-03-13-directory-family-grouping-brainstorm.md) — Key decisions: enrich at sync time (not separate collection), use PC households, head of household first, PC household name for headers.
 - Existing SectionList pattern: `src/screens/ReadingPlanScreen/ReadingPlanScreen.tsx`
 - Current directory: `src/screens/MemberDirectoryScreen/MemberDirectoryScreen.tsx`
 - Sync script: `functions/scripts/bulk-sync-members-from-planning-center.cjs`
