@@ -863,6 +863,64 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
 
   const renderResourcesCard = (tabletStyle?: object) => (
     <>
+      {isMember && (
+        <Pressable
+          onPress={() => void Linking.openURL("https://mealtrain.com/sohope")}
+          accessibilityRole="button"
+          style={({ pressed }) => [
+            themedStyles.contentCard,
+            tabletStyle,
+            getPressFeedbackStyle(pressed, uiPreferences.isEinkMode),
+          ]}
+        >
+          <View
+            style={{
+              width: 50,
+              height: 50,
+              borderRadius: 10,
+              backgroundColor: theme.dark ? "#2A2A2A" : "#FFF0E6",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Ionicons
+              name="restaurant-outline"
+              size={24}
+              color={
+                uiPreferences.isEinkMode ? theme.colors.primary : "#FF8C42"
+              }
+            />
+          </View>
+          <View
+            style={{
+              ...themedStyles.contentCardColumn,
+              marginLeft: spacing.medium,
+            }}
+          >
+            <Text style={[themedStyles.contentCardHeader, { marginBottom: 0 }]}>
+              Meal Train
+            </Text>
+            <Text
+              style={{
+                fontSize: 11,
+                color: theme.dark ? "#666666" : "#AAAAAA",
+                marginBottom: spacing.medium,
+              }}
+            >
+              Members only
+            </Text>
+            <Text style={themedStyles.text}>
+              Sign up to provide meals for church members in need.
+            </Text>
+          </View>
+          <Ionicons
+            name="chevron-forward"
+            size={24}
+            color={theme.colors.border}
+            style={themedStyles.disclosureIcon}
+          />
+        </Pressable>
+      )}
       {podcastEpisode && (
         <Pressable
           onPress={() => void playEpisode(podcastEpisode)}
