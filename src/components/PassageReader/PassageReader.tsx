@@ -486,6 +486,12 @@ export const PassageReader: React.FunctionComponent<PassageReaderProps> = ({
   // ---------- Long-press + drag via raw touch events ----------
   // Raw onTouchStart/Move/End fire before the responder system,
   // so they coexist with ScrollView without conflict.
+  const findHighlightForVerseRef = useRef(
+    highlightRenderer.findHighlightForVerse
+  );
+  findHighlightForVerseRef.current = highlightRenderer.findHighlightForVerse;
+  const onNoteRef = useRef(onNote);
+  onNoteRef.current = onNote;
   const onDragStartRef = useRef(highlightRenderer.onDragStart);
   onDragStartRef.current = highlightRenderer.onDragStart;
   const onDragUpdateRef = useRef(highlightRenderer.onDragUpdate);
@@ -519,6 +525,18 @@ export const PassageReader: React.FunctionComponent<PassageReaderProps> = ({
       longPressTimerRef.current = setTimeout(() => {
         // eslint-disable-next-line unicorn/no-null
         longPressTimerRef.current = null;
+
+        // If the long-pressed verse is already highlighted, open notes
+        // instead of starting a drag selection.
+        const pressedVerse = highlightRenderer.lastPressInVerseRef.current;
+        if (pressedVerse !== undefined && onNoteRef.current) {
+          const existing = findHighlightForVerseRef.current(pressedVerse);
+          if (existing) {
+            onNoteRef.current(existing.startVerse, existing.endVerse);
+            return;
+          }
+        }
+
         isDragActiveRef.current = true;
         setIsDragActive(true);
         // Use the verse from onPressIn (fires on inline Text in Fabric)

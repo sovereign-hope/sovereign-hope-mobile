@@ -5,6 +5,7 @@ import { useTheme } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 import { Swipeable, TouchableOpacity } from "react-native-gesture-handler";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
+import { CommonActions } from "@react-navigation/native";
 import type { RootStackParamList } from "src/navigation/RootNavigator";
 import { useAppDispatch, useAppSelector } from "src/hooks/store";
 import { selectAllNotes } from "src/redux/notesSlice";
@@ -282,10 +283,18 @@ export const NotesScreen: React.FunctionComponent<Props> = ({ navigation }) => {
                 style={themedStyles.row}
                 activeOpacity={0.6}
                 onPress={() => {
-                  navigation.navigate("Bible", {
-                    bookId: n.bookId,
-                    chapter: n.chapter,
-                  });
+                  navigation.dispatch(
+                    CommonActions.navigate("Home", {
+                      screen: "Bible",
+                      params: {
+                        screen: "Bible",
+                        params: {
+                          bookId: n.bookId,
+                          chapter: n.chapter,
+                        },
+                      },
+                    })
+                  );
                 }}
                 accessibilityRole="button"
                 accessibilityLabel={`${item.bookName} ${formatChapterVerse(
