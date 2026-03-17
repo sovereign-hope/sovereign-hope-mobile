@@ -530,7 +530,7 @@ export const PassageReader: React.FunctionComponent<PassageReaderProps> = ({
         );
       }, LONG_PRESS_DELAY_MS);
     },
-    [highlightEnabled]
+    [highlightEnabled, highlightRenderer.lastPressInVerseRef]
   );
 
   const handleTouchMove = useCallback((event: GestureResponderEvent) => {
