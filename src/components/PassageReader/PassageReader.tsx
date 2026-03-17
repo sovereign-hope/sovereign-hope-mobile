@@ -8,6 +8,7 @@ import React, {
 } from "react";
 import {
   ActivityIndicator,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -95,6 +96,8 @@ export interface PassageReaderProps {
   onNote?: (startVerse: number, endVerse: number) => void;
   /** Lookup map: "BOOK:chapter:verse" → true if a note covers that verse */
   noteLookup?: Record<string, boolean>;
+  /** Label shown in the sticky header when scrolled down (e.g. "Matthew 22") */
+  stickyLabel?: string;
 }
 
 export const PassageReader: React.FunctionComponent<PassageReaderProps> = ({
@@ -115,11 +118,20 @@ export const PassageReader: React.FunctionComponent<PassageReaderProps> = ({
   chapter,
   onNote,
   noteLookup,
+  stickyLabel,
 }: PassageReaderProps) => {
   // State
   const [isPressingHideButton, setIsPressingHideButton] = useState(false);
   const [commentaryHTMLTags, setCommentaryHTMLTags] = useState("");
   const [isShowingCommentary, setIsShowingCommentary] = useState(false);
+
+  // Sticky heading: appears when the user scrolls past the inline heading.
+  const stickyHeading = stickyLabel ?? (heading.length > 0 ? heading : "");
+  const stickyHeadingRef = useRef(stickyHeading);
+  stickyHeadingRef.current = stickyHeading;
+  const headingBottomRef = useRef(0);
+  const stickyHeaderOpacity = useRef(new Animated.Value(0)).current;
+  const stickyHeaderVisibleRef = useRef(false);
 
   // Custom hooks
   const theme = useTheme();
@@ -306,6 +318,9 @@ export const PassageReader: React.FunctionComponent<PassageReaderProps> = ({
     if (prevContentKeyRef.current !== contentKey) {
       prevContentKeyRef.current = contentKey;
       pendingRevealRef.current = true;
+      // Hide sticky header immediately on content change
+      stickyHeaderOpacity.setValue(0);
+      stickyHeaderVisibleRef.current = false;
       scrollViewRef.current?.scrollTo({
         y: 0,
         animated: !uiPreferences.disableAnimations,
@@ -358,6 +373,23 @@ export const PassageReader: React.FunctionComponent<PassageReaderProps> = ({
       // (must be after direction-change delta check above)
       lastScrollOffsetRef.current = offsetY;
 
+      // Show/hide sticky heading when scrolling past the inline heading
+      // (or past a fixed threshold when there's no inline heading).
+      // Read from ref so the callback doesn't need to depend on stickyHeading.
+      if (stickyHeadingRef.current.length > 0) {
+        const threshold =
+          headingBottomRef.current > 0 ? headingBottomRef.current : 60;
+        const shouldShow = offsetY > threshold;
+        if (shouldShow !== stickyHeaderVisibleRef.current) {
+          stickyHeaderVisibleRef.current = shouldShow;
+          Animated.timing(stickyHeaderOpacity, {
+            toValue: shouldShow ? 1 : 0,
+            duration: uiPreferences.disableAnimations ? 0 : 150,
+            useNativeDriver: true,
+          }).start();
+        }
+      }
+
       if (isTransitioning || !pendingRevealRef.current) {
         return;
       }
@@ -366,7 +398,13 @@ export const PassageReader: React.FunctionComponent<PassageReaderProps> = ({
         revealPassageAfterScrollReset();
       }
     },
-    [isTransitioning, onScrollDirectionChange, revealPassageAfterScrollReset]
+    [
+      isTransitioning,
+      onScrollDirectionChange,
+      revealPassageAfterScrollReset,
+      stickyHeaderOpacity,
+      uiPreferences.disableAnimations,
+    ]
   );
 
   useEffect(() => {
@@ -665,7 +703,15 @@ export const PassageReader: React.FunctionComponent<PassageReaderProps> = ({
           onLayout={handlePassageWrapperLayout}
         >
           {heading.length > 0 && (
-            <Text style={themedStyles.title}>{heading}</Text>
+            <Text
+              style={themedStyles.title}
+              onLayout={(e) => {
+                const { y, height } = e.nativeEvent.layout;
+                headingBottomRef.current = y + height;
+              }}
+            >
+              {heading}
+            </Text>
           )}
           <View
             onLayout={handleContentLayout}
@@ -837,6 +883,37 @@ export const PassageReader: React.FunctionComponent<PassageReaderProps> = ({
       >
         <ActivityIndicator size="large" color={theme.colors.text} />
       </Animated.View>
+
+      {/* Sticky heading — fades in when the inline heading scrolls out of view */}
+      {stickyHeading.length > 0 && (
+        <Animated.View
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            paddingTop: 8,
+            paddingBottom: 8,
+            paddingHorizontal: spacing.large,
+            backgroundColor: theme.colors.background,
+            borderBottomWidth: StyleSheet.hairlineWidth,
+            borderBottomColor: theme.dark ? "#333333" : "#E0E0E0",
+            opacity: stickyHeaderOpacity,
+          }}
+          pointerEvents="none"
+        >
+          <Text
+            style={{
+              fontSize: 16,
+              fontWeight: "600",
+              color: theme.colors.text,
+            }}
+            numberOfLines={1}
+          >
+            {stickyHeading}
+          </Text>
+        </Animated.View>
+      )}
 
       {/* Highlight color picker — positioned above the PassageToolbar */}
       {highlightEnabled && highlightRenderer.colorPickerTarget && (

@@ -223,6 +223,7 @@ export const ReadScreen: React.FunctionComponent<ReadScreenProps> = ({
               chapter={currentLocation?.chapter}
               onNote={currentLocation ? handleNote : undefined}
               noteLookup={noteLookup}
+              stickyLabel={audioTitle}
             />
             <PassageToolbar actions={toolbarActions} visible={toolbarVisible} />
           </>

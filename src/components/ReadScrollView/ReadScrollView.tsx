@@ -31,6 +31,8 @@ export interface ReadScrollViewProps {
   onNote?: (startVerse: number, endVerse: number) => void;
   /** Lookup map: "BOOK:chapter:verse" → true if a note covers that verse */
   noteLookup?: Record<string, boolean>;
+  /** Label shown in the sticky header when scrolled down */
+  stickyLabel?: string;
 }
 
 export const ReadScrollView: React.FunctionComponent<ReadScrollViewProps> = ({
@@ -53,6 +55,7 @@ export const ReadScrollView: React.FunctionComponent<ReadScrollViewProps> = ({
   chapter,
   onNote,
   noteLookup,
+  stickyLabel,
 }: ReadScrollViewProps) => {
   const theme = useTheme();
   const uiPreferences = useUiPreferences();
@@ -130,6 +133,7 @@ export const ReadScrollView: React.FunctionComponent<ReadScrollViewProps> = ({
       chapter={chapter}
       onNote={onNote}
       noteLookup={noteLookup}
+      stickyLabel={stickyLabel}
     />
   );
 };
