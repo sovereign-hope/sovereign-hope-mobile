@@ -1,5 +1,5 @@
 /* eslint-disable unicorn/no-null */
-import React, { useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -11,6 +11,7 @@ import {
 import { useTheme } from "@react-navigation/native";
 import { useAppDispatch, useAppSelector } from "src/hooks/store";
 import { MemberAvatar } from "src/components";
+import type { MemberAvatarHandle } from "src/components";
 import { selectIsMember } from "src/redux/authSlice";
 import {
   fetchDailyPrayerAssignment,
@@ -21,6 +22,35 @@ import {
   selectPrayerAssignmentDate,
 } from "src/redux/memberSlice";
 import { styles } from "./DailyPrayerScreen.styles";
+
+const DailyPrayerRow = ({
+  member,
+  themedStyles,
+}: {
+  member: { uid: string; displayName: string; photoURL: string | null };
+  themedStyles: ReturnType<typeof styles>;
+}) => {
+  const avatarRef = useRef<MemberAvatarHandle>(null);
+  return (
+    <Pressable
+      style={themedStyles.card}
+      onPress={() => avatarRef.current?.showPhoto()}
+      accessibilityRole="button"
+      accessibilityLabel={`View photo of ${member.displayName}`}
+      accessibilityHint="Opens an enlarged view of the member's photo"
+    >
+      <MemberAvatar
+        ref={avatarRef}
+        size={52}
+        photoURL={member.photoURL}
+        displayName={member.displayName}
+      />
+      <View style={themedStyles.cardTextContainer}>
+        <Text style={themedStyles.cardName}>{member.displayName}</Text>
+      </View>
+    </Pressable>
+  );
+};
 
 export const DailyPrayerScreen: React.FunctionComponent = () => {
   const dispatch = useAppDispatch();
@@ -142,16 +172,7 @@ export const DailyPrayerScreen: React.FunctionComponent = () => {
           />
         }
         renderItem={({ item }) => (
-          <View style={themedStyles.card}>
-            <MemberAvatar
-              size={52}
-              photoURL={item.photoURL}
-              displayName={item.displayName}
-            />
-            <View style={themedStyles.cardTextContainer}>
-              <Text style={themedStyles.cardName}>{item.displayName}</Text>
-            </View>
-          </View>
+          <DailyPrayerRow member={item} themedStyles={themedStyles} />
         )}
       />
     </View>

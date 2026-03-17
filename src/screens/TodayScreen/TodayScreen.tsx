@@ -97,6 +97,7 @@ import {
   selectPrayerAssignmentDate,
 } from "src/redux/memberSlice";
 import { MemberAvatar } from "src/components";
+import type { MemberAvatarHandle } from "src/components";
 import thumbnail from "../../../assets/podcast-icon.png";
 import icon from "../../../assets/icon.png";
 import { FeedItem } from "react-native-rss-parser";
@@ -145,6 +146,36 @@ const playEpisode = async (episode: FeedItem) => {
 };
 
 type Props = NativeStackScreenProps<RootStackParamList, "This Week">;
+
+const PrayerAssignmentRow = ({
+  member,
+  themedStyles,
+}: {
+  member: { uid: string; displayName: string; photoURL: string | null };
+  themedStyles: ReturnType<typeof import("./TodayScreen.styles").styles>;
+}) => {
+  const avatarRef = React.useRef<MemberAvatarHandle>(null);
+  return (
+    <Pressable
+      key={member.uid}
+      style={themedStyles.prayerAssignmentRow}
+      onPress={() => avatarRef.current?.showPhoto()}
+      accessibilityRole="button"
+      accessibilityLabel={`View photo of ${member.displayName}`}
+      accessibilityHint="Opens an enlarged view of the member's photo"
+    >
+      <MemberAvatar
+        ref={avatarRef}
+        size={44}
+        photoURL={member.photoURL}
+        displayName={member.displayName}
+      />
+      <Text style={themedStyles.prayerAssignmentName}>
+        {member.displayName}
+      </Text>
+    </Pressable>
+  );
+};
 
 export const TodayScreen: React.FunctionComponent<Props> = ({
   navigation,
@@ -843,16 +874,11 @@ export const TodayScreen: React.FunctionComponent<Props> = ({
             ) : undefined}
             <View style={themedStyles.prayerAssignmentList}>
               {prayerAssignment.members.map((member) => (
-                <View key={member.uid} style={themedStyles.prayerAssignmentRow}>
-                  <MemberAvatar
-                    size={44}
-                    photoURL={member.photoURL}
-                    displayName={member.displayName}
-                  />
-                  <Text style={themedStyles.prayerAssignmentName}>
-                    {member.displayName}
-                  </Text>
-                </View>
+                <PrayerAssignmentRow
+                  key={member.uid}
+                  member={member}
+                  themedStyles={themedStyles}
+                />
               ))}
             </View>
           </>
