@@ -332,9 +332,9 @@ export const PassageReader: React.FunctionComponent<PassageReaderProps> = ({
       }, PASSAGE_SCROLL_RESET_FALLBACK_MS);
     }
   }, [
-    adjustsForInsets,
     contentKey,
     revealPassageAfterScrollReset,
+    stickyHeaderOpacity,
     uiPreferences.disableAnimations,
   ]);
 
