@@ -53,7 +53,6 @@ import {
   MEMORY_AUDIO_SESSION_TRACK_ARTIST,
   MEMORY_AUDIO_SESSION_TRACK_ALBUM,
   MEMORY_AUDIO_SESSION_TRACK_ARTWORK_URI,
-  getEstimatedMemoryAudioSessionDurationSeconds,
 } from "src/services/memoryAudioConstants";
 import { canUseLiquidGlass } from "src/services/liquidGlassSupport";
 import { spacing } from "src/style/layout";
@@ -164,17 +163,9 @@ export const MediaPlayer: React.FunctionComponent<Props> = () => {
   const isMemorySessionPlaying = isMemorySessionActiveTrack
     ? !memoryAudioState.isSessionPaused
     : playbackState.state === PlayerState.Playing;
-  const memoryVerseDurationSeconds =
-    memoryAudioState.spokenDurationSeconds > 0
-      ? memoryAudioState.spokenDurationSeconds
-      : duration;
   const estimatedSessionDuration = useMemo(
-    () =>
-      getEstimatedMemoryAudioSessionDurationSeconds(
-        memoryVerseDurationSeconds,
-        memoryAudioState.recallCyclesTarget
-      ),
-    [memoryVerseDurationSeconds, memoryAudioState.recallCyclesTarget]
+    () => memoryAudioState.sessionDurationMinutes * 60,
+    [memoryAudioState.sessionDurationMinutes]
   );
   const effectiveDuration =
     isMemorySessionActiveTrack && memoryAudioState.sessionDurationSeconds > 0
@@ -221,7 +212,9 @@ export const MediaPlayer: React.FunctionComponent<Props> = () => {
           dark: "rgba(255, 255, 255, 0.86)",
         })
       : colors.white;
-  const controlIconColor = uiPreferences.isEinkMode ? colors.black : colors.white;
+  const controlIconColor = uiPreferences.isEinkMode
+    ? colors.black
+    : colors.white;
   const maximizedHeaderTopInset = useExpandedPlayerSheet
     ? spacing.medium
     : insets.top;

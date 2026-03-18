@@ -9,15 +9,18 @@ import {
   AMBIENT_VOLUME,
   ENCODING_PLAYS,
   FINAL_OUTRO_FADE_MS,
-  MAX_SESSION_DURATION_SECONDS,
   SPOKEN_PLAYBACK_VOLUME,
   getEncodingGapDuration,
-  getEstimatedMemoryAudioSessionDurationSeconds,
+  getEncodingToRecallGapDuration,
   getFinalOutroDuration,
+  getRecallCyclesForDuration,
   getRecallGapDuration,
   getSpokenMixVolume,
 } from "src/services/memoryAudioConstants";
-import type { MemoryAudioSessionPhase } from "src/services/memoryAudioConstants";
+import type {
+  MemoryAudioSessionPhase,
+  SessionDurationMinutes,
+} from "src/services/memoryAudioConstants";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -168,10 +171,22 @@ const computeTimeline = (
     cursor += verseDurationSeconds;
     encodingPlaysCompleted += 1;
 
-    // Gap after each encoding play except the last encoding play
-    // (transition from encoding to recall is immediate)
     if (i < ENCODING_PLAYS - 1) {
+      // Gap between encoding plays
       const gapMs = getEncodingGapDuration(verseDurationSeconds);
+      const gapSeconds = gapMs / 1000;
+      timeline.push({
+        startSeconds: cursor,
+        endSeconds: cursor + gapSeconds,
+        phase: "encoding_gap",
+        gapDurationMs: gapMs,
+        encodingPlaysCompleted,
+        recallCyclesCompleted,
+      });
+      cursor += gapSeconds;
+    } else {
+      // Longer gap after the final encoding play before recall begins
+      const gapMs = getEncodingToRecallGapDuration(verseDurationSeconds);
       const gapSeconds = gapMs / 1000;
       timeline.push({
         startSeconds: cursor,
@@ -211,8 +226,8 @@ const computeTimeline = (
       });
       cursor += gapSeconds;
     } else {
-      // Final outro gap after the last recall play
-      const outroDurationMs = getFinalOutroDuration(verseDurationSeconds);
+      // Final outro gap after the last recall play — quiet ambient wind-down
+      const outroDurationMs = getFinalOutroDuration();
       const outroSeconds = outroDurationMs / 1000;
       timeline.push({
         startSeconds: cursor,
@@ -227,23 +242,6 @@ const computeTimeline = (
   }
 
   return timeline;
-};
-
-const clampRecallCycles = (
-  verseDurationSeconds: number,
-  recallCyclesTarget: number
-): number => {
-  let cycles = recallCyclesTarget;
-  while (
-    cycles > 1 &&
-    getEstimatedMemoryAudioSessionDurationSeconds(
-      verseDurationSeconds,
-      cycles
-    ) > MAX_SESSION_DURATION_SECONDS
-  ) {
-    cycles -= 1;
-  }
-  return cycles;
 };
 
 // ---------------------------------------------------------------------------
@@ -266,18 +264,14 @@ const getAmbientAssetModuleId = async (
 export const renderMemoryAudioSession = async (args: {
   verseAudioUrl: string;
   ambientSoundKey: AmbientSound;
-  recallCyclesTarget: number;
+  sessionDurationMinutes: SessionDurationMinutes;
   onProgress?: RenderProgressHandler;
 }): Promise<RenderedSession> => {
-  const { verseAudioUrl, ambientSoundKey, recallCyclesTarget, onProgress } =
+  const { verseAudioUrl, ambientSoundKey, sessionDurationMinutes, onProgress } =
     args;
   const reportProgress = (progress: number, message: string): void => {
     onProgress?.(Math.max(0, Math.min(1, progress)), message);
   };
-  const clampedCycles = clampRecallCycles(
-    0, // We don't know verse duration yet; clamp again after decode
-    Math.max(6, recallCyclesTarget)
-  );
 
   // ── Determine sample rate ──────────────────────────────────────────
   reportProgress(0.08, "Getting audio ready...");
@@ -297,10 +291,10 @@ export const renderMemoryAudioSession = async (args: {
     throw new Error("Verse audio has zero duration");
   }
 
-  // Re-clamp recall cycles now that we know the verse duration
-  const finalCycles = clampRecallCycles(
+  // Compute recall cycles to fit within the target session duration
+  const finalCycles = getRecallCyclesForDuration(
     verseDurationSeconds,
-    Math.max(6, clampedCycles)
+    sessionDurationMinutes
   );
 
   // ── Build timeline ──────────────────────────────────────────────────

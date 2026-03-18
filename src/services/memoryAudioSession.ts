@@ -10,13 +10,13 @@ import {
   resumeMemoryAudioPlayback,
   seekMemoryAudioPlayback,
 } from "src/services/memoryAudioPlayer";
-import type { MemoryAudioSessionPhase } from "src/services/memoryAudioConstants";
+import type {
+  MemoryAudioSessionPhase,
+  SessionDurationMinutes,
+} from "src/services/memoryAudioConstants";
 
 // Re-export for backward compatibility
-export {
-  MEMORY_AUDIO_SESSION_TRACK_ID,
-  getEstimatedMemoryAudioSessionDurationSeconds,
-} from "src/services/memoryAudioConstants";
+export { MEMORY_AUDIO_SESSION_TRACK_ID } from "src/services/memoryAudioConstants";
 export type { MemoryAudioSessionPhase } from "src/services/memoryAudioConstants";
 
 // ---------------------------------------------------------------------------
@@ -42,7 +42,7 @@ type SessionHandlers = {
 
 type StartSessionArgs = {
   verseAudioUrl: string;
-  recallCyclesTarget: number;
+  sessionDurationMinutes: SessionDurationMinutes;
 } & SessionHandlers;
 
 // ---------------------------------------------------------------------------
@@ -97,7 +97,7 @@ export const startMemoryAudioSessionEngine = async (
     const renderedSession = await renderMemoryAudioSession({
       verseAudioUrl: args.verseAudioUrl,
       ambientSoundKey: selectedAmbient,
-      recallCyclesTarget: args.recallCyclesTarget,
+      sessionDurationMinutes: args.sessionDurationMinutes,
       onProgress: (progress, message) => {
         handlers?.onLoadingProgress(progress, message);
       },

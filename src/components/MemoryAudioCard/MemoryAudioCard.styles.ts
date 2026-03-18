@@ -27,6 +27,11 @@ interface Style {
   actionButtonLabel: TextStyle;
   secondaryButton: ViewStyle;
   secondaryButtonLabel: TextStyle;
+  segmentedRow: ViewStyle;
+  segmentButton: ViewStyle;
+  segmentButtonSelected: ViewStyle;
+  segmentButtonText: TextStyle;
+  segmentButtonTextSelected: TextStyle;
   stopButton: ViewStyle;
   modalBackdrop: ViewStyle;
   modalCard: ViewStyle;
@@ -166,6 +171,34 @@ export const styles = ({ theme, isEinkMode = false }: Props): Style =>
       ...body,
       fontWeight: "600",
       color: theme.colors.text,
+    },
+    segmentedRow: {
+      flexDirection: "row",
+      gap: spacing.small,
+      marginBottom: spacing.medium,
+    },
+    segmentButton: {
+      flex: 1,
+      paddingVertical: spacing.medium,
+      borderRadius: radius.medium,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      backgroundColor: theme.colors.card,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    segmentButtonSelected: {
+      backgroundColor: isEinkMode ? theme.colors.background : colors.accent,
+      borderColor: isEinkMode ? theme.colors.primary : colors.accent,
+    },
+    segmentButtonText: {
+      ...body,
+      fontSize: 14,
+      color: theme.colors.text,
+    },
+    segmentButtonTextSelected: {
+      color: isEinkMode ? theme.colors.primary : colors.white,
+      fontWeight: "600",
     },
     stopButton: {
       backgroundColor: isEinkMode ? theme.colors.background : colors.red,
