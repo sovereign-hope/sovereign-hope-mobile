@@ -210,9 +210,9 @@ The `prayerQueue` collection is purely server-side infrastructure. Cloud Functio
 
 ## Sources & References
 
-- **Origin brainstorm:** [docs/brainstorms/2026-03-16-smart-prayer-assignments-brainstorm.md](docs/brainstorms/2026-03-16-smart-prayer-assignments-brainstorm.md) — Key decisions: individual member tracking, global queue with same-day coordination, random user processing order, no per-user cooldown, server-only change.
-- **Existing implementation:** [functions/index.js](functions/index.js) — Current prayer assignment Cloud Functions (lines 384-537, 679-731)
-- **Firestore rules:** [firestore.rules](firestore.rules) — Current security rules (lines 22-32)
-- **Client service:** [src/services/members.ts](src/services/members.ts) — Prayer assignment fetch (unchanged)
-- **Redux slice:** [src/redux/memberSlice.ts](src/redux/memberSlice.ts) — Prayer state management (unchanged)
-- **Original plan:** [docs/plans/2026-02-26-feat-member-only-features-plan.md](docs/plans/2026-02-26-feat-member-only-features-plan.md) — Original prayer assignment feature design
+- **Origin brainstorm:** [docs/brainstorms/2026-03-16-smart-prayer-assignments-brainstorm.md](../brainstorms/2026-03-16-smart-prayer-assignments-brainstorm.md) — Key decisions: individual member tracking, global queue with same-day coordination, random user processing order, no per-user cooldown, server-only change.
+- **Existing implementation:** [functions/index.js](../../functions/index.js) — Current prayer assignment Cloud Functions (lines 384-537, 679-731)
+- **Firestore rules:** [firestore.rules](../../firestore.rules) — Current security rules (lines 22-32)
+- **Client service:** [src/services/members.ts](../../src/services/members.ts) — Prayer assignment fetch (unchanged)
+- **Redux slice:** [src/redux/memberSlice.ts](../../src/redux/memberSlice.ts) — Prayer state management (unchanged)
+- **Original plan:** [docs/plans/2026-02-26-feat-member-only-features-plan.md](./2026-02-26-feat-member-only-features-plan.md) — Original prayer assignment feature design
