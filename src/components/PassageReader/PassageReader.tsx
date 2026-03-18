@@ -345,16 +345,18 @@ export const PassageReader: React.FunctionComponent<PassageReaderProps> = ({
       const offsetY = contentOffset.y;
 
       // Scroll-direction detection: ignore bounce region (offsetY <= 0)
-      // and require minimum 4px delta to avoid jitter
-      if (onScrollDirectionChange && offsetY > 0) {
-        // Hide toolbar when near the bottom to prevent overscroll bounce
-        // from showing it over the navigation buttons
-        const distanceFromBottom =
-          contentSize.height - layoutMeasurement.height - offsetY;
+      // and require minimum 4px delta to avoid jitter.
+      // Skip entirely when content doesn't fill the screen — toolbar
+      // should always stay visible for short passages.
+      const scrollableDistance = contentSize.height - layoutMeasurement.height;
+      if (onScrollDirectionChange && offsetY > 0 && scrollableDistance > 80) {
+        // Always show toolbar when near the bottom so navigation
+        // controls stay accessible at the end of the passage.
+        const distanceFromBottom = scrollableDistance - offsetY;
         if (distanceFromBottom < 80) {
-          if (lastScrollDirectionRef.current !== "down") {
-            lastScrollDirectionRef.current = "down";
-            onScrollDirectionChange("down");
+          if (lastScrollDirectionRef.current !== "up") {
+            lastScrollDirectionRef.current = "up";
+            onScrollDirectionChange("up");
           }
         } else {
           const delta = offsetY - lastScrollOffsetRef.current;
