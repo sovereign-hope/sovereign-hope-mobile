@@ -225,26 +225,25 @@ Simply scan the QR code in Expo Go to work with the build, or if you've already 
 
 From here you can simply begin updating code and receive live updates on your device.
 
-### 🦾 Github Workflows
+### 🦾 GitHub Workflows
 
-We use Github Action Workflows to manage our CI/CD processes.
+We use GitHub Action workflows to manage our CI/CD processes.
 
 These workflows are managed by workflow YAML files in the `.github/workflows` directory. A little more color will be added to this in the [Release Cycle](#release-cycle) and [Development Process](#development-process) sections.
 
 ### 🤓 Development Process
 
-Branch names should include the following prefixes:
+Branch names should include one of the following prefixes:
 
-- `feature/` for feature branches
-- `hotfix/` for urgent bug fix branches
-- `bugfix/` for non-urgent bug fix branches
+- `feat/` or `feature/` for feature branches
+- `fix/`, `bugfix/`, or `hotfix/` for bug fix branches
 - `chore/` for maintenance and tooling work
 
 Examples:
 
-`feature/cool-new-feature`
+`feat/cool-new-feature`
 
-`hotfix/urgent-new-bug-fix`
+`fix/urgent-new-bug-fix`
 
 When work on a branch is complete, a PR should be submitted against `main`, which is our main trunk branch.
 Given the nature of our continuous deployment capabilities, normal feature work is done off `main`.
@@ -278,14 +277,15 @@ We don't currently perform E2E tests.
 ### 🚀 Release Cycle
 
 We use GitHub Actions to automate most of the pipeline.
-Refer back to [Github Workflows](#github-workflows), then verify branch triggers directly in `.github/workflows`.
+Refer back to [GitHub Workflows](#github-workflows), then verify branch triggers directly in `.github/workflows`.
 
 Current workflow triggers:
 
 1. Pushes and PRs run `ci.yml`; PRs also get EAS preview updates.
-2. Pushes to `main` run `development.yml` to publish the development channel update.
-3. Pushes to `production` run `release.yml` for production staging and platform build jobs.
-4. Monitor Sentry after release and cut hotfixes as needed.
+2. Pushes to `develop` run `dev-build.yml` to build and stage development artifacts.
+3. Pushes to `main` run `development.yml` to publish the development channel update.
+4. Pushes to `production` run `release.yml` for production staging and platform build jobs.
+5. Monitor Sentry after release and cut hotfixes as needed.
 
 ### 📚 Helpful Reading
 
