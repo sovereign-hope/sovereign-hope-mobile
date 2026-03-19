@@ -43,9 +43,9 @@ export const SPOKEN_PLAYBACK_VOLUME = 1;
 // Ambient volume constants
 // ---------------------------------------------------------------------------
 
-export const AMBIENT_VOLUME = 0.3;
-export const SPOKEN_DUCKED_VOLUME = 0.09;
-export const SPOKEN_DUCKED_VOLUME_UPBEAT = 0.06;
+export const AMBIENT_VOLUME = 0.8;
+export const SPOKEN_DUCKED_VOLUME = 0.15;
+export const SPOKEN_DUCKED_VOLUME_UPBEAT = 0.1;
 export const UPBEAT_AMBIENT_PREFIX = "upbeat-";
 
 // ---------------------------------------------------------------------------

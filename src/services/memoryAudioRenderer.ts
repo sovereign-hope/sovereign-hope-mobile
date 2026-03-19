@@ -85,9 +85,31 @@ const makeCache = <T>() => {
 const verseBufferCache = makeCache<ArrayBuffer>();
 const ambientBufferCache = makeCache<ArrayBuffer>();
 
+// ---------------------------------------------------------------------------
+// Rendered session cache — avoids re-rendering when the same verse,
+// ambient sound, and duration are requested again.
+// ---------------------------------------------------------------------------
+
+type RenderedSessionCacheEntry = {
+  key: string;
+  session: RenderedSession;
+};
+
+let renderedSessionCache: RenderedSessionCacheEntry | undefined;
+
+const makeRenderedSessionCacheKey = (
+  verseAudioUrl: string,
+  ambientSoundKey: string,
+  sessionDurationMinutes: number
+): string => `${verseAudioUrl}|${ambientSoundKey}|${sessionDurationMinutes}`;
+
 export const clearDecodedBufferCache = (): void => {
   verseBufferCache.clear();
   ambientBufferCache.clear();
+};
+
+export const clearRenderedSessionCache = (): void => {
+  renderedSessionCache = undefined;
 };
 
 // ---------------------------------------------------------------------------
@@ -273,6 +295,17 @@ export const renderMemoryAudioSession = async (args: {
     onProgress?.(Math.max(0, Math.min(1, progress)), message);
   };
 
+  // ── Check rendered session cache ─────────────────────────────────
+  const cacheKey = makeRenderedSessionCacheKey(
+    verseAudioUrl,
+    ambientSoundKey,
+    sessionDurationMinutes
+  );
+  if (renderedSessionCache?.key === cacheKey) {
+    reportProgress(1, "Using cached session...");
+    return renderedSessionCache.session;
+  }
+
   // ── Determine sample rate ──────────────────────────────────────────
   reportProgress(0.08, "Getting audio ready...");
   const sampleRate = await getDeviceSampleRate();
@@ -382,16 +415,6 @@ export const renderMemoryAudioSession = async (args: {
       }
     }
 
-    // Fade out ambient during the final outro gap
-    const lastEntry = timeline.at(-1)!;
-    if (lastEntry.phase === "recall_gap" && lastEntry.gapDurationMs) {
-      const fadeDurationSeconds =
-        Math.min(FINAL_OUTRO_FADE_MS, lastEntry.gapDurationMs) / 1000;
-      const fadeStartSeconds = lastEntry.endSeconds - fadeDurationSeconds;
-      ambientGain.gain.setValueAtTime(AMBIENT_VOLUME, fadeStartSeconds);
-      ambientGain.gain.linearRampToValueAtTime(0, lastEntry.endSeconds);
-    }
-
     ambientSource.start(0);
     ambientSource.stop(totalDurationSeconds);
     reportProgress(0.74, "Balancing voice and ambient...");
@@ -400,12 +423,40 @@ export const renderMemoryAudioSession = async (args: {
   // ── Render ──────────────────────────────────────────────────────────
   reportProgress(0.88, "Encoding session audio...");
   const renderedBuffer = await offlineCtx.startRendering();
+
+  // Apply fade-out directly to the rendered samples — this is reliable
+  // regardless of gain automation support in the audio API.
+  const lastEntry = timeline.at(-1)!;
+  if (lastEntry.phase === "recall_gap" && lastEntry.gapDurationMs) {
+    const fadeDurationSeconds =
+      Math.min(FINAL_OUTRO_FADE_MS, lastEntry.gapDurationMs) / 1000;
+    const fadeStartSample = Math.floor(
+      (totalDurationSeconds - fadeDurationSeconds) * sampleRate
+    );
+    const totalRenderedSamples = renderedBuffer.length;
+    const fadeSamples = totalRenderedSamples - fadeStartSample;
+
+    for (let ch = 0; ch < renderedBuffer.numberOfChannels; ch += 1) {
+      const channelData = renderedBuffer.getChannelData(ch);
+      for (let i = 0; i < fadeSamples; i += 1) {
+        const sampleIndex = fadeStartSample + i;
+        if (sampleIndex < totalRenderedSamples) {
+          channelData[sampleIndex] *= 1 - i / fadeSamples;
+        }
+      }
+    }
+  }
+
   reportProgress(0.96, "Preparing playback...");
 
-  return {
+  const result: RenderedSession = {
     buffer: renderedBuffer,
     durationSeconds: totalDurationSeconds,
     verseDurationSeconds,
     phaseTimeline: timeline,
   };
+
+  renderedSessionCache = { key: cacheKey, session: result };
+
+  return result;
 };
