@@ -3,6 +3,7 @@ import { Platform } from "react-native";
 import type { ScrollView } from "react-native";
 import * as Haptics from "expo-haptics";
 import type { Highlight } from "src/types/highlights";
+import { getVerseAtPoint } from "verse-hit-test";
 
 export type DragPreviewRange = { lo: number; hi: number } | null;
 
@@ -71,6 +72,8 @@ export const useDragSelection = ({
   const dragStartPageYRef = useRef(0);
   const autoScrollRAFRef = useRef<number | null>(null);
   const autoScrollSpeedRef = useRef(0);
+  const isNativeHitTestingRef = useRef(false);
+  const pendingHitTestPageYRef = useRef<number | null>(null);
   /* eslint-enable unicorn/no-null */
 
   // ---------------------------------------------------------------------------
@@ -90,23 +93,82 @@ export const useDragSelection = ({
   // Cancel any in-flight RAF on unmount to prevent orphan frames
   useEffect(() => stopAutoScroll, [stopAutoScroll]);
 
-  /** Update the drag selection to match the verse under `pageY`. */
+  /** Apply a verse hit result to the drag selection. */
+  const applyVerseHit = useCallback((verse: number) => {
+    if (!dragSelectionRef.current) return;
+    if (verse !== lastDragVerseRef.current) {
+      lastDragVerseRef.current = verse;
+      dragSelectionRef.current.currentVerse = verse;
+      if (Platform.OS === "ios") void Haptics.selectionAsync();
+      const lo = Math.min(dragSelectionRef.current.anchorVerse, verse);
+      const hi = Math.max(dragSelectionRef.current.anchorVerse, verse);
+      setDragPreviewRange({ lo, hi });
+    }
+  }, []);
+
+  /** Update the drag selection using native hit testing on iOS,
+   *  falling back to coordinate math on Android or if native fails. */
   const updateDragVerse = useCallback(
     (pageY: number) => {
       if (!dragSelectionRef.current) return;
-      const verse = findVerseAtPageY(pageY);
-      if (verse === undefined) return;
 
-      if (verse !== lastDragVerseRef.current) {
-        lastDragVerseRef.current = verse;
-        dragSelectionRef.current.currentVerse = verse;
-        if (Platform.OS === "ios") void Haptics.selectionAsync();
-        const lo = Math.min(dragSelectionRef.current.anchorVerse, verse);
-        const hi = Math.max(dragSelectionRef.current.anchorVerse, verse);
-        setDragPreviewRange({ lo, hi });
+      if (Platform.OS !== "ios") {
+        // Android: use coordinate-based fallback
+        const verse = findVerseAtPageY(pageY);
+        if (verse !== undefined) applyVerseHit(verse);
+        return;
       }
+
+      // Throttle: only one native hit test in flight at a time
+      if (isNativeHitTestingRef.current) {
+        pendingHitTestPageYRef.current = pageY;
+        return;
+      }
+
+      isNativeHitTestingRef.current = true;
+
+      // Use the center X of the screen for hit testing (text spans full width)
+      const screenCenterX = 200; // approximate — text is left-aligned so any X in the text area works
+      getVerseAtPoint(screenCenterX, pageY)
+        .then((verse) => {
+          isNativeHitTestingRef.current = false;
+
+          if (__DEV__) {
+            console.log(
+              `[native-verse] x=${screenCenterX} y=${Math.round(
+                pageY
+              )} → verse=${verse}`
+            );
+          }
+
+          if (verse > 0 && dragSelectionRef.current) {
+            applyVerseHit(verse);
+          } else {
+            // Native hit test failed — fall back to coordinate math
+            const fallback = findVerseAtPageY(pageY);
+            if (__DEV__) {
+              console.log(`[native-verse] fallback → v${fallback}`);
+            }
+            if (fallback !== undefined) applyVerseHit(fallback);
+          }
+
+          // Process queued hit test
+          const pending = pendingHitTestPageYRef.current;
+          if (pending !== null && dragSelectionRef.current) {
+            // eslint-disable-next-line unicorn/no-null
+            pendingHitTestPageYRef.current = null;
+            updateDragVerse(pending);
+          }
+          return;
+        })
+        .catch(() => {
+          isNativeHitTestingRef.current = false;
+          // Fall back to coordinate math
+          const fallback = findVerseAtPageY(pageY);
+          if (fallback !== undefined) applyVerseHit(fallback);
+        });
     },
-    [findVerseAtPageY]
+    [applyVerseHit, findVerseAtPageY]
   );
 
   const runAutoScrollFrame = useCallback(() => {

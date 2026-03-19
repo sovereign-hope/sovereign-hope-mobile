@@ -21,12 +21,17 @@ npm run testChanged         # Watch mode for changed files since main
 npm run testDebugCurrent    # Watch mode for modified files only
 npm run updateSnapshots     # Update Jest snapshots
 
-# EAS Builds (requires eas-cli)
+# Local Builds (default for development — see ~/Developer/local-builds/ for full docs)
+build sovhope ios                    # physical device (ad-hoc)
+build sovhope android                # Android APK
+build sovhope both                   # iOS + Android in parallel
+build sovhope ios --profile staging  # override profile
+# Install page: https://oathgate.chimp-yo.ts.net
+# If `build` not found: ~/Developer/local-builds/build setup
+
+# EAS Cloud Builds (production/store submissions only)
 npm run buildProduction:ios
 npm run buildProduction:android
-npm run buildDevelopment:ios
-npm run buildDevelopment:android
-npm run buildDevelopment:simulator
 npm run submitProduction
 ```
 
