@@ -215,4 +215,4 @@ The `prayerQueue` collection is purely server-side infrastructure. Cloud Functio
 - **Firestore rules:** [firestore.rules](../../firestore.rules) — Current security rules (lines 22-32)
 - **Client service:** [src/services/members.ts](../../src/services/members.ts) — Prayer assignment fetch (unchanged)
 - **Redux slice:** [src/redux/memberSlice.ts](../../src/redux/memberSlice.ts) — Prayer state management (unchanged)
-- **Original plan:** [docs/plans/2026-02-26-feat-member-only-features-plan.md](./2026-02-26-feat-member-only-features-plan.md) — Original prayer assignment feature design
+- **Original plan:** [docs/plans/2026-02-26-feat-member-only-features-plan.md](2026-02-26-feat-member-only-features-plan.md) — Original prayer assignment feature design
