@@ -233,18 +233,17 @@ These workflows are managed by workflow YAML files in the `.github/workflows` di
 
 ### 🤓 Development Process
 
-Branch names should include the following prefixes:
+Branch names should include one of the following prefixes:
 
-- `feature/` for feature branches
-- `hotfix/` for urgent bug fix branches
-- `bugfix/` for non-urgent bug fix branches
+- `feat/` or `feature/` for feature branches
+- `fix/`, `bugfix/`, or `hotfix/` for bug fix branches
 - `chore/` for maintenance and tooling work
 
 Examples:
 
-`feature/cool-new-feature`
+`feat/cool-new-feature`
 
-`hotfix/urgent-new-bug-fix`
+`fix/urgent-new-bug-fix`
 
 When work on a branch is complete, a PR should be submitted against `main`, which is our main trunk branch.
 Given the nature of our continuous deployment capabilities, normal feature work is done off `main`.
@@ -284,8 +283,8 @@ Refer back to [GitHub Workflows](#github-workflows), then verify branch triggers
 Current workflow triggers:
 
 1. Pushes and PRs run `ci.yml`; PRs also get EAS preview updates.
-2. Pushes to `main` run `development.yml` to publish the development channel update.
-3. Pushes to `develop` run `dev-build.yml` to stage updates and trigger development builds.
+2. Pushes to `develop` run `dev-build.yml` to build and stage development artifacts.
+3. Pushes to `main` run `development.yml` to publish the development channel update.
 4. Pushes to `production` run `release.yml` for production staging and platform build jobs.
 5. Monitor Sentry after release and cut hotfixes as needed.
 
