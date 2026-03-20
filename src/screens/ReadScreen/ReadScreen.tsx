@@ -9,6 +9,7 @@ import {
 import { useAppSelector } from "src/hooks/store";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { RootStackParamList } from "src/navigation/RootNavigator";
+import { ReadingToolbarContext } from "src/navigation/ReadingToolbarContext";
 import { useTheme } from "@react-navigation/native";
 import { useMiniPlayerHeight } from "src/hooks/useMiniPlayerHeight";
 import { usePassageLoader } from "src/hooks/usePassageLoader";
@@ -52,6 +53,8 @@ export const ReadScreen: React.FunctionComponent<ReadScreenProps> = ({
   const theme = useTheme();
   const uiPreferences = useUiPreferences();
   const [toolbarVisible, setToolbarVisible] = useState(true);
+  const [rtToolbarHeight, setRtToolbarHeight] = useState(0);
+  const [rtToolbarVisible, setRtToolbarVisible] = useState(true);
   // eslint-disable-next-line unicorn/no-null
   const [previewNote, setPreviewNote] = useState<Note | null>(null);
 
@@ -218,66 +221,78 @@ export const ReadScreen: React.FunctionComponent<ReadScreenProps> = ({
   );
 
   return (
-    <>
-      <SafeAreaView style={themedStyles.screen} edges={["left", "right"]}>
-        {isLoading && !hasLoadedCurrentPassage ? (
-          <View style={themedStyles.loadingContainer}>
-            <ActivityIndicator size="large" color={theme.colors.text} />
-          </View>
-        ) : (
-          <>
-            <ReadScrollView
-              showMemoryButton={shouldShowMemoryButton}
-              heading={heading}
-              passageIndex={passageIndex}
-              showPreviousPassageButton={passages.length > 1}
-              canGoToPreviousPassage={passageIndex > 0}
-              isNavigatingPassages={isNavigatingPassages}
-              onPreviousPassage={handlePreviousPassage}
-              onNextPassage={handleNextPassage}
-              hasNextPassage={passageIndex < passages.length - 1}
-              miniPlayerHeight={miniPlayerHeight}
-              bottomInset={insets.bottom + TOOLBAR_CLEARANCE}
-              onScrollDirectionChange={handleScrollDirection}
-              bookId={currentLocation?.bookId}
-              chapter={currentLocation?.chapter}
-              onNote={currentLocation ? handleNote : undefined}
-              noteLookup={noteLookup}
-              stickyLabel={audioTitle}
-            />
-            <PassageToolbar actions={toolbarActions} visible={toolbarVisible} />
-          </>
-        )}
-      </SafeAreaView>
-      {previewNote && (
-        <NotePreviewPopup
-          text={previewNote.text}
-          reference={formatVerseReference(
-            previewNote.bookId,
-            previewNote.chapter,
-            previewNote.startVerse,
-            previewNote.endVerse
+    <ReadingToolbarContext.Provider
+      value={{
+        toolbarHeight: rtToolbarHeight,
+        setToolbarHeight: setRtToolbarHeight,
+        toolbarVisible: rtToolbarVisible,
+        setToolbarVisible: setRtToolbarVisible,
+      }}
+    >
+      <>
+        <SafeAreaView style={themedStyles.screen} edges={["left", "right"]}>
+          {isLoading && !hasLoadedCurrentPassage ? (
+            <View style={themedStyles.loadingContainer}>
+              <ActivityIndicator size="large" color={theme.colors.text} />
+            </View>
+          ) : (
+            <>
+              <ReadScrollView
+                showMemoryButton={shouldShowMemoryButton}
+                heading={heading}
+                passageIndex={passageIndex}
+                showPreviousPassageButton={passages.length > 1}
+                canGoToPreviousPassage={passageIndex > 0}
+                isNavigatingPassages={isNavigatingPassages}
+                onPreviousPassage={handlePreviousPassage}
+                onNextPassage={handleNextPassage}
+                hasNextPassage={passageIndex < passages.length - 1}
+                miniPlayerHeight={miniPlayerHeight}
+                bottomInset={insets.bottom + TOOLBAR_CLEARANCE}
+                onScrollDirectionChange={handleScrollDirection}
+                bookId={currentLocation?.bookId}
+                chapter={currentLocation?.chapter}
+                onNote={currentLocation ? handleNote : undefined}
+                noteLookup={noteLookup}
+                stickyLabel={audioTitle}
+              />
+              <PassageToolbar
+                actions={toolbarActions}
+                visible={toolbarVisible}
+              />
+            </>
           )}
-          onEdit={() => {
-            const note = previewNote;
-            // eslint-disable-next-line unicorn/no-null
-            setPreviewNote(null);
-            navigation.navigate("NoteEditor", {
-              bookId: note.bookId,
-              chapter: note.chapter,
-              startVerse: note.startVerse,
-              endVerse: note.endVerse,
-              noteId: note.id,
-              initialText: note.text,
-            });
-          }}
-          onDismiss={() => {
-            // eslint-disable-next-line unicorn/no-null
-            setPreviewNote(null);
-          }}
-        />
-      )}
-    </>
+        </SafeAreaView>
+        {previewNote && (
+          <NotePreviewPopup
+            text={previewNote.text}
+            reference={formatVerseReference(
+              previewNote.bookId,
+              previewNote.chapter,
+              previewNote.startVerse,
+              previewNote.endVerse
+            )}
+            onEdit={() => {
+              const note = previewNote;
+              // eslint-disable-next-line unicorn/no-null
+              setPreviewNote(null);
+              navigation.navigate("NoteEditor", {
+                bookId: note.bookId,
+                chapter: note.chapter,
+                startVerse: note.startVerse,
+                endVerse: note.endVerse,
+                noteId: note.id,
+                initialText: note.text,
+              });
+            }}
+            onDismiss={() => {
+              // eslint-disable-next-line unicorn/no-null
+              setPreviewNote(null);
+            }}
+          />
+        )}
+      </>
+    </ReadingToolbarContext.Provider>
   );
 };
 

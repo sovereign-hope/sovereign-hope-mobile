@@ -9,6 +9,7 @@ import {
   isLiquidGlassAvailable,
 } from "expo-glass-effect";
 import { Ionicons } from "@expo/vector-icons";
+import { useReadingToolbarContext } from "src/navigation/ReadingToolbarContext";
 import { canUseLiquidGlass } from "src/services/liquidGlassSupport";
 import { styles } from "./PassageToolbar.styles";
 
@@ -44,6 +45,7 @@ export const PassageToolbar: React.FunctionComponent<PassageToolbarProps> = ({
 }) => {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
+  const { setToolbarHeight, setToolbarVisible } = useReadingToolbarContext();
   const bottomInset =
     Platform.OS === "android" ? 0 : insets.bottom + bottomOffset;
 
@@ -62,6 +64,18 @@ export const PassageToolbar: React.FunctionComponent<PassageToolbarProps> = ({
       useNativeDriver: true,
     }).start();
   }, [visible, translateY]);
+
+  useEffect(() => {
+    setToolbarHeight(TOOLBAR_CLEARANCE);
+
+    return () => {
+      setToolbarHeight(0);
+    };
+  }, [setToolbarHeight]);
+
+  useEffect(() => {
+    setToolbarVisible(visible);
+  }, [setToolbarVisible, visible]);
 
   const shouldUseLiquidGlass = canUseLiquidGlass(Platform.OS, {
     isGlassEffectCheck: isGlassEffectAPIAvailable,
