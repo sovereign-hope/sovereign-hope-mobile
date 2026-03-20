@@ -4,12 +4,13 @@ public final class VerseHitTestModule: Module {
     public func definition() -> ModuleDefinition {
         Name("VerseHitTest")
 
-        // Synchronous function for maximum speed during drag (~60fps).
-        // All work is in-memory (view traversal + text layout), no I/O.
         // Must dispatch to main thread since UIView APIs are main-thread-only.
-        // TEMPORARY: return -999 to verify module is loaded and called
-        AsyncFunction("getVerseAtPoint") { (x: Double, y: Double) -> Int in
-            return -999
+        AsyncFunction("getVerseAtPoint") { (x: Double, y: Double, promise: Promise) in
+            DispatchQueue.main.async {
+                let point = CGPoint(x: x, y: y)
+                let verse = VerseHitTestHelper.verseNumber(atScreenPoint: point)
+                promise.resolve(Int(verse))
+            }
         }
     }
 }
