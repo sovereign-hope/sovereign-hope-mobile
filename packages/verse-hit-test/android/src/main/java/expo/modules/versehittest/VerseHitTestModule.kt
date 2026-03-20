@@ -31,13 +31,19 @@ class VerseHitTestModule : Module() {
         screenX: Float,
         screenY: Float
     ): Int {
+        // React Native passes coordinates in dp, but Android view APIs
+        // use pixels. Convert dp to pixels using screen density.
+        val density = activity.resources.displayMetrics.density
+        val pixelX = screenX * density
+        val pixelY = screenY * density
+
         val rootView = activity.window.decorView as ViewGroup
-        val textView = findTextViewAt(rootView, screenX, screenY) ?: return -4
+        val textView = findTextViewAt(rootView, pixelX, pixelY) ?: return -4
 
         val location = IntArray(2)
         textView.getLocationOnScreen(location)
-        val localX = screenX - location[0]
-        val localY = screenY - location[1]
+        val localX = pixelX - location[0]
+        val localY = pixelY - location[1]
 
         return getVerseFromTextView(textView, localX, localY)
     }
