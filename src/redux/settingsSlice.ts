@@ -96,7 +96,12 @@ export const getEnableNotificationsState = createAsyncThunk(
       const jsonValue = await AsyncStorage.getItem(
         `@settings/enableNotifications`
       );
-      return jsonValue ? (JSON.parse(jsonValue) as boolean) : true;
+      if (!jsonValue) {
+        return true;
+      }
+
+      const parsedValue = JSON.parse(jsonValue) as unknown;
+      return typeof parsedValue === "boolean" ? parsedValue : true;
     } catch (error) {
       console.error(error);
     }

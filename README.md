@@ -80,7 +80,7 @@ Now run the following to verify that `nvm` was installed properly:
 command -v nvm
 ```
 
-If the above command gives you a version, you're in. If not, [check out the official documentation.](https://github.com/nvm-sh/nvm#installing-and-updating)
+If the above command outputs `nvm`, you're in. If not, [check out the official documentation.](https://github.com/nvm-sh/nvm#installing-and-updating)
 We'll install the version of Node we need in a bit.
 
 #### 🤖 Android Studio
@@ -227,7 +227,7 @@ From here you can simply begin updating code and receive live updates on your de
 
 ### 🦾 GitHub Workflows
 
-We use GitHub Action workflows to manage our CI/CD processes.
+We use GitHub Actions workflows to manage our CI/CD processes.
 
 These workflows are managed by workflow YAML files in the `.github/workflows` directory. A little more color will be added to this in the [Release Cycle](#release-cycle) and [Development Process](#development-process) sections.
 
@@ -248,11 +248,12 @@ Examples:
 When work on a branch is complete, a PR should be submitted against `main`, which is our main trunk branch.
 Given the nature of our continuous deployment capabilities, normal feature work is done off `main`.
 
-For pull requests into `main`, `ci.yml` runs typecheck/lint/test and generates PR preview updates on EAS (`pr-<PR number>`), then comments the preview link on the PR.
+`ci.yml` runs on pushes and on pull requests targeting `main`; PR runs also generate EAS preview updates (`pr-<PR number>`) and comment the preview link on the PR.
 
 When a PR passes required checks and review, it can be merged into `main`.
 
 After merge to `main`, `development.yml` publishes the development update.
+Pushes to `develop` run `dev-build.yml`, which stages development updates and builds both platforms.
 
 You can read more about EAS update branches and builds [here](https://docs.expo.dev/eas-update/eas-cli/) and [here](https://docs.expo.dev/build/introduction/).
 

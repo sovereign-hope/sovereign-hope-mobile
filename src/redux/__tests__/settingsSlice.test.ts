@@ -215,6 +215,24 @@ describe("settingsSlice", () => {
 
         expect(store.getState().settings.enableNotifications).toBe(true);
       });
+
+      it("defaults to true when stored value is malformed JSON", async () => {
+        (AsyncStorage.getItem as jest.Mock).mockResolvedValueOnce("{");
+
+        const store = createTestStore();
+        await store.dispatch(getEnableNotificationsState());
+
+        expect(store.getState().settings.enableNotifications).toBe(true);
+      });
+
+      it("defaults to true when stored value is not a boolean", async () => {
+        (AsyncStorage.getItem as jest.Mock).mockResolvedValueOnce('"false"');
+
+        const store = createTestStore();
+        await store.dispatch(getEnableNotificationsState());
+
+        expect(store.getState().settings.enableNotifications).toBe(true);
+      });
     });
 
     describe("getNotificationTime", () => {
