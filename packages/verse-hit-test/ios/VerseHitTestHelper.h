@@ -2,9 +2,10 @@
 
 @interface VerseHitTestHelper : NSObject
 
-/// Find the verse number at the given screen point by performing native
-/// text-run hit testing on the React Native paragraph component.
-/// Returns the verse number (1-based) or -1 if no verse was found.
-+ (NSInteger)verseNumberAtScreenPoint:(CGPoint)point;
+/// Find which verse contains the given screen point by performing native
+/// text hit testing. Uses EventEmitter attributes to identify fragment
+/// boundaries, then extracts the verse number.
+/// Returns the verse number (1-based) or a negative error code.
++ (NSInteger)verseAtScreenPoint:(CGPoint)point;
 
 @end

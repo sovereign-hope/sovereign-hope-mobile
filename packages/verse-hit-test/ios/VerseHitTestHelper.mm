@@ -3,12 +3,12 @@
 
 @implementation VerseHitTestHelper
 
-+ (NSInteger)verseNumberAtScreenPoint:(CGPoint)screenPoint {
++ (NSInteger)verseAtScreenPoint:(CGPoint)screenPoint {
     UIWindow *window = UIApplication.sharedApplication.keyWindow;
-    if (!window) return -2; // no window
+    if (!window) return -2;
 
     UIView *hitView = [window hitTest:screenPoint withEvent:nil];
-    if (!hitView) return -3; // hitTest nil
+    if (!hitView) return -3;
 
     // Walk up the view hierarchy to find a RCTParagraphComponentView
     RCTParagraphComponentView *paragraphView = nil;
@@ -21,14 +21,12 @@
         currentView = currentView.superview;
     }
 
-    if (!paragraphView) return -4; // no paragraph view
+    if (!paragraphView) return -4;
 
     NSAttributedString *attrString = paragraphView.attributedText;
-    if (!attrString || attrString.length == 0) return -5; // no text
+    if (!attrString || attrString.length == 0) return -5;
 
-    // Build NSTextStorage + NSLayoutManager + NSTextContainer matching
-    // the paragraph view's content frame — same pattern as
-    // RCTTextLayoutManager._textStorageAndLayoutManagerWithAttributesString
+    // Build NSTextStorage + NSLayoutManager + NSTextContainer
     CGRect contentFrame = paragraphView.bounds;
     NSTextContainer *textContainer = [[NSTextContainer alloc] initWithSize:contentFrame.size];
     textContainer.lineFragmentPadding = 0.0;
@@ -42,7 +40,6 @@
     NSTextStorage *textStorage = [[NSTextStorage alloc] initWithAttributedString:attrString];
     [textStorage addLayoutManager:layoutManager];
 
-    // Force layout computation
     [layoutManager ensureLayoutForTextContainer:textContainer];
 
     // Convert screen point to text-local coordinates
@@ -54,97 +51,88 @@
                                                 inTextContainer:textContainer
                        fractionOfDistanceBetweenInsertionPoints:&fraction];
 
-    if (charIndex == NSNotFound || charIndex >= textStorage.length) return -6; // char not found
+    if (charIndex == NSNotFound || charIndex >= textStorage.length) return -6;
 
-    // Validate the hit — reject if at the very start/end with no fraction
-    if (textStorage.length > 0 && fraction == 0 && charIndex == 0) {
-        // Could be outside the text area — check more carefully
-        CGRect firstGlyphRect = [layoutManager boundingRectForGlyphRange:NSMakeRange(0, 1) inTextContainer:textContainer];
-        if (localPoint.y < CGRectGetMinY(firstGlyphRect) || localPoint.y > CGRectGetMaxY(firstGlyphRect)) {
-            // Point is outside the first glyph — likely above the text
-        }
-    }
+    // Find which EventEmitter fragment contains this character.
+    // Then find the verse number by scanning backward through fragments.
+    // Each verse in the ESV text has a verse-number fragment ("5 ") followed
+    // by a text fragment ("But woe unto you..."). We need to find the
+    // verse-number fragment that precedes (or contains) the hit character.
 
-    // Use React Native's EventEmitter attribute to identify which verse-text
-    // element the character belongs to. Each verse-text has a unique EventEmitter
-    // stored as NSData. We find the range of the current EventEmitter, then
-    // scan that range's text for the verse number digits at the start.
     NSString *text = textStorage.string;
 
-    // Get the EventEmitter at the hit character
-    NSRange emitterRange;
-    NSData *emitter = [textStorage attribute:@"EventEmitter"
-                                    atIndex:charIndex
-                             effectiveRange:&emitterRange];
+    // Strategy: walk backward through EventEmitter boundaries from the hit
+    // character. At each boundary, check if the fragment text starts with
+    // digits (verse number). Return the first match.
+    NSUInteger searchIndex = charIndex;
 
-    if (!emitter) {
-        // No EventEmitter — character is not in a pressable text run.
-        // Scan backward to find the nearest character with an EventEmitter.
-        NSInteger scanIndex = (NSInteger)charIndex - 1;
-        while (scanIndex >= 0) {
-            NSRange range;
-            NSData *em = [textStorage attribute:@"EventEmitter"
-                                        atIndex:(NSUInteger)scanIndex
-                                 effectiveRange:&range];
-            if (em) {
-                emitter = em;
-                emitterRange = range;
-                break;
-            }
-            scanIndex--;
-        }
-    }
+    while (YES) {
+        NSRange emRange;
+        NSData *em = [textStorage attribute:@"EventEmitter"
+                                    atIndex:searchIndex
+                             effectiveRange:&emRange];
 
-    if (!emitter) return -7; // no EventEmitter found
+        if (em) {
+            NSString *fragText = [text substringWithRange:emRange];
 
-    // Extract the text within this EventEmitter's range
-    NSString *rangeText = [text substringWithRange:emitterRange];
+            // Check if this fragment starts with a verse number pattern
+            NSRegularExpression *regex =
+                [NSRegularExpression regularExpressionWithPattern:@"^\\s*(\\d+(?::\\d+)?)\\s"
+                                                         options:0
+                                                           error:NULL];
+            NSTextCheckingResult *match =
+                [regex firstMatchInString:fragText
+                                  options:0
+                                    range:NSMakeRange(0, MIN(fragText.length, 20))];
 
-    // The verse number is typically at the start of the range as bold digits
-    // followed by a space: "5 But woe unto you..." or "23:1 Then spake..."
-    // Extract leading digits (handle chapter:verse format)
-    NSRegularExpression *regex = [NSRegularExpression regularExpressionWithPattern:@"^\\s*(\\d+(?::\\d+)?)\\s"
-                                                                          options:0
-                                                                            error:NULL];
-    NSTextCheckingResult *match = [regex firstMatchInString:rangeText
-                                                    options:0
-                                                      range:NSMakeRange(0, MIN(rangeText.length, 20))];
-
-    if (!match || match.numberOfRanges < 2) {
-        // The hit fragment doesn't start with digits — it's the verse text,
-        // not the verse number. The verse number is in the PREVIOUS fragment
-        // (the <b class="verse-num"> element). Scan backward to find it.
-        if (emitterRange.location > 0) {
-            NSRange prevRange;
-            NSData *prevEm = [textStorage attribute:@"EventEmitter"
-                                            atIndex:emitterRange.location - 1
-                                     effectiveRange:&prevRange];
-            if (prevEm) {
-                NSString *prevText = [text substringWithRange:prevRange];
-                match = [regex firstMatchInString:prevText
-                                          options:0
-                                            range:NSMakeRange(0, MIN(prevText.length, 20))];
-                if (match && match.numberOfRanges >= 2) {
-                    rangeText = prevText;
+            if (match && match.numberOfRanges >= 2) {
+                NSString *verseStr = [fragText substringWithRange:[match rangeAtIndex:1]];
+                // For "23:1" format, take the verse part after ":"
+                NSArray *parts = [verseStr componentsSeparatedByString:@":"];
+                NSString *versePart = parts.lastObject;
+                NSCharacterSet *nonDigits = [[NSCharacterSet decimalDigitCharacterSet] invertedSet];
+                versePart = [[versePart componentsSeparatedByCharactersInSet:nonDigits] componentsJoinedByString:@""];
+                if (versePart.length > 0) {
+                    return [versePart integerValue];
                 }
             }
         }
 
-        if (!match || match.numberOfRanges < 2) return -8;
+        // Move to the previous fragment
+        if (emRange.location == 0 || searchIndex == 0) break;
+        searchIndex = emRange.location - 1;
     }
 
-    NSString *verseStr = [rangeText substringWithRange:[match rangeAtIndex:1]];
+    // No fragment with a verse number found — try plain text scan as fallback.
+    // Look backward from charIndex for a pattern like digits + space.
+    NSInteger scanIndex = (NSInteger)charIndex;
+    while (scanIndex >= 0) {
+        unichar ch = [text characterAtIndex:(NSUInteger)scanIndex];
+        if (ch == ' ' || ch == '\n' || ch == '\t') {
+            // Check if the characters before this space are digits
+            NSInteger digitEnd = scanIndex;
+            NSInteger digitStart = scanIndex - 1;
+            while (digitStart >= 0 && [[NSCharacterSet decimalDigitCharacterSet] characterIsMember:[text characterAtIndex:(NSUInteger)digitStart]]) {
+                digitStart--;
+            }
+            digitStart++; // back to first digit
 
-    // For chapter:verse format (e.g. "23:1"), take the verse part
-    NSArray *parts = [verseStr componentsSeparatedByString:@":"];
-    NSString *versePart = parts.lastObject;
+            if (digitStart < digitEnd) {
+                NSString *numStr = [text substringWithRange:NSMakeRange((NSUInteger)digitStart, (NSUInteger)(digitEnd - digitStart))];
+                // Only accept if preceded by start-of-string, newline, or another space
+                if (digitStart == 0 || [text characterAtIndex:(NSUInteger)(digitStart - 1)] == '\n' || [text characterAtIndex:(NSUInteger)(digitStart - 1)] == ' ') {
+                    NSArray *parts = [numStr componentsSeparatedByString:@":"];
+                    NSString *versePart = parts.lastObject;
+                    if (versePart.length > 0 && versePart.length <= 3) {
+                        return [versePart integerValue];
+                    }
+                }
+            }
+        }
+        scanIndex--;
+    }
 
-    NSCharacterSet *nonDigits = [[NSCharacterSet decimalDigitCharacterSet] invertedSet];
-    versePart = [[versePart componentsSeparatedByCharactersInSet:nonDigits] componentsJoinedByString:@""];
-
-    if (versePart.length == 0) return -9; // no digits found
-
-    return [versePart integerValue];
+    return -7;
 }
 
 @end

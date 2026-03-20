@@ -4,7 +4,6 @@ interface VerseHitTestModuleType {
   getVerseAtPoint(x: number, y: number): Promise<number>;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-var-requires, @typescript-eslint/no-require-imports
 let VerseHitTest: VerseHitTestModuleType | undefined;
 if (Platform.OS === "ios" || Platform.OS === "android") {
   try {
@@ -20,15 +19,13 @@ if (Platform.OS === "ios" || Platform.OS === "android") {
 }
 
 /**
- * Find the verse number at the given screen point using native text-run
- * hit testing. Returns the verse number (1-based) or -1 if no verse
- * was found at that position.
+ * Find the verse number at the given screen point using native text
+ * hit testing. Returns the verse number (1-based) or a negative error code.
  *
- * Uses the same Core Text / NSLayoutManager hit testing that React
- * Native's onPressIn uses internally, ensuring accurate results even
- * for inline text runs within Fabric paragraph components.
+ * Uses Core Text / NSLayoutManager on iOS — the same hit testing
+ * that React Native uses internally for onPressIn.
  *
- * Returns -1 on Android or if the native module is unavailable.
+ * Returns -1 if the native module is unavailable.
  */
 export const getVerseAtPoint = (
   pageX: number,
