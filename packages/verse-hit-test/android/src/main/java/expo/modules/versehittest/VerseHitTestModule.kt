@@ -42,7 +42,9 @@ class VerseHitTestModule : Module() {
 
         val location = IntArray(2)
         textView.getLocationOnScreen(location)
-        val localX = pixelX - location[0]
+        // Use center X of the text view for character lookup — horizontal
+        // finger position shouldn't affect which verse line is detected.
+        val localX = (textView.width / 2).toFloat()
         val localY = pixelY - location[1]
 
         return getVerseFromTextView(textView, localX, localY)
