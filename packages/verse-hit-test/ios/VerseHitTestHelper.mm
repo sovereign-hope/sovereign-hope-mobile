@@ -109,7 +109,29 @@
     NSTextCheckingResult *match = [regex firstMatchInString:rangeText
                                                     options:0
                                                       range:NSMakeRange(0, MIN(rangeText.length, 20))];
-    if (!match || match.numberOfRanges < 2) return -8; // no verse number pattern
+
+    if (!match || match.numberOfRanges < 2) {
+        // The hit fragment doesn't start with digits — it's the verse text,
+        // not the verse number. The verse number is in the PREVIOUS fragment
+        // (the <b class="verse-num"> element). Scan backward to find it.
+        if (emitterRange.location > 0) {
+            NSRange prevRange;
+            NSData *prevEm = [textStorage attribute:@"EventEmitter"
+                                            atIndex:emitterRange.location - 1
+                                     effectiveRange:&prevRange];
+            if (prevEm) {
+                NSString *prevText = [text substringWithRange:prevRange];
+                match = [regex firstMatchInString:prevText
+                                          options:0
+                                            range:NSMakeRange(0, MIN(prevText.length, 20))];
+                if (match && match.numberOfRanges >= 2) {
+                    rangeText = prevText;
+                }
+            }
+        }
+
+        if (!match || match.numberOfRanges < 2) return -8;
+    }
 
     NSString *verseStr = [rangeText substringWithRange:[match rangeAtIndex:1]];
 
