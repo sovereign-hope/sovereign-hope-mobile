@@ -33,7 +33,7 @@ type UseDragSelectionParams = {
 
 export type DragSelectionResult = {
   onDragStart: (pageY: number, preResolvedVerse?: number) => void;
-  onDragUpdate: (pageY: number) => void;
+  onDragUpdate: (pageX: number, pageY: number) => void;
   onDragEnd: () => void;
   isDragSelecting: boolean;
   dragPreviewRange: DragPreviewRange;
@@ -68,12 +68,13 @@ export const useDragSelection = ({
     useState<DragPreviewRange>(null);
   const lastDragVerseRef = useRef<number | null>(null);
   const dragEndTimeRef = useRef(0);
+  const lastDragPageXRef = useRef(0);
   const lastDragPageYRef = useRef(0);
   const dragStartPageYRef = useRef(0);
   const autoScrollRAFRef = useRef<number | null>(null);
   const autoScrollSpeedRef = useRef(0);
   const isNativeHitTestingRef = useRef(false);
-  const pendingHitTestPageYRef = useRef<number | null>(null);
+  const pendingHitTestRef = useRef<{ x: number; y: number } | null>(null);
   /* eslint-enable unicorn/no-null */
 
   // ---------------------------------------------------------------------------
@@ -109,33 +110,24 @@ export const useDragSelection = ({
   /** Update the drag selection using native hit testing on iOS,
    *  falling back to coordinate math on Android or if native fails. */
   const updateDragVerse = useCallback(
-    (pageY: number) => {
+    (pageX: number, pageY: number) => {
       if (!dragSelectionRef.current) return;
-
-      if (Platform.OS !== "ios") {
-        // Android: use coordinate-based fallback
-        const verse = findVerseAtPageY(pageY);
-        if (verse !== undefined) applyVerseHit(verse);
-        return;
-      }
 
       // Throttle: only one native hit test in flight at a time
       if (isNativeHitTestingRef.current) {
-        pendingHitTestPageYRef.current = pageY;
+        pendingHitTestRef.current = { x: pageX, y: pageY };
         return;
       }
 
       isNativeHitTestingRef.current = true;
 
-      // Use the center X of the screen for hit testing (text spans full width)
-      const screenCenterX = 200; // approximate — text is left-aligned so any X in the text area works
-      getVerseAtPoint(screenCenterX, pageY)
+      getVerseAtPoint(pageX, pageY)
         .then((verse) => {
           isNativeHitTestingRef.current = false;
 
           if (__DEV__) {
             console.log(
-              `[native-verse] x=${screenCenterX} y=${Math.round(
+              `[native-verse] x=${Math.round(pageX)} y=${Math.round(
                 pageY
               )} → verse=${verse}`
             );
@@ -153,11 +145,11 @@ export const useDragSelection = ({
           }
 
           // Process queued hit test
-          const pending = pendingHitTestPageYRef.current;
+          const pending = pendingHitTestRef.current;
           if (pending !== null && dragSelectionRef.current) {
             // eslint-disable-next-line unicorn/no-null
-            pendingHitTestPageYRef.current = null;
-            updateDragVerse(pending);
+            pendingHitTestRef.current = null;
+            updateDragVerse(pending.x, pending.y);
           }
           return;
         })
@@ -189,7 +181,7 @@ export const useDragSelection = ({
     }
 
     // Re-run verse hit-test: finger hasn't moved but content scrolled under it
-    updateDragVerse(lastDragPageYRef.current);
+    updateDragVerse(lastDragPageXRef.current, lastDragPageYRef.current);
 
     autoScrollRAFRef.current = requestAnimationFrame(runAutoScrollFrame);
   }, [scrollOffsetRef, scrollViewRef, stopAutoScroll, updateDragVerse]);
@@ -231,10 +223,11 @@ export const useDragSelection = ({
   const DRAG_DEAD_ZONE_PX = 30;
 
   const onDragUpdate = useCallback(
-    (pageY: number) => {
+    (pageX: number, pageY: number) => {
       if (!dragSelectionRef.current) return;
 
       // Store latest finger position for auto-scroll re-hit-testing
+      lastDragPageXRef.current = pageX;
       lastDragPageYRef.current = pageY;
 
       // Don't update the verse until the finger has moved meaningfully
@@ -246,7 +239,7 @@ export const useDragSelection = ({
       }
 
       // Find the verse under the user's finger
-      updateDragVerse(pageY);
+      updateDragVerse(pageX, pageY);
 
       // --- Auto-scroll hot zones ---
       // Bottom zone is larger to account for the tab bar eating into the

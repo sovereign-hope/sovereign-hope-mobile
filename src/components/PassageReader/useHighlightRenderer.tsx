@@ -67,7 +67,7 @@ export type HighlightRendererResult = {
   /** Ref to the last verse where onPressIn fired (set at touch start) */
   lastPressInVerseRef: React.MutableRefObject<number | undefined>;
   onDragStart: (pageY: number, preResolvedVerse?: number) => void;
-  onDragUpdate: (pageY: number) => void;
+  onDragUpdate: (pageX: number, pageY: number) => void;
   onDragEnd: () => void;
   /** Whether a drag selection is in progress (disable scroll) */
   isDragSelecting: boolean;

@@ -133,8 +133,17 @@ class VerseHitTestModule : Module() {
      * at a word boundary (start of text, after newline, or after space).
      */
     private fun findVerseInText(text: CharSequence, charOffset: Int): Int {
+        return try {
+            findVerseInTextUnsafe(text, charOffset)
+        } catch (_: Exception) {
+            -10 // safety catch
+        }
+    }
+
+    private fun findVerseInTextUnsafe(text: CharSequence, charOffset: Int): Int {
         val str = text.toString()
-        // Also try span-based detection for Fabric (ReactFragmentIndexSpan)
+        if (charOffset < 0 || charOffset >= str.length) return -6
+        val safeOffset = charOffset.coerceIn(0, str.length - 1)
         val spanned = text as? Spanned
 
         // First try: scan for ReactClickableSpan or similar spans that
@@ -145,7 +154,7 @@ class VerseHitTestModule : Module() {
             try {
                 val clickableClass = Class.forName("com.facebook.react.views.text.internal.span.ReactClickableSpan")
                 @Suppress("UNCHECKED_CAST")
-                val spans = spanned.getSpans(charOffset, charOffset + 1, clickableClass as Class<Any>)
+                val spans = spanned.getSpans(safeOffset, (safeOffset + 1).coerceAtMost(str.length), clickableClass as Class<Any>)
                 if (spans.isNotEmpty()) {
                     val span = spans[0]
                     val spanStart = spanned.getSpanStart(span)

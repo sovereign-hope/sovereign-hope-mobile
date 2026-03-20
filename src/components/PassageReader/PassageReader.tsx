@@ -590,8 +590,10 @@ export const PassageReader: React.FunctionComponent<PassageReaderProps> = ({
     [highlightEnabled, highlightRenderer.lastPressInVerseRef]
   );
 
+  const lastTouchXRef = useRef(0);
   const handleTouchMove = useCallback((event: GestureResponderEvent) => {
-    const { pageY } = event.nativeEvent;
+    const { pageX, pageY } = event.nativeEvent;
+    lastTouchXRef.current = pageX;
     lastTouchYRef.current = pageY;
     didMoveRef.current = true;
 
@@ -608,7 +610,7 @@ export const PassageReader: React.FunctionComponent<PassageReaderProps> = ({
       return;
     }
 
-    onDragUpdateRef.current(pageY);
+    onDragUpdateRef.current(pageX, pageY);
   }, []);
 
   const handleTapRef = useRef(highlightRenderer.handleTapAtPageY);
