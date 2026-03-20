@@ -65,80 +65,64 @@
         }
     }
 
-    // Scan backward from charIndex to find the nearest verse number marker.
-    // Verse numbers are rendered with a significantly smaller font size
-    // (0.7x from the <sup> tag style) and are bold.
+    // Use React Native's EventEmitter attribute to identify which verse-text
+    // element the character belongs to. Each verse-text has a unique EventEmitter
+    // stored as NSData. We find the range of the current EventEmitter, then
+    // scan that range's text for the verse number digits at the start.
     NSString *text = textStorage.string;
 
-    // First, get the "normal" font size (the font at the hit character)
-    UIFont *hitFont = [textStorage attribute:NSFontAttributeName atIndex:charIndex effectiveRange:NULL];
-    CGFloat normalFontSize = hitFont ? hitFont.pointSize : 0;
+    // Get the EventEmitter at the hit character
+    NSRange emitterRange;
+    NSData *emitter = [textStorage attribute:@"EventEmitter"
+                                    atIndex:charIndex
+                             effectiveRange:&emitterRange];
 
-    // If we hit a verse number character directly, walk backward to find its start
-    // Otherwise, scan backward to find the verse number marker
-
-    NSInteger scanIndex = (NSInteger)charIndex;
-    NSInteger verseNumber = -7; // no verse marker found in scan
-
-    while (scanIndex >= 0) {
-        UIFont *font = [textStorage attribute:NSFontAttributeName atIndex:(NSUInteger)scanIndex effectiveRange:NULL];
-        if (!font) {
+    if (!emitter) {
+        // No EventEmitter — character is not in a pressable text run.
+        // Scan backward to find the nearest character with an EventEmitter.
+        NSInteger scanIndex = (NSInteger)charIndex - 1;
+        while (scanIndex >= 0) {
+            NSRange range;
+            NSData *em = [textStorage attribute:@"EventEmitter"
+                                        atIndex:(NSUInteger)scanIndex
+                                 effectiveRange:&range];
+            if (em) {
+                emitter = em;
+                emitterRange = range;
+                break;
+            }
             scanIndex--;
-            continue;
         }
-
-        // Check if this character's font is significantly smaller than normal
-        // (verse numbers use 0.7x font size via the <sup> style)
-        CGFloat ratio = font.pointSize / normalFontSize;
-        if (ratio < 0.85 && ratio > 0.5) {
-            // This character is part of a verse number marker
-            // Find the full extent of this verse number (contiguous small-font digits)
-            NSInteger numStart = scanIndex;
-            NSInteger numEnd = scanIndex;
-
-            // Scan backward to start of number
-            while (numStart > 0) {
-                UIFont *prevFont = [textStorage attribute:NSFontAttributeName atIndex:(NSUInteger)(numStart - 1) effectiveRange:NULL];
-                CGFloat prevRatio = prevFont ? prevFont.pointSize / normalFontSize : 1.0;
-                if (prevRatio < 0.85 && prevRatio > 0.5) {
-                    numStart--;
-                } else {
-                    break;
-                }
-            }
-
-            // Scan forward to end of number
-            while (numEnd < (NSInteger)textStorage.length - 1) {
-                UIFont *nextFont = [textStorage attribute:NSFontAttributeName atIndex:(NSUInteger)(numEnd + 1) effectiveRange:NULL];
-                CGFloat nextRatio = nextFont ? nextFont.pointSize / normalFontSize : 1.0;
-                if (nextRatio < 0.85 && nextRatio > 0.5) {
-                    numEnd++;
-                } else {
-                    break;
-                }
-            }
-
-            // Extract the verse number text (strip whitespace)
-            NSString *verseStr = [[text substringWithRange:NSMakeRange((NSUInteger)numStart, (NSUInteger)(numEnd - numStart + 1))] stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
-
-            // Remove any non-digit characters (e.g., "1:1 " → "1")
-            // For chapter:verse format, take the last number
-            NSArray *parts = [verseStr componentsSeparatedByString:@":"];
-            NSString *versePart = parts.lastObject;
-            // Strip non-digits
-            NSCharacterSet *nonDigits = [[NSCharacterSet decimalDigitCharacterSet] invertedSet];
-            versePart = [[versePart componentsSeparatedByCharactersInSet:nonDigits] componentsJoinedByString:@""];
-
-            if (versePart.length > 0) {
-                verseNumber = [versePart integerValue];
-            }
-            break;
-        }
-
-        scanIndex--;
     }
 
-    return verseNumber;
+    if (!emitter) return -7; // no EventEmitter found
+
+    // Extract the text within this EventEmitter's range
+    NSString *rangeText = [text substringWithRange:emitterRange];
+
+    // The verse number is typically at the start of the range as bold digits
+    // followed by a space: "5 But woe unto you..." or "23:1 Then spake..."
+    // Extract leading digits (handle chapter:verse format)
+    NSRegularExpression *regex = [NSRegularExpression regularExpressionWithPattern:@"^\\s*(\\d+(?::\\d+)?)\\s"
+                                                                          options:0
+                                                                            error:NULL];
+    NSTextCheckingResult *match = [regex firstMatchInString:rangeText
+                                                    options:0
+                                                      range:NSMakeRange(0, MIN(rangeText.length, 20))];
+    if (!match || match.numberOfRanges < 2) return -8; // no verse number pattern
+
+    NSString *verseStr = [rangeText substringWithRange:[match rangeAtIndex:1]];
+
+    // For chapter:verse format (e.g. "23:1"), take the verse part
+    NSArray *parts = [verseStr componentsSeparatedByString:@":"];
+    NSString *versePart = parts.lastObject;
+
+    NSCharacterSet *nonDigits = [[NSCharacterSet decimalDigitCharacterSet] invertedSet];
+    versePart = [[versePart componentsSeparatedByCharactersInSet:nonDigits] componentsJoinedByString:@""];
+
+    if (versePart.length == 0) return -9; // no digits found
+
+    return [versePart integerValue];
 }
 
 @end
