@@ -125,22 +125,11 @@ export const useDragSelection = ({
         .then((verse) => {
           isNativeHitTestingRef.current = false;
 
-          if (__DEV__) {
-            console.log(
-              `[native-verse] x=${Math.round(pageX)} y=${Math.round(
-                pageY
-              )} → verse=${verse}`
-            );
-          }
-
           if (verse > 0 && dragSelectionRef.current) {
             applyVerseHit(verse);
           } else {
             // Native hit test failed — fall back to coordinate math
             const fallback = findVerseAtPageY(pageY);
-            if (__DEV__) {
-              console.log(`[native-verse] fallback → v${fallback}`);
-            }
             if (fallback !== undefined) applyVerseHit(fallback);
           }
 
