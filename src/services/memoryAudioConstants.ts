@@ -32,26 +32,35 @@ export type MemoryAudioSessionPhase =
 // ---------------------------------------------------------------------------
 
 export const ENCODING_PLAYS = 3;
-export const ENCODING_GAP_MS = 7000;
-export const GAP_SEQUENCE = [10_000, 20_000, 30_000, 45_000];
-export const FINAL_OUTRO_MIN_MS = 6000;
-export const FINAL_OUTRO_FADE_MS = 4000;
+export const ENCODING_GAP_MS = 10_000;
+export const ENCODING_TO_RECALL_GAP_MS = 15_000;
+export const GAP_SEQUENCE = [15_000, 25_000, 35_000, 50_000, 60_000];
+export const FINAL_OUTRO_MS = 120_000; // 2 minutes of quiet ambient
+export const FINAL_OUTRO_FADE_MS = 15_000; // 15-second fade at the very end
 export const SPOKEN_PLAYBACK_VOLUME = 1;
 
 // ---------------------------------------------------------------------------
 // Ambient volume constants
 // ---------------------------------------------------------------------------
 
-export const AMBIENT_VOLUME = 0.3;
-export const SPOKEN_DUCKED_VOLUME = 0.09;
-export const SPOKEN_DUCKED_VOLUME_UPBEAT = 0.06;
+export const AMBIENT_VOLUME = 0.8;
+export const SPOKEN_DUCKED_VOLUME = 0.15;
+export const SPOKEN_DUCKED_VOLUME_UPBEAT = 0.1;
 export const UPBEAT_AMBIENT_PREFIX = "upbeat-";
 
 // ---------------------------------------------------------------------------
-// Session rendering limits
+// Session duration presets
 // ---------------------------------------------------------------------------
 
-export const MAX_SESSION_DURATION_SECONDS = 810; // 15 minutes
+export type SessionDurationMinutes = 5 | 10 | 15 | 20;
+
+export const SESSION_DURATION_OPTIONS: SessionDurationMinutes[] = [
+  5, 10, 15, 20,
+];
+
+export const DEFAULT_SESSION_DURATION_MINUTES: SessionDurationMinutes = 10;
+
+export const MAX_SESSION_DURATION_SECONDS = 20 * 60; // 20 minutes
 
 // ---------------------------------------------------------------------------
 // Pure timing functions
@@ -63,8 +72,15 @@ const getMinimumGapDurationMs = (verseDurationSeconds: number): number =>
 export const getEncodingGapDuration = (verseDurationSeconds: number): number =>
   Math.max(ENCODING_GAP_MS, getMinimumGapDurationMs(verseDurationSeconds));
 
-export const getFinalOutroDuration = (verseDurationSeconds: number): number =>
-  Math.max(FINAL_OUTRO_MIN_MS, getMinimumGapDurationMs(verseDurationSeconds));
+export const getEncodingToRecallGapDuration = (
+  verseDurationSeconds: number
+): number =>
+  Math.max(
+    ENCODING_TO_RECALL_GAP_MS,
+    getMinimumGapDurationMs(verseDurationSeconds)
+  );
+
+export const getFinalOutroDuration = (): number => FINAL_OUTRO_MS;
 
 export const getRecallGapDuration = (
   completedCycles: number,
@@ -85,11 +101,14 @@ export const getEstimatedMemoryAudioSessionDurationSeconds = (
     return 0;
   }
 
-  const clampedRecallCyclesTarget = Math.max(6, recallCyclesTarget);
+  const clampedRecallCyclesTarget = Math.max(1, recallCyclesTarget);
   const totalVersePlays = ENCODING_PLAYS + clampedRecallCyclesTarget;
+  // Gaps between encoding plays
   let totalGapMs =
     getEncodingGapDuration(verseDurationSeconds) *
     Math.max(0, ENCODING_PLAYS - 1);
+  // Gap between encoding and recall phases
+  totalGapMs += getEncodingToRecallGapDuration(verseDurationSeconds);
 
   for (
     let recallGapIndex = 0;
@@ -98,9 +117,33 @@ export const getEstimatedMemoryAudioSessionDurationSeconds = (
   ) {
     totalGapMs += getRecallGapDuration(recallGapIndex, verseDurationSeconds);
   }
-  totalGapMs += getFinalOutroDuration(verseDurationSeconds);
+  totalGapMs += getFinalOutroDuration();
 
   return totalVersePlays * verseDurationSeconds + totalGapMs / 1000;
+};
+
+/**
+ * Compute the number of recall cycles that best fit within a target duration.
+ * Starts from a generous upper bound and decrements until the estimated
+ * session fits within the target. Guarantees at least 1 recall cycle.
+ */
+export const getRecallCyclesForDuration = (
+  verseDurationSeconds: number,
+  targetMinutes: SessionDurationMinutes
+): number => {
+  if (verseDurationSeconds <= 0) return 1;
+  const targetSeconds = targetMinutes * 60;
+  let cycles = 20;
+  while (
+    cycles > 1 &&
+    getEstimatedMemoryAudioSessionDurationSeconds(
+      verseDurationSeconds,
+      cycles
+    ) > targetSeconds
+  ) {
+    cycles -= 1;
+  }
+  return cycles;
 };
 
 /**

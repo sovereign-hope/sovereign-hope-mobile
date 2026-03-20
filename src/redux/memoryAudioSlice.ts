@@ -29,8 +29,12 @@ import {
   selectMemoryAudioUrl,
 } from "src/redux/memorySlice";
 
+import type { SessionDurationMinutes } from "src/services/memoryAudioConstants";
+import { DEFAULT_SESSION_DURATION_MINUTES } from "src/services/memoryAudioConstants";
+
 const AMBIENT_PREFERENCE_KEY = "@memoryAudio/ambientPreference";
 const HAS_SEEN_INSTRUCTIONS_KEY = "@memoryAudio/hasSeenInstructions";
+const SESSION_DURATION_PREFERENCE_KEY = "@memoryAudio/sessionDurationMinutes";
 
 const formatRelativeReviewDate = (nextReviewDate?: string): string => {
   if (!nextReviewDate) {
@@ -83,6 +87,7 @@ export interface MemoryAudioState {
   verseAudioUrl?: string;
   isAudioCached: boolean;
   selectedAmbientSound: AmbientSound;
+  sessionDurationMinutes: SessionDurationMinutes;
   ambientIsPlaying: boolean;
   srsInterval: number;
   nextReviewDate?: string;
@@ -112,6 +117,7 @@ const initialState: MemoryAudioState = {
   verseAudioUrl: undefined,
   isAudioCached: false,
   selectedAmbientSound: "gentle-word-endless-field",
+  sessionDurationMinutes: DEFAULT_SESSION_DURATION_MINUTES,
   ambientIsPlaying: false,
   srsInterval: 0,
   nextReviewDate: undefined,
@@ -138,6 +144,7 @@ const memoryAudioSlice = createSlice({
       state,
       action: PayloadAction<{
         selectedAmbientSound: AmbientSound;
+        sessionDurationMinutes: SessionDurationMinutes;
         hasSeenInstructions: boolean;
         srsInterval: number;
         nextReviewDate?: string;
@@ -147,6 +154,7 @@ const memoryAudioSlice = createSlice({
       }>
     ) => {
       state.selectedAmbientSound = action.payload.selectedAmbientSound;
+      state.sessionDurationMinutes = action.payload.sessionDurationMinutes;
       state.hasSeenInstructions = action.payload.hasSeenInstructions;
       state.srsInterval = action.payload.srsInterval;
       state.nextReviewDate = action.payload.nextReviewDate;
@@ -190,6 +198,12 @@ const memoryAudioSlice = createSlice({
     },
     setSelectedAmbientSound: (state, action: PayloadAction<AmbientSound>) => {
       state.selectedAmbientSound = action.payload;
+    },
+    setSessionDurationMinutes: (
+      state,
+      action: PayloadAction<SessionDurationMinutes>
+    ) => {
+      state.sessionDurationMinutes = action.payload;
     },
     setAmbientPlaying: (state, action: PayloadAction<boolean>) => {
       state.ambientIsPlaying = action.payload;
@@ -278,12 +292,17 @@ export const memoryAudioActions = memoryAudioSlice.actions;
 export const hydrateMemoryAudioState = createAsyncThunk(
   "memoryAudio/hydrateMemoryAudioState",
   async (args: { verseReference: string }, { dispatch }) => {
-    const [storedAmbientSound, hasSeenInstructions, storedEntry] =
-      await Promise.all([
-        AsyncStorage.getItem(AMBIENT_PREFERENCE_KEY),
-        AsyncStorage.getItem(HAS_SEEN_INSTRUCTIONS_KEY),
-        loadSrsEntry(args.verseReference),
-      ]);
+    const [
+      storedAmbientSound,
+      hasSeenInstructions,
+      storedEntry,
+      storedDuration,
+    ] = await Promise.all([
+      AsyncStorage.getItem(AMBIENT_PREFERENCE_KEY),
+      AsyncStorage.getItem(HAS_SEEN_INSTRUCTIONS_KEY),
+      loadSrsEntry(args.verseReference),
+      AsyncStorage.getItem(SESSION_DURATION_PREFERENCE_KEY),
+    ]);
 
     let parsedAmbient: AmbientSound | undefined;
     try {
@@ -299,6 +318,19 @@ export const hydrateMemoryAudioState = createAsyncThunk(
     } catch {
       parsedAmbient = undefined;
     }
+    let parsedDuration: SessionDurationMinutes =
+      DEFAULT_SESSION_DURATION_MINUTES;
+    try {
+      const raw = storedDuration
+        ? (JSON.parse(storedDuration) as number)
+        : undefined;
+      if (raw === 5 || raw === 10 || raw === 15 || raw === 20) {
+        parsedDuration = raw;
+      }
+    } catch {
+      // keep default
+    }
+
     let parsedHasSeenInstructions = false;
     try {
       parsedHasSeenInstructions = hasSeenInstructions
@@ -325,6 +357,7 @@ export const hydrateMemoryAudioState = createAsyncThunk(
     dispatch(
       memoryAudioActions.setHydratedState({
         selectedAmbientSound: parsedAmbient ?? getCurrentAmbientSound(),
+        sessionDurationMinutes: parsedDuration,
         hasSeenInstructions: parsedHasSeenInstructions,
         srsInterval: updatedEntry.currentInterval,
         nextReviewDate: updatedEntry.nextReviewDate,
@@ -344,6 +377,17 @@ export const setSelectedAmbientSound = createAsyncThunk(
       JSON.stringify(ambientSound)
     );
     dispatch(memoryAudioActions.setSelectedAmbientSound(ambientSound));
+  }
+);
+
+export const setSessionDuration = createAsyncThunk(
+  "memoryAudio/setSessionDuration",
+  async (minutes: SessionDurationMinutes, { dispatch }) => {
+    await AsyncStorage.setItem(
+      SESSION_DURATION_PREFERENCE_KEY,
+      JSON.stringify(minutes)
+    );
+    dispatch(memoryAudioActions.setSessionDurationMinutes(minutes));
   }
 );
 
@@ -458,8 +502,8 @@ export const startMemoryAudioSession = createAsyncThunk(
     try {
       await startMemoryAudioSessionEngine({
         verseAudioUrl,
-        recallCyclesTarget: (getState() as RootState).memoryAudio
-          .recallCyclesTarget,
+        sessionDurationMinutes: (getState() as RootState).memoryAudio
+          .sessionDurationMinutes,
         getSelectedAmbientSound: () =>
           (getState() as RootState).memoryAudio.selectedAmbientSound,
         onLoadingProgress: (progress, message) => {
@@ -629,6 +673,7 @@ export const selectMemoryAudioViewModel = createSelector(
     loadingProgress: memoryAudio.loadingProgress,
     loadingMessage: memoryAudio.loadingMessage,
     selectedAmbientSound: memoryAudio.selectedAmbientSound,
+    sessionDurationMinutes: memoryAudio.sessionDurationMinutes,
     spokenDurationSeconds: memoryAudio.spokenDurationSeconds,
     hasSeenInstructions: memoryAudio.hasSeenInstructions,
     srsStatusLabel: formatRelativeReviewDate(memoryAudio.nextReviewDate),

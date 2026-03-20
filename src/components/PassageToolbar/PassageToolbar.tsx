@@ -19,7 +19,13 @@ export interface PassageToolbarAction {
   accessibilityLabel?: string;
   accessibilityHint?: string;
   onPress: () => void;
+  disabled?: boolean;
 }
+
+/** Approximate total height the toolbar occupies above the safe area
+ *  (container gap + row padding + icon + label). Use to add clearance
+ *  to scroll content so footers aren't hidden behind the toolbar. */
+export const TOOLBAR_CLEARANCE = 76;
 
 interface PassageToolbarProps {
   actions: PassageToolbarAction[];
@@ -107,14 +113,28 @@ export const PassageToolbar: React.FunctionComponent<PassageToolbarProps> = ({
             accessibilityRole="button"
             accessibilityLabel={action.accessibilityLabel ?? action.label}
             accessibilityHint={action.accessibilityHint}
+            accessibilityState={{ disabled: action.disabled }}
+            disabled={action.disabled}
             onPress={action.onPress}
             style={({ pressed }) => [
               themedStyles.button,
-              pressed && themedStyles.buttonPressed,
+              pressed && !action.disabled && themedStyles.buttonPressed,
+              action.disabled && themedStyles.buttonDisabled,
             ]}
           >
-            <Ionicons name={action.icon} size={22} color={theme.colors.text} />
-            <Text style={themedStyles.label}>{action.label}</Text>
+            <Ionicons
+              name={action.icon}
+              size={22}
+              color={action.disabled ? theme.colors.border : theme.colors.text}
+            />
+            <Text
+              style={[
+                themedStyles.label,
+                action.disabled && themedStyles.labelDisabled,
+              ]}
+            >
+              {action.label}
+            </Text>
           </Pressable>
         ))}
       </View>

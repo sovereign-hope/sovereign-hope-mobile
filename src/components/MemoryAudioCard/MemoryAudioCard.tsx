@@ -19,6 +19,8 @@ import {
   stopMemoryAudioSession,
 } from "src/redux/memoryAudioSlice";
 import { AMBIENT_SOUND_OPTIONS } from "src/services/ambientAudioService";
+import { SESSION_DURATION_OPTIONS } from "src/services/memoryAudioConstants";
+import { setSessionDuration } from "src/redux/memoryAudioSlice";
 import { colors } from "src/style/colors";
 import { styles } from "./MemoryAudioCard.styles";
 import { useUiPreferences } from "src/hooks/useUiPreferences";
@@ -137,6 +139,41 @@ export const MemoryAudioCard: React.FunctionComponent<Props> = ({
       >
         <Text style={themedStyles.actionButtonLabel}>Choose Sound</Text>
       </Pressable>
+
+      <View style={themedStyles.metricsRow}>
+        <Text style={themedStyles.metricLabel}>Session Length</Text>
+      </View>
+      <View style={themedStyles.segmentedRow}>
+        {SESSION_DURATION_OPTIONS.map((minutes) => {
+          const isSelected = minutes === viewModel.sessionDurationMinutes;
+          return (
+            <Pressable
+              key={minutes}
+              accessibilityRole="button"
+              accessibilityLabel={`${minutes} minute session`}
+              accessibilityHint="Sets the session length for scripture memory practice."
+              accessibilityState={{ selected: isSelected }}
+              onPress={() => {
+                void Haptics.selectionAsync();
+                void dispatch(setSessionDuration(minutes));
+              }}
+              style={[
+                themedStyles.segmentButton,
+                isSelected && themedStyles.segmentButtonSelected,
+              ]}
+            >
+              <Text
+                style={[
+                  themedStyles.segmentButtonText,
+                  isSelected && themedStyles.segmentButtonTextSelected,
+                ]}
+              >
+                {minutes} min
+              </Text>
+            </Pressable>
+          );
+        })}
+      </View>
 
       <Pressable
         accessibilityRole="button"

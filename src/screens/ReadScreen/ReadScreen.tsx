@@ -6,7 +6,7 @@ import {
   SafeAreaView,
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
-import { useAppDispatch, useAppSelector } from "src/hooks/store";
+import { useAppSelector } from "src/hooks/store";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { RootStackParamList } from "src/navigation/RootNavigator";
 import { useTheme } from "@react-navigation/native";
@@ -18,11 +18,12 @@ import {
   selectIsLoading,
   selectPassageHeader,
 } from "src/redux/esvSlice";
-import { CommonActions } from "@react-navigation/native";
 import { ReadScrollView } from "src/components/ReadScrollView/ReadScrollView";
-import { PassageToolbar } from "src/components/PassageToolbar/PassageToolbar";
+import {
+  PassageToolbar,
+  TOOLBAR_CLEARANCE,
+} from "src/components/PassageToolbar/PassageToolbar";
 import type { PassageToolbarAction } from "src/components/PassageToolbar/PassageToolbar";
-import { fetchBibleChapter } from "src/redux/bibleSlice";
 import { passageToLocation } from "src/app/bibleUtils";
 import { selectNotesForChapter, buildNoteLookup } from "src/redux/notesSlice";
 import { styles } from "./ReadScreen.styles";
@@ -43,7 +44,6 @@ export const ReadScreen: React.FunctionComponent<ReadScreenProps> = ({
   const { passages, onComplete } = route.params;
 
   // Custom hooks
-  const dispatch = useAppDispatch();
   const miniPlayerHeight = useMiniPlayerHeight();
   const insets = useSafeAreaInsets();
   const audioUrl = useAppSelector(selectAudioUrl);
@@ -113,30 +113,13 @@ export const ReadScreen: React.FunctionComponent<ReadScreenProps> = ({
     navigation.push("Font Size");
   }, [navigation]);
 
-  const handleOpenInBible = useCallback(() => {
-    const currentPassage = passages[passageIndex];
-    const location = passageToLocation(currentPassage);
-    if (!location) {
-      return;
-    }
-
-    void dispatch(fetchBibleChapter(location));
-    navigation.dispatch(CommonActions.navigate("Home", { screen: "Bible" }));
-  }, [dispatch, navigation, passageIndex, passages]);
-
   // Constants
   const themedStyles = styles({ theme, isEinkMode: uiPreferences.isEinkMode });
 
+  const hasMultiplePassages = passages.length > 1;
+
   const toolbarActions = useMemo(() => {
     const actions: PassageToolbarAction[] = [
-      {
-        key: "bible",
-        icon: "book-outline",
-        label: "Bible",
-        accessibilityLabel: "Open in Bible",
-        accessibilityHint: "Opens this chapter in the Bible tab",
-        onPress: handleOpenInBible,
-      },
       {
         key: "font",
         icon: "text-outline",
@@ -145,8 +128,6 @@ export const ReadScreen: React.FunctionComponent<ReadScreenProps> = ({
         accessibilityHint: "Adjust reading font size",
         onPress: showSelectFontSize,
       },
-    ];
-    actions.push(
       {
         key: "highlights",
         icon: "star-outline",
@@ -162,8 +143,8 @@ export const ReadScreen: React.FunctionComponent<ReadScreenProps> = ({
         accessibilityLabel: "View Notes",
         accessibilityHint: "View all your saved notes",
         onPress: () => navigation.push("Notes"),
-      }
-    );
+      },
+    ];
     if (audioUrl) {
       actions.push({
         key: "listen",
@@ -174,8 +155,47 @@ export const ReadScreen: React.FunctionComponent<ReadScreenProps> = ({
         onPress: () => void playAudio(),
       });
     }
+    if (hasMultiplePassages && passageIndex > 0) {
+      actions.push({
+        key: "prev",
+        icon: "chevron-back-outline",
+        label: "Prev.",
+        accessibilityLabel: "Previous passage",
+        accessibilityHint: "Opens the previous passage in this reading",
+        onPress: handlePreviousPassage,
+        disabled: isNavigatingPassages,
+      });
+    }
+    if (hasMultiplePassages) {
+      actions.push({
+        key: "next",
+        icon: "chevron-forward-outline",
+        label: passageIndex < passages.length - 1 ? "Next" : "Done",
+        accessibilityLabel:
+          passageIndex < passages.length - 1
+            ? "Next passage"
+            : "Finish reading",
+        accessibilityHint:
+          passageIndex < passages.length - 1
+            ? "Opens the next passage in this reading"
+            : "Completes this reading session",
+        onPress: handleNextPassage,
+        disabled: isNavigatingPassages,
+      });
+    }
     return actions;
-  }, [audioUrl, handleOpenInBible, navigation, playAudio, showSelectFontSize]);
+  }, [
+    audioUrl,
+    handleNextPassage,
+    handlePreviousPassage,
+    hasMultiplePassages,
+    isNavigatingPassages,
+    navigation,
+    passageIndex,
+    passages.length,
+    playAudio,
+    showSelectFontSize,
+  ]);
 
   const handleNote = useCallback(
     (startVerse: number, endVerse: number) => {
@@ -217,7 +237,7 @@ export const ReadScreen: React.FunctionComponent<ReadScreenProps> = ({
               onNextPassage={handleNextPassage}
               hasNextPassage={passageIndex < passages.length - 1}
               miniPlayerHeight={miniPlayerHeight}
-              bottomInset={insets.bottom}
+              bottomInset={insets.bottom + TOOLBAR_CLEARANCE}
               onScrollDirectionChange={handleScrollDirection}
               bookId={currentLocation?.bookId}
               chapter={currentLocation?.chapter}

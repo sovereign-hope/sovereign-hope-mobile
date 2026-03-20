@@ -51,7 +51,9 @@ interface ThemedStyle {
   blurOverlay: ViewStyle;
   button: ViewStyle;
   buttonPressed: ViewStyle;
+  buttonDisabled: ViewStyle;
   label: TextStyle;
+  labelDisabled: TextStyle;
 }
 
 const themedStyles = ({ theme }: { theme: Theme }): ThemedStyle =>
@@ -80,10 +82,16 @@ const themedStyles = ({ theme }: { theme: Theme }): ThemedStyle =>
     buttonPressed: {
       opacity: 0.5,
     },
+    buttonDisabled: {
+      opacity: 0.4,
+    },
     label: {
       fontSize: 12,
       marginTop: 2,
       color: theme.colors.text,
+    },
+    labelDisabled: {
+      color: theme.colors.border,
     },
   });
 

@@ -3,6 +3,7 @@ import { Platform } from "react-native";
 import type { ScrollView } from "react-native";
 import * as Haptics from "expo-haptics";
 import type { Highlight } from "src/types/highlights";
+import { getVerseAtPoint } from "verse-hit-test";
 
 export type DragPreviewRange = { lo: number; hi: number } | null;
 
@@ -32,7 +33,7 @@ type UseDragSelectionParams = {
 
 export type DragSelectionResult = {
   onDragStart: (pageY: number, preResolvedVerse?: number) => void;
-  onDragUpdate: (pageY: number) => void;
+  onDragUpdate: (pageX: number, pageY: number) => void;
   onDragEnd: () => void;
   isDragSelecting: boolean;
   dragPreviewRange: DragPreviewRange;
@@ -67,10 +68,13 @@ export const useDragSelection = ({
     useState<DragPreviewRange>(null);
   const lastDragVerseRef = useRef<number | null>(null);
   const dragEndTimeRef = useRef(0);
+  const lastDragPageXRef = useRef(0);
   const lastDragPageYRef = useRef(0);
   const dragStartPageYRef = useRef(0);
   const autoScrollRAFRef = useRef<number | null>(null);
   const autoScrollSpeedRef = useRef(0);
+  const isNativeHitTestingRef = useRef(false);
+  const pendingHitTestRef = useRef<{ x: number; y: number } | null>(null);
   /* eslint-enable unicorn/no-null */
 
   // ---------------------------------------------------------------------------
@@ -90,23 +94,62 @@ export const useDragSelection = ({
   // Cancel any in-flight RAF on unmount to prevent orphan frames
   useEffect(() => stopAutoScroll, [stopAutoScroll]);
 
-  /** Update the drag selection to match the verse under `pageY`. */
-  const updateDragVerse = useCallback(
-    (pageY: number) => {
-      if (!dragSelectionRef.current) return;
-      const verse = findVerseAtPageY(pageY);
-      if (verse === undefined) return;
+  /** Apply a verse hit result to the drag selection. */
+  const applyVerseHit = useCallback((verse: number) => {
+    if (!dragSelectionRef.current) return;
+    if (verse !== lastDragVerseRef.current) {
+      lastDragVerseRef.current = verse;
+      dragSelectionRef.current.currentVerse = verse;
+      if (Platform.OS === "ios") void Haptics.selectionAsync();
+      const lo = Math.min(dragSelectionRef.current.anchorVerse, verse);
+      const hi = Math.max(dragSelectionRef.current.anchorVerse, verse);
+      setDragPreviewRange({ lo, hi });
+    }
+  }, []);
 
-      if (verse !== lastDragVerseRef.current) {
-        lastDragVerseRef.current = verse;
-        dragSelectionRef.current.currentVerse = verse;
-        if (Platform.OS === "ios") void Haptics.selectionAsync();
-        const lo = Math.min(dragSelectionRef.current.anchorVerse, verse);
-        const hi = Math.max(dragSelectionRef.current.anchorVerse, verse);
-        setDragPreviewRange({ lo, hi });
+  /** Update the drag selection using native hit testing on iOS,
+   *  falling back to coordinate math on Android or if native fails. */
+  const updateDragVerse = useCallback(
+    (pageX: number, pageY: number) => {
+      if (!dragSelectionRef.current) return;
+
+      // Throttle: only one native hit test in flight at a time
+      if (isNativeHitTestingRef.current) {
+        pendingHitTestRef.current = { x: pageX, y: pageY };
+        return;
       }
+
+      isNativeHitTestingRef.current = true;
+
+      getVerseAtPoint(pageX, pageY)
+        .then((verse) => {
+          isNativeHitTestingRef.current = false;
+
+          if (verse > 0 && dragSelectionRef.current) {
+            applyVerseHit(verse);
+          } else {
+            // Native hit test failed — fall back to coordinate math
+            const fallback = findVerseAtPageY(pageY);
+            if (fallback !== undefined) applyVerseHit(fallback);
+          }
+
+          // Process queued hit test
+          const pending = pendingHitTestRef.current;
+          if (pending !== null && dragSelectionRef.current) {
+            // eslint-disable-next-line unicorn/no-null
+            pendingHitTestRef.current = null;
+            updateDragVerse(pending.x, pending.y);
+          }
+          return;
+        })
+        .catch(() => {
+          isNativeHitTestingRef.current = false;
+          // Fall back to coordinate math
+          const fallback = findVerseAtPageY(pageY);
+          if (fallback !== undefined) applyVerseHit(fallback);
+        });
     },
-    [findVerseAtPageY]
+    [applyVerseHit, findVerseAtPageY]
   );
 
   const runAutoScrollFrame = useCallback(() => {
@@ -127,7 +170,7 @@ export const useDragSelection = ({
     }
 
     // Re-run verse hit-test: finger hasn't moved but content scrolled under it
-    updateDragVerse(lastDragPageYRef.current);
+    updateDragVerse(lastDragPageXRef.current, lastDragPageYRef.current);
 
     autoScrollRAFRef.current = requestAnimationFrame(runAutoScrollFrame);
   }, [scrollOffsetRef, scrollViewRef, stopAutoScroll, updateDragVerse]);
@@ -169,10 +212,11 @@ export const useDragSelection = ({
   const DRAG_DEAD_ZONE_PX = 30;
 
   const onDragUpdate = useCallback(
-    (pageY: number) => {
+    (pageX: number, pageY: number) => {
       if (!dragSelectionRef.current) return;
 
       // Store latest finger position for auto-scroll re-hit-testing
+      lastDragPageXRef.current = pageX;
       lastDragPageYRef.current = pageY;
 
       // Don't update the verse until the finger has moved meaningfully
@@ -184,7 +228,7 @@ export const useDragSelection = ({
       }
 
       // Find the verse under the user's finger
-      updateDragVerse(pageY);
+      updateDragVerse(pageX, pageY);
 
       // --- Auto-scroll hot zones ---
       // Bottom zone is larger to account for the tab bar eating into the

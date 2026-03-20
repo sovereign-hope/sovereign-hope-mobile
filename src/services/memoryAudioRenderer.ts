@@ -9,15 +9,18 @@ import {
   AMBIENT_VOLUME,
   ENCODING_PLAYS,
   FINAL_OUTRO_FADE_MS,
-  MAX_SESSION_DURATION_SECONDS,
   SPOKEN_PLAYBACK_VOLUME,
   getEncodingGapDuration,
-  getEstimatedMemoryAudioSessionDurationSeconds,
+  getEncodingToRecallGapDuration,
   getFinalOutroDuration,
+  getRecallCyclesForDuration,
   getRecallGapDuration,
   getSpokenMixVolume,
 } from "src/services/memoryAudioConstants";
-import type { MemoryAudioSessionPhase } from "src/services/memoryAudioConstants";
+import type {
+  MemoryAudioSessionPhase,
+  SessionDurationMinutes,
+} from "src/services/memoryAudioConstants";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -82,9 +85,31 @@ const makeCache = <T>() => {
 const verseBufferCache = makeCache<ArrayBuffer>();
 const ambientBufferCache = makeCache<ArrayBuffer>();
 
+// ---------------------------------------------------------------------------
+// Rendered session cache — avoids re-rendering when the same verse,
+// ambient sound, and duration are requested again.
+// ---------------------------------------------------------------------------
+
+type RenderedSessionCacheEntry = {
+  key: string;
+  session: RenderedSession;
+};
+
+let renderedSessionCache: RenderedSessionCacheEntry | undefined;
+
+const makeRenderedSessionCacheKey = (
+  verseAudioUrl: string,
+  ambientSoundKey: string,
+  sessionDurationMinutes: number
+): string => `${verseAudioUrl}|${ambientSoundKey}|${sessionDurationMinutes}`;
+
 export const clearDecodedBufferCache = (): void => {
   verseBufferCache.clear();
   ambientBufferCache.clear();
+};
+
+export const clearRenderedSessionCache = (): void => {
+  renderedSessionCache = undefined;
 };
 
 // ---------------------------------------------------------------------------
@@ -168,10 +193,22 @@ const computeTimeline = (
     cursor += verseDurationSeconds;
     encodingPlaysCompleted += 1;
 
-    // Gap after each encoding play except the last encoding play
-    // (transition from encoding to recall is immediate)
     if (i < ENCODING_PLAYS - 1) {
+      // Gap between encoding plays
       const gapMs = getEncodingGapDuration(verseDurationSeconds);
+      const gapSeconds = gapMs / 1000;
+      timeline.push({
+        startSeconds: cursor,
+        endSeconds: cursor + gapSeconds,
+        phase: "encoding_gap",
+        gapDurationMs: gapMs,
+        encodingPlaysCompleted,
+        recallCyclesCompleted,
+      });
+      cursor += gapSeconds;
+    } else {
+      // Longer gap after the final encoding play before recall begins
+      const gapMs = getEncodingToRecallGapDuration(verseDurationSeconds);
       const gapSeconds = gapMs / 1000;
       timeline.push({
         startSeconds: cursor,
@@ -211,8 +248,8 @@ const computeTimeline = (
       });
       cursor += gapSeconds;
     } else {
-      // Final outro gap after the last recall play
-      const outroDurationMs = getFinalOutroDuration(verseDurationSeconds);
+      // Final outro gap after the last recall play — quiet ambient wind-down
+      const outroDurationMs = getFinalOutroDuration();
       const outroSeconds = outroDurationMs / 1000;
       timeline.push({
         startSeconds: cursor,
@@ -227,23 +264,6 @@ const computeTimeline = (
   }
 
   return timeline;
-};
-
-const clampRecallCycles = (
-  verseDurationSeconds: number,
-  recallCyclesTarget: number
-): number => {
-  let cycles = recallCyclesTarget;
-  while (
-    cycles > 1 &&
-    getEstimatedMemoryAudioSessionDurationSeconds(
-      verseDurationSeconds,
-      cycles
-    ) > MAX_SESSION_DURATION_SECONDS
-  ) {
-    cycles -= 1;
-  }
-  return cycles;
 };
 
 // ---------------------------------------------------------------------------
@@ -266,18 +286,25 @@ const getAmbientAssetModuleId = async (
 export const renderMemoryAudioSession = async (args: {
   verseAudioUrl: string;
   ambientSoundKey: AmbientSound;
-  recallCyclesTarget: number;
+  sessionDurationMinutes: SessionDurationMinutes;
   onProgress?: RenderProgressHandler;
 }): Promise<RenderedSession> => {
-  const { verseAudioUrl, ambientSoundKey, recallCyclesTarget, onProgress } =
+  const { verseAudioUrl, ambientSoundKey, sessionDurationMinutes, onProgress } =
     args;
   const reportProgress = (progress: number, message: string): void => {
     onProgress?.(Math.max(0, Math.min(1, progress)), message);
   };
-  const clampedCycles = clampRecallCycles(
-    0, // We don't know verse duration yet; clamp again after decode
-    Math.max(6, recallCyclesTarget)
+
+  // ── Check rendered session cache ─────────────────────────────────
+  const cacheKey = makeRenderedSessionCacheKey(
+    verseAudioUrl,
+    ambientSoundKey,
+    sessionDurationMinutes
   );
+  if (renderedSessionCache?.key === cacheKey) {
+    reportProgress(1, "Using cached session...");
+    return renderedSessionCache.session;
+  }
 
   // ── Determine sample rate ──────────────────────────────────────────
   reportProgress(0.08, "Getting audio ready...");
@@ -297,10 +324,10 @@ export const renderMemoryAudioSession = async (args: {
     throw new Error("Verse audio has zero duration");
   }
 
-  // Re-clamp recall cycles now that we know the verse duration
-  const finalCycles = clampRecallCycles(
+  // Compute recall cycles to fit within the target session duration
+  const finalCycles = getRecallCyclesForDuration(
     verseDurationSeconds,
-    Math.max(6, clampedCycles)
+    sessionDurationMinutes
   );
 
   // ── Build timeline ──────────────────────────────────────────────────
@@ -388,16 +415,6 @@ export const renderMemoryAudioSession = async (args: {
       }
     }
 
-    // Fade out ambient during the final outro gap
-    const lastEntry = timeline.at(-1)!;
-    if (lastEntry.phase === "recall_gap" && lastEntry.gapDurationMs) {
-      const fadeDurationSeconds =
-        Math.min(FINAL_OUTRO_FADE_MS, lastEntry.gapDurationMs) / 1000;
-      const fadeStartSeconds = lastEntry.endSeconds - fadeDurationSeconds;
-      ambientGain.gain.setValueAtTime(AMBIENT_VOLUME, fadeStartSeconds);
-      ambientGain.gain.linearRampToValueAtTime(0, lastEntry.endSeconds);
-    }
-
     ambientSource.start(0);
     ambientSource.stop(totalDurationSeconds);
     reportProgress(0.74, "Balancing voice and ambient...");
@@ -406,12 +423,40 @@ export const renderMemoryAudioSession = async (args: {
   // ── Render ──────────────────────────────────────────────────────────
   reportProgress(0.88, "Encoding session audio...");
   const renderedBuffer = await offlineCtx.startRendering();
+
+  // Apply fade-out directly to the rendered samples — this is reliable
+  // regardless of gain automation support in the audio API.
+  const lastEntry = timeline.at(-1)!;
+  if (lastEntry.phase === "recall_gap" && lastEntry.gapDurationMs) {
+    const fadeDurationSeconds =
+      Math.min(FINAL_OUTRO_FADE_MS, lastEntry.gapDurationMs) / 1000;
+    const fadeStartSample = Math.floor(
+      (totalDurationSeconds - fadeDurationSeconds) * sampleRate
+    );
+    const totalRenderedSamples = renderedBuffer.length;
+    const fadeSamples = totalRenderedSamples - fadeStartSample;
+
+    for (let ch = 0; ch < renderedBuffer.numberOfChannels; ch += 1) {
+      const channelData = renderedBuffer.getChannelData(ch);
+      for (let i = 0; i < fadeSamples; i += 1) {
+        const sampleIndex = fadeStartSample + i;
+        if (sampleIndex < totalRenderedSamples) {
+          channelData[sampleIndex] *= 1 - i / fadeSamples;
+        }
+      }
+    }
+  }
+
   reportProgress(0.96, "Preparing playback...");
 
-  return {
+  const result: RenderedSession = {
     buffer: renderedBuffer,
     durationSeconds: totalDurationSeconds,
     verseDurationSeconds,
     phaseTimeline: timeline,
   };
+
+  renderedSessionCache = { key: cacheKey, session: result };
+
+  return result;
 };

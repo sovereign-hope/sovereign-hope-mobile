@@ -53,7 +53,6 @@ import {
   MEMORY_AUDIO_SESSION_TRACK_ARTIST,
   MEMORY_AUDIO_SESSION_TRACK_ALBUM,
   MEMORY_AUDIO_SESSION_TRACK_ARTWORK_URI,
-  getEstimatedMemoryAudioSessionDurationSeconds,
 } from "src/services/memoryAudioConstants";
 import { canUseLiquidGlass } from "src/services/liquidGlassSupport";
 import { spacing } from "src/style/layout";
@@ -164,17 +163,9 @@ export const MediaPlayer: React.FunctionComponent<Props> = () => {
   const isMemorySessionPlaying = isMemorySessionActiveTrack
     ? !memoryAudioState.isSessionPaused
     : playbackState.state === PlayerState.Playing;
-  const memoryVerseDurationSeconds =
-    memoryAudioState.spokenDurationSeconds > 0
-      ? memoryAudioState.spokenDurationSeconds
-      : duration;
   const estimatedSessionDuration = useMemo(
-    () =>
-      getEstimatedMemoryAudioSessionDurationSeconds(
-        memoryVerseDurationSeconds,
-        memoryAudioState.recallCyclesTarget
-      ),
-    [memoryVerseDurationSeconds, memoryAudioState.recallCyclesTarget]
+    () => memoryAudioState.sessionDurationMinutes * 60,
+    [memoryAudioState.sessionDurationMinutes]
   );
   const effectiveDuration =
     isMemorySessionActiveTrack && memoryAudioState.sessionDurationSeconds > 0
@@ -221,7 +212,9 @@ export const MediaPlayer: React.FunctionComponent<Props> = () => {
           dark: "rgba(255, 255, 255, 0.86)",
         })
       : colors.white;
-  const controlIconColor = uiPreferences.isEinkMode ? colors.black : colors.white;
+  const controlIconColor = uiPreferences.isEinkMode
+    ? colors.black
+    : colors.white;
   const maximizedHeaderTopInset = useExpandedPlayerSheet
     ? spacing.medium
     : insets.top;
@@ -445,25 +438,35 @@ export const MediaPlayer: React.FunctionComponent<Props> = () => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   }, [dispatch, isMemorySessionActiveTrack]);
 
+  const sessionElapsedRef = useRef(sessionElapsedSeconds);
+  sessionElapsedRef.current = sessionElapsedSeconds;
+  const effectiveDurationRef = useRef(effectiveDuration);
+  effectiveDurationRef.current = effectiveDuration;
+
   const jumpBack = useCallback(async () => {
     if (isMemorySessionActiveTrack) {
-      return;
+      const newPos = Math.max(0, sessionElapsedRef.current - 15);
+      await dispatch(seekMemoryAudioSession(newPos));
+    } else {
+      const progress = await TrackPlayer.getProgress();
+      await TrackPlayer.seekTo(progress.position - 15);
     }
-    const progress = await TrackPlayer.getProgress();
-    const currentPosition = progress.position;
-    await TrackPlayer.seekTo(currentPosition - 15);
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-  }, [isMemorySessionActiveTrack]);
+  }, [dispatch, isMemorySessionActiveTrack]);
 
   const jumpForward = useCallback(async () => {
     if (isMemorySessionActiveTrack) {
-      return;
+      const newPos = Math.min(
+        effectiveDurationRef.current,
+        sessionElapsedRef.current + 15
+      );
+      await dispatch(seekMemoryAudioSession(newPos));
+    } else {
+      const progress = await TrackPlayer.getProgress();
+      await TrackPlayer.seekTo(progress.position + 15);
     }
-    const progress = await TrackPlayer.getProgress();
-    const currentPosition = progress.position;
-    await TrackPlayer.seekTo(currentPosition + 15);
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-  }, [isMemorySessionActiveTrack]);
+  }, [dispatch, isMemorySessionActiveTrack]);
 
   const play = useCallback(async () => {
     await (isMemorySessionActiveTrack
@@ -532,21 +535,28 @@ export const MediaPlayer: React.FunctionComponent<Props> = () => {
   // Replace track-skip handlers (next/previous) with long seek +/-60s
   const skipToNext = useCallback(async () => {
     if (isMemorySessionActiveTrack) {
-      return;
+      const newPos = Math.min(
+        effectiveDurationRef.current,
+        sessionElapsedRef.current + 60
+      );
+      await dispatch(seekMemoryAudioSession(newPos));
+    } else {
+      const progress = await TrackPlayer.getProgress();
+      await TrackPlayer.seekTo(progress.position + 60);
     }
-    const progress = await TrackPlayer.getProgress();
-    await TrackPlayer.seekTo(progress.position + 60);
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-  }, [isMemorySessionActiveTrack]);
+  }, [dispatch, isMemorySessionActiveTrack]);
 
   const skipToPrevious = useCallback(async () => {
     if (isMemorySessionActiveTrack) {
-      return;
+      const newPos = Math.max(0, sessionElapsedRef.current - 60);
+      await dispatch(seekMemoryAudioSession(newPos));
+    } else {
+      const progress = await TrackPlayer.getProgress();
+      await TrackPlayer.seekTo(Math.max(0, progress.position - 60));
     }
-    const progress = await TrackPlayer.getProgress();
-    await TrackPlayer.seekTo(Math.max(0, progress.position - 60));
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-  }, [isMemorySessionActiveTrack]);
+  }, [dispatch, isMemorySessionActiveTrack]);
 
   const seekToPosition = useCallback(
     async (position: number) => {
