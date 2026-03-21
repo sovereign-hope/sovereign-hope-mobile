@@ -53,7 +53,6 @@ import { getPressFeedbackStyle } from "src/style/eink";
 import { playPassageAudio } from "src/services/passageAudio";
 import { colors } from "src/style/colors";
 import { useTabBarHeightContext } from "src/navigation/TabBarContext";
-import { ReadingToolbarContext } from "src/navigation/ReadingToolbarContext";
 import { selectNotesForChapter, buildNoteLookup } from "src/redux/notesSlice";
 import { NotePreviewPopup } from "src/components/NotePreviewPopup/NotePreviewPopup";
 import { formatVerseReference } from "src/app/bibleUtils";
@@ -80,8 +79,6 @@ export const BibleScreen: React.FunctionComponent = () => {
   const uiPreferences = useUiPreferences();
   const pickerRef = useRef<BiblePickerHandle>(null);
   const [toolbarVisible, setToolbarVisible] = useState(true);
-  const [rtToolbarHeight, setRtToolbarHeight] = useState(0);
-  const [rtToolbarVisible, setRtToolbarVisible] = useState(true);
   // eslint-disable-next-line unicorn/no-null
   const [previewNote, setPreviewNote] = useState<Note | null>(null);
 
@@ -478,51 +475,42 @@ export const BibleScreen: React.FunctionComponent = () => {
   }
 
   return (
-    <ReadingToolbarContext.Provider
-      value={{
-        toolbarHeight: rtToolbarHeight,
-        setToolbarHeight: setRtToolbarHeight,
-        toolbarVisible: rtToolbarVisible,
-        setToolbarVisible: setRtToolbarVisible,
-      }}
-    >
-      <>
-        {content}
-        <BiblePicker
-          ref={pickerRef}
-          currentLocation={location}
-          onSelectLocation={handlePickerSelect}
+    <>
+      {content}
+      <BiblePicker
+        ref={pickerRef}
+        currentLocation={location}
+        onSelectLocation={handlePickerSelect}
+      />
+      {previewNote && (
+        <NotePreviewPopup
+          text={previewNote.text}
+          reference={formatVerseReference(
+            previewNote.bookId,
+            previewNote.chapter,
+            previewNote.startVerse,
+            previewNote.endVerse
+          )}
+          onEdit={() => {
+            const note = previewNote;
+            // eslint-disable-next-line unicorn/no-null
+            setPreviewNote(null);
+            navigation.navigate("NoteEditor", {
+              bookId: note.bookId,
+              chapter: note.chapter,
+              startVerse: note.startVerse,
+              endVerse: note.endVerse,
+              noteId: note.id,
+              initialText: note.text,
+            });
+          }}
+          onDismiss={() => {
+            // eslint-disable-next-line unicorn/no-null
+            setPreviewNote(null);
+          }}
         />
-        {previewNote && (
-          <NotePreviewPopup
-            text={previewNote.text}
-            reference={formatVerseReference(
-              previewNote.bookId,
-              previewNote.chapter,
-              previewNote.startVerse,
-              previewNote.endVerse
-            )}
-            onEdit={() => {
-              const note = previewNote;
-              // eslint-disable-next-line unicorn/no-null
-              setPreviewNote(null);
-              navigation.navigate("NoteEditor", {
-                bookId: note.bookId,
-                chapter: note.chapter,
-                startVerse: note.startVerse,
-                endVerse: note.endVerse,
-                noteId: note.id,
-                initialText: note.text,
-              });
-            }}
-            onDismiss={() => {
-              // eslint-disable-next-line unicorn/no-null
-              setPreviewNote(null);
-            }}
-          />
-        )}
-      </>
-    </ReadingToolbarContext.Provider>
+      )}
+    </>
   );
 };
 
