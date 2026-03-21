@@ -75,6 +75,11 @@ export const PassageToolbar: React.FunctionComponent<PassageToolbarProps> = ({
       setToolbarHeight(0);
       setToolbarVisible(false);
     }
+
+    return () => {
+      setToolbarHeight(0);
+      setToolbarVisible(false);
+    };
   }, [isFocused, setToolbarHeight, setToolbarVisible, visible]);
 
   const shouldUseLiquidGlass = canUseLiquidGlass(Platform.OS, {
