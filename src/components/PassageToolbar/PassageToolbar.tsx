@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef } from "react";
 import { Animated, Platform, Pressable, Text, View } from "react-native";
-import { useTheme } from "@react-navigation/native";
+import { useIsFocused, useTheme } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { BlurView } from "expo-blur";
 import {
@@ -65,17 +65,17 @@ export const PassageToolbar: React.FunctionComponent<PassageToolbarProps> = ({
     }).start();
   }, [visible, translateY]);
 
-  useEffect(() => {
-    setToolbarHeight(TOOLBAR_CLEARANCE);
+  const isFocused = useIsFocused();
 
-    return () => {
+  useEffect(() => {
+    if (isFocused) {
+      setToolbarHeight(TOOLBAR_CLEARANCE);
+      setToolbarVisible(visible);
+    } else {
       setToolbarHeight(0);
-    };
-  }, [setToolbarHeight]);
-
-  useEffect(() => {
-    setToolbarVisible(visible);
-  }, [setToolbarVisible, visible]);
+      setToolbarVisible(false);
+    }
+  }, [isFocused, setToolbarHeight, setToolbarVisible, visible]);
 
   const shouldUseLiquidGlass = canUseLiquidGlass(Platform.OS, {
     isGlassEffectCheck: isGlassEffectAPIAvailable,
