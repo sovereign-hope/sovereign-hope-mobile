@@ -40,6 +40,7 @@ import * as Haptics from "expo-haptics";
 import { formatTime } from "./utils";
 import { TabBarHeightContext } from "src/navigation/TabBarContext";
 import { MediaPlayerContext } from "src/navigation/MediaPlayerContext";
+import { useReadingToolbarContext } from "src/navigation/ReadingToolbarContext";
 import { useAppDispatch, useAppSelector } from "src/hooks/store";
 import {
   pauseMemoryAudioSession,
@@ -81,6 +82,7 @@ export const MediaPlayer: React.FunctionComponent<Props> = () => {
     isTabBarVisible,
   } = React.useContext(TabBarHeightContext);
   const { setIsVisible } = React.useContext(MediaPlayerContext);
+  const { toolbarHeight, toolbarVisible } = useReadingToolbarContext();
   const playbackState = usePlaybackState();
   const memoryAudioState = useAppSelector(selectMemoryAudioState);
   const { width: viewportWidth, isTablet } = useTabletLayout();
@@ -103,28 +105,36 @@ export const MediaPlayer: React.FunctionComponent<Props> = () => {
     const desiredGap = 6; // pixels of visible gap between player and tab bar
     const isIPad = Platform.OS === "ios" && Platform.isPad;
 
+    let baseOffset: number;
+
     // Use visibility state for immediate positioning
-    if (!isTabBarVisible) {
+    if (isTabBarVisible) {
+      // Tab bar is visible, use cached height for immediate positioning
+      const effectiveTabBarHeight = isCached
+        ? cachedHeight
+        : tabBarHeight || measuredHeight;
+
+      // On iPad, tabs are presented at the top, so there is no bottom tab bar
+      // to clear and we should only respect bottom safe area.
+      if (isIPad) {
+        baseOffset = insets.bottom + desiredGap;
+      } else if (Platform.OS === "android") {
+        baseOffset = effectiveTabBarHeight + desiredGap;
+      } else {
+        // iOS: use safe area bottom + small gap above tab bar
+        baseOffset = effectiveTabBarHeight + desiredGap;
+      }
+    } else {
       // Tab bar is hidden, sit at the very bottom
-      return insets.bottom + desiredGap;
+      baseOffset = insets.bottom + desiredGap;
     }
 
-    // Tab bar is visible, use cached height for immediate positioning
-    const effectiveTabBarHeight = isCached
-      ? cachedHeight
-      : tabBarHeight || measuredHeight;
-
-    // On iPad, tabs are presented at the top, so there is no bottom tab bar
-    // to clear and we should only respect bottom safe area.
-    if (isIPad) {
-      return insets.bottom + desiredGap;
+    // When on a reading screen with the toolbar visible, offset above it
+    if (toolbarVisible && toolbarHeight > 0) {
+      return baseOffset + toolbarHeight;
     }
 
-    if (Platform.OS === "android") {
-      return effectiveTabBarHeight + desiredGap;
-    }
-    // iOS: use safe area bottom + small gap above tab bar
-    return effectiveTabBarHeight + desiredGap;
+    return baseOffset;
   }, [
     isTabBarVisible,
     tabBarHeight,
@@ -132,6 +142,8 @@ export const MediaPlayer: React.FunctionComponent<Props> = () => {
     cachedHeight,
     isCached,
     insets.bottom,
+    toolbarHeight,
+    toolbarVisible,
   ]);
 
   const { position, duration } = useProgress();
@@ -424,6 +436,28 @@ export const MediaPlayer: React.FunctionComponent<Props> = () => {
     bottomAnimation,
     getBottomOffset,
     isTabBarVisible,
+    uiPreferences.disableAnimations,
+  ]);
+
+  // Animate when reading toolbar visibility changes
+  useLayoutEffect(() => {
+    const newBottomOffset = getBottomOffset();
+
+    if (uiPreferences.disableAnimations) {
+      bottomAnimation.setValue(-newBottomOffset);
+      return;
+    }
+
+    Animated.timing(bottomAnimation, {
+      toValue: -newBottomOffset,
+      duration: 200, // Match PassageToolbar animation duration
+      useNativeDriver: true,
+    }).start();
+  }, [
+    bottomAnimation,
+    getBottomOffset,
+    toolbarVisible,
+    toolbarHeight,
     uiPreferences.disableAnimations,
   ]);
 

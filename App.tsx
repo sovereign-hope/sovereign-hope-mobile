@@ -22,6 +22,7 @@ import * as Sentry from "@sentry/react-native";
 import { MediaPlayer } from "src/components";
 import { TabBarHeightContext } from "src/navigation/TabBarContext";
 import { MediaPlayerContext } from "src/navigation/MediaPlayerContext";
+import { ReadingToolbarContext } from "src/navigation/ReadingToolbarContext";
 import NetInfo from "@react-native-community/netinfo";
 import { GoogleSignin } from "@react-native-google-signin/google-signin";
 import Constants from "expo-constants";
@@ -174,6 +175,8 @@ const App = (): React.JSX.Element => {
   const [cachedHeight, setCachedHeight] = useState<number>(0);
   const [isCached, setIsCached] = useState<boolean>(false);
   const [isTabBarVisible, setIsTabBarVisible] = useState<boolean>(true);
+  const [rtToolbarHeight, setRtToolbarHeight] = useState<number>(0);
+  const [rtToolbarVisible, setRtToolbarVisible] = useState<boolean>(false);
 
   useEffect(() => {
     async function prepare() {
@@ -240,24 +243,33 @@ const App = (): React.JSX.Element => {
               setIsVisible: setIsMediaPlayerVisible,
             }}
           >
-            <GestureHandlerRootView
-              style={{
-                flex: 1,
-                backgroundColor:
-                  colorScheme === "dark"
-                    ? backgroundColors.dark
-                    : backgroundColors.light,
-              }}
-              onLayout={() => {
-                void onLayoutRootView();
+            <ReadingToolbarContext.Provider
+              value={{
+                toolbarHeight: rtToolbarHeight,
+                setToolbarHeight: setRtToolbarHeight,
+                toolbarVisible: rtToolbarVisible,
+                setToolbarVisible: setRtToolbarVisible,
               }}
             >
-              <BottomSheetModalProvider>
-                <AppLifecycleSyncEffects />
-                <RootScreen />
-                <MediaPlayer id="sov-hope-media-player" />
-              </BottomSheetModalProvider>
-            </GestureHandlerRootView>
+              <GestureHandlerRootView
+                style={{
+                  flex: 1,
+                  backgroundColor:
+                    colorScheme === "dark"
+                      ? backgroundColors.dark
+                      : backgroundColors.light,
+                }}
+                onLayout={() => {
+                  void onLayoutRootView();
+                }}
+              >
+                <BottomSheetModalProvider>
+                  <AppLifecycleSyncEffects />
+                  <RootScreen />
+                  <MediaPlayer id="sov-hope-media-player" />
+                </BottomSheetModalProvider>
+              </GestureHandlerRootView>
+            </ReadingToolbarContext.Provider>
           </MediaPlayerContext.Provider>
         </TabBarHeightContext.Provider>
       </StoreProvider>

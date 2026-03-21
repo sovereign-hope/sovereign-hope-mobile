@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef } from "react";
 import { Animated, Platform, Pressable, Text, View } from "react-native";
-import { useTheme } from "@react-navigation/native";
+import { useIsFocused, useTheme } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { BlurView } from "expo-blur";
 import {
@@ -9,6 +9,7 @@ import {
   isLiquidGlassAvailable,
 } from "expo-glass-effect";
 import { Ionicons } from "@expo/vector-icons";
+import { useReadingToolbarContext } from "src/navigation/ReadingToolbarContext";
 import { canUseLiquidGlass } from "src/services/liquidGlassSupport";
 import { styles } from "./PassageToolbar.styles";
 
@@ -44,6 +45,7 @@ export const PassageToolbar: React.FunctionComponent<PassageToolbarProps> = ({
 }) => {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
+  const { setToolbarHeight, setToolbarVisible } = useReadingToolbarContext();
   const bottomInset =
     Platform.OS === "android" ? 0 : insets.bottom + bottomOffset;
 
@@ -62,6 +64,23 @@ export const PassageToolbar: React.FunctionComponent<PassageToolbarProps> = ({
       useNativeDriver: true,
     }).start();
   }, [visible, translateY]);
+
+  const isFocused = useIsFocused();
+
+  useEffect(() => {
+    if (isFocused) {
+      setToolbarHeight(TOOLBAR_CLEARANCE);
+      setToolbarVisible(visible);
+    } else {
+      setToolbarHeight(0);
+      setToolbarVisible(false);
+    }
+
+    return () => {
+      setToolbarHeight(0);
+      setToolbarVisible(false);
+    };
+  }, [isFocused, setToolbarHeight, setToolbarVisible, visible]);
 
   const shouldUseLiquidGlass = canUseLiquidGlass(Platform.OS, {
     isGlassEffectCheck: isGlassEffectAPIAvailable,
