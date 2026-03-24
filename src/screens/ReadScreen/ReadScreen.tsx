@@ -1,5 +1,6 @@
 /* eslint-disable react/prop-types */
 import React, { useCallback, useMemo, useState } from "react";
+import { useKeepAwake } from "expo-keep-awake";
 import type { Note } from "src/types/notes";
 import { ActivityIndicator, View } from "react-native";
 import {
@@ -40,6 +41,8 @@ export const ReadScreen: React.FunctionComponent<ReadScreenProps> = ({
   route,
   navigation,
 }: ReadScreenProps) => {
+  useKeepAwake();
+
   // Props
   const { passages, onComplete } = route.params;
 

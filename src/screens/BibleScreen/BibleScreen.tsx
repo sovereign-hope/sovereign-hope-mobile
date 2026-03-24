@@ -6,6 +6,7 @@ import React, {
   useRef,
   useState,
 } from "react";
+import { useKeepAwake } from "expo-keep-awake";
 import type { Note } from "src/types/notes";
 import {
   Pressable,
@@ -59,6 +60,8 @@ import { formatVerseReference } from "src/app/bibleUtils";
 import { styles } from "./BibleScreen.styles";
 
 export const BibleScreen: React.FunctionComponent = () => {
+  useKeepAwake();
+
   const dispatch = useAppDispatch();
   const route = useRoute<RouteProp<RootStackParamList, "Bible">>();
   const theme = useTheme();
