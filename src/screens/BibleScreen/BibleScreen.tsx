@@ -6,6 +6,7 @@ import React, {
   useRef,
   useState,
 } from "react";
+import { activateKeepAwakeAsync, deactivateKeepAwake } from "expo-keep-awake";
 import type { Note } from "src/types/notes";
 import {
   Pressable,
@@ -21,6 +22,7 @@ import {
   NavigationProp,
   useRoute,
   RouteProp,
+  useFocusEffect,
 } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { RootStackParamList } from "src/navigation/RootNavigator";
@@ -59,6 +61,15 @@ import { formatVerseReference } from "src/app/bibleUtils";
 import { styles } from "./BibleScreen.styles";
 
 export const BibleScreen: React.FunctionComponent = () => {
+  useFocusEffect(
+    useCallback(() => {
+      void activateKeepAwakeAsync("BibleScreen");
+      return () => {
+        void deactivateKeepAwake("BibleScreen");
+      };
+    }, [])
+  );
+
   const dispatch = useAppDispatch();
   const route = useRoute<RouteProp<RootStackParamList, "Bible">>();
   const theme = useTheme();
