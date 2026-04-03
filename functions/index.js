@@ -422,6 +422,58 @@ exports.linkMemberOnSignUp = functions.auth.user().onCreate(async (user) => {
   return null;
 });
 
+/**
+ * Find a Planning Center–seeded member doc whose email matches the given
+ * normalized email address. Uses the same three-tier lookup order as
+ * linkMemberOnSignUp: emailsNormalized → emailNormalized → email.
+ *
+ * Returns the first unique match, or null when zero or multiple docs match.
+ */
+async function findPcoMemberDocByEmail(db, email, targetUid) {
+  if (!email) return null;
+
+  const candidatesById = new Map();
+
+  const allEmailsSnapshot = await db
+    .collection("members")
+    .where("emailsNormalized", "array-contains", email)
+    .limit(5)
+    .get();
+  allEmailsSnapshot.docs.forEach((doc) => candidatesById.set(doc.id, doc));
+
+  if (candidatesById.size === 0) {
+    const normalizedSnapshot = await db
+      .collection("members")
+      .where("emailNormalized", "==", email)
+      .limit(5)
+      .get();
+    normalizedSnapshot.docs.forEach((doc) => candidatesById.set(doc.id, doc));
+  }
+
+  if (candidatesById.size === 0) {
+    const fallbackSnapshot = await db
+      .collection("members")
+      .where("email", "==", email)
+      .limit(5)
+      .get();
+    fallbackSnapshot.docs.forEach((doc) => candidatesById.set(doc.id, doc));
+  }
+
+  const candidates = [...candidatesById.values()];
+  if (candidates.length !== 1) return null;
+
+  const targetData = candidates[0].data() || {};
+  const currentLinkedUid =
+    typeof targetData.linkedUid === "string" ? targetData.linkedUid.trim() : "";
+
+  // Already linked to a different user — don't hijack it.
+  if (currentLinkedUid && currentLinkedUid !== targetUid) {
+    return null;
+  }
+
+  return candidates[0];
+}
+
 exports.setMemberClaim = functions.https.onCall(async (data, context) => {
   if (!context.auth || !isAdminToken(context)) {
     throw new functions.https.HttpsError(
@@ -470,27 +522,244 @@ exports.setMemberClaim = functions.https.onCall(async (data, context) => {
     Object.keys(nextClaims).length > 0 ? nextClaims : null
   );
 
-  const memberRef = db.collection("members").doc(uid);
+  let linkedPcoDocId = null;
+
   if (isMember) {
-    await memberRef.set(
-      {
-        uid,
-        displayName,
-        photoURL,
-        createdAt: admin.firestore.FieldValue.serverTimestamp(),
-      },
-      { merge: true }
-    );
+    // Try to find and link to an existing PCO-seeded member doc by email.
+    const email = normalizeEmail(userRecord.email);
+    const pcoDoc = await findPcoMemberDocByEmail(db, email, uid);
+
+    if (pcoDoc) {
+      // Link the PCO doc to this Firebase user.
+      await pcoDoc.ref.set(
+        {
+          uid,
+          linkedUid: uid,
+          linkedAt: admin.firestore.FieldValue.serverTimestamp(),
+          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        },
+        { merge: true }
+      );
+      linkedPcoDocId = pcoDoc.id;
+
+      // Delete the sparse UID-keyed doc if one exists (and isn't the PCO doc).
+      if (pcoDoc.id !== uid) {
+        await db
+          .collection("members")
+          .doc(uid)
+          .delete()
+          .catch(() => undefined);
+      }
+
+      // Sync rich profile data to Firebase Auth if missing.
+      const pcoData = pcoDoc.data() || {};
+      const authUpdate = {};
+      if (!userRecord.displayName && pcoData.displayName) {
+        authUpdate.displayName = pcoData.displayName;
+      }
+      if (!userRecord.photoURL && pcoData.photoURL) {
+        authUpdate.photoURL = pcoData.photoURL;
+      }
+      if (Object.keys(authUpdate).length > 0) {
+        await auth.updateUser(uid, authUpdate);
+      }
+    } else {
+      // No PCO match — fall back to creating a sparse UID-keyed doc.
+      const memberRef = db.collection("members").doc(uid);
+      await memberRef.set(
+        {
+          uid,
+          displayName,
+          photoURL,
+          createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        },
+        { merge: true }
+      );
+    }
   } else {
-    await memberRef.delete().catch(() => undefined);
+    // Revoking membership — delete the UID-keyed doc. If the canonical doc is
+    // PCO-keyed we leave it (it can be re-linked later).
+    await db
+      .collection("members")
+      .doc(uid)
+      .delete()
+      .catch(() => undefined);
   }
 
   return {
     success: true,
     uid,
     isMember,
+    linkedPcoDocId,
   };
 });
+
+/**
+ * Search for unlinked Planning Center member docs by name.
+ * Returns up to 20 results sorted by displayName.
+ */
+exports.searchUnlinkedPcoMembers = functions.https.onCall(
+  async (data, context) => {
+    if (!context.auth || !isAdminToken(context)) {
+      throw new functions.https.HttpsError(
+        "permission-denied",
+        "Only admins can search members."
+      );
+    }
+
+    const searchQuery =
+      typeof data?.query === "string" ? data.query.trim().toLowerCase() : "";
+
+    if (!searchQuery) {
+      throw new functions.https.HttpsError(
+        "invalid-argument",
+        "query is required."
+      );
+    }
+
+    const db = admin.firestore();
+
+    // Fetch PCO-seeded members that are not yet linked to a Firebase user.
+    // We query by source and filter client-side by name since Firestore
+    // doesn't support full-text search.
+    // Query by source only — no orderBy to avoid needing a composite index.
+    // Filter by name client-side and sort results in JS.
+    const snapshot = await db
+      .collection("members")
+      .where("source", "==", "planning_center")
+      .get();
+
+    const results = [];
+    for (const doc of snapshot.docs) {
+      const d = doc.data();
+      // Skip already-linked docs.
+      if (d.linkedUid) continue;
+
+      const name = (d.displayName || "").toLowerCase();
+      const email = (d.email || "").toLowerCase();
+      const firstName = (d.firstName || "").toLowerCase();
+      const lastName = (d.lastName || "").toLowerCase();
+
+      if (
+        name.includes(searchQuery) ||
+        email.includes(searchQuery) ||
+        firstName.includes(searchQuery) ||
+        lastName.includes(searchQuery)
+      ) {
+        results.push({
+          docId: doc.id,
+          displayName: d.displayName || null,
+          email: d.email || null,
+          photoURL: d.photoURL || null,
+          firstName: d.firstName || null,
+          lastName: d.lastName || null,
+          planningCenterPersonId: d.planningCenterPersonId || doc.id,
+        });
+      }
+
+      if (results.length >= 20) break;
+    }
+
+    results.sort((a, b) =>
+      (a.displayName || "").localeCompare(b.displayName || "")
+    );
+
+    return { results };
+  }
+);
+
+/**
+ * Manually link a Firebase user to a specific Planning Center member doc.
+ * Updates the PCO doc with the user's UID, sets isMember claim, syncs
+ * profile data, and cleans up any sparse UID-keyed doc.
+ */
+exports.linkMemberToPcoRecord = functions.https.onCall(
+  async (data, context) => {
+    if (!context.auth || !isAdminToken(context)) {
+      throw new functions.https.HttpsError(
+        "permission-denied",
+        "Only admins can link members."
+      );
+    }
+
+    const uid = typeof data?.uid === "string" ? data.uid.trim() : "";
+    const pcoDocId =
+      typeof data?.pcoDocId === "string" ? data.pcoDocId.trim() : "";
+
+    if (!uid || !pcoDocId) {
+      throw new functions.https.HttpsError(
+        "invalid-argument",
+        "uid and pcoDocId are required."
+      );
+    }
+
+    const auth = admin.auth();
+    const db = admin.firestore();
+
+    const pcoRef = db.collection("members").doc(pcoDocId);
+    const pcoSnap = await pcoRef.get();
+
+    if (!pcoSnap.exists) {
+      throw new functions.https.HttpsError(
+        "not-found",
+        "Planning Center member doc not found."
+      );
+    }
+
+    const pcoData = pcoSnap.data() || {};
+    if (pcoData.linkedUid && pcoData.linkedUid !== uid) {
+      throw new functions.https.HttpsError(
+        "already-exists",
+        `This Planning Center record is already linked to a different user (${pcoData.linkedUid}).`
+      );
+    }
+
+    // Update the PCO doc with Firebase UID.
+    await pcoRef.set(
+      {
+        uid,
+        linkedUid: uid,
+        linkedAt: admin.firestore.FieldValue.serverTimestamp(),
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      },
+      { merge: true }
+    );
+
+    // Set isMember claim.
+    const userRecord = await auth.getUser(uid);
+    const existingClaims = userRecord.customClaims ?? {};
+    await auth.setCustomUserClaims(uid, { ...existingClaims, isMember: true });
+
+    // Sync rich profile data to Firebase Auth.
+    const authUpdate = {};
+    if (!userRecord.displayName && pcoData.displayName) {
+      authUpdate.displayName = pcoData.displayName;
+    }
+    if (!userRecord.photoURL && pcoData.photoURL) {
+      authUpdate.photoURL = pcoData.photoURL;
+    }
+    if (Object.keys(authUpdate).length > 0) {
+      await auth.updateUser(uid, authUpdate);
+    }
+
+    // Delete sparse UID-keyed doc if it exists (and isn't the PCO doc).
+    if (pcoDocId !== uid) {
+      await db
+        .collection("members")
+        .doc(uid)
+        .delete()
+        .catch(() => undefined);
+    }
+
+    return {
+      success: true,
+      uid,
+      pcoDocId,
+      displayName: pcoData.displayName || null,
+      photoURL: pcoData.photoURL || null,
+    };
+  }
+);
 
 exports.generateDailyPrayerAssignments = functions.pubsub
   .schedule("0 0 * * *")

@@ -207,6 +207,17 @@ export function MemberListPage() {
                 <tr key={user.uid} className="hover:bg-gray-50">
                   <td className="px-5 py-3 text-sm font-medium text-gray-800">
                     {user.displayName || "—"}
+                    {isMember &&
+                      (!user.displayName ||
+                        user.displayName === user.email) && (
+                        <Link
+                          to={`/members/${user.uid}`}
+                          className="ml-2 inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800 hover:bg-amber-200"
+                          title="Click to link this member to their Planning Center record"
+                        >
+                          Link to PCO &rarr;
+                        </Link>
+                      )}
                   </td>
                   <td className="px-5 py-3 text-sm text-gray-600">
                     {user.email || "—"}
