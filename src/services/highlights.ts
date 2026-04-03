@@ -64,6 +64,21 @@ export const updateHighlightColorDoc = async (
   await updateDoc(ref, { color, updatedAt: Date.now() });
 };
 
+export const updateHighlightTextDoc = async (
+  uid: string,
+  highlightId: string,
+  text: string
+): Promise<void> => {
+  const ref = doc(
+    getFirebaseFirestore(),
+    "users",
+    uid,
+    "highlights",
+    highlightId
+  );
+  await updateDoc(ref, { text });
+};
+
 export const deleteHighlightDoc = async (
   uid: string,
   highlightId: string

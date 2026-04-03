@@ -13,6 +13,8 @@ export type Highlight = {
   endVerse: number;
   /** Highlight color name */
   color: HighlightColor;
+  /** Plain-text snippet of the highlighted verse(s) */
+  text?: string;
   /** Unix timestamp (ms) */
   createdAt: number;
   /** Unix timestamp (ms) */

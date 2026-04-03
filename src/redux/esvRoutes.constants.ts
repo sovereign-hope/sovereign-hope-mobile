@@ -9,4 +9,8 @@ export const routes = {
     `${baseUrl}/html/?q=${encodeURIComponent(passage)}&include-footnotes=${
       includeFootnotes ? "true" : "false"
     }&include-verse-numbers=${includeVerseNumbers ? "true" : "false"}`,
+  passagePlainText: (passage: string): string =>
+    `${baseUrl}/text/?q=${encodeURIComponent(
+      passage
+    )}&include-footnotes=false&include-verse-numbers=false&include-headings=false&include-short-copyright=false&include-passage-references=false`,
 };

@@ -1,15 +1,21 @@
-import React, { useMemo } from "react";
+import React, { useEffect, useMemo } from "react";
 import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { RootStackParamList } from "src/navigation/RootNavigator";
-import { useAppSelector } from "src/hooks/store";
-import { selectAllHighlights } from "src/redux/highlightsSlice";
+import { useAppDispatch, useAppSelector } from "src/hooks/store";
+import {
+  selectAllHighlights,
+  updateHighlightText,
+} from "src/redux/highlightsSlice";
+import { selectAuthUser } from "src/redux/authSlice";
 import { HIGHLIGHT_COLORS } from "src/constants/highlights";
 import { BIBLE_BOOKS } from "src/constants/bibleBooks";
 import type { Highlight } from "src/types/highlights";
+import { fetchVersePlainText } from "src/services/esv";
+import { updateHighlightTextDoc } from "src/services/highlights";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Highlights">;
 
@@ -48,15 +54,55 @@ const groupByBook = (highlights: Highlight[]): BookGroup[] => {
     }));
 };
 
+/** Truncate text to a max length, adding ellipsis if needed. */
+const truncate = (text: string, maxLength: number): string =>
+  text.length <= maxLength ? text : `${text.slice(0, maxLength).trimEnd()}…`;
+
 // ── Component ───────────────────────────────────────────────────
 export const HighlightsScreen: React.FunctionComponent<Props> = ({
   navigation,
 }) => {
   const theme = useTheme();
+  const dispatch = useAppDispatch();
   const highlights = useAppSelector(selectAllHighlights);
+  const user = useAppSelector(selectAuthUser);
   const colorMode = theme.dark ? "dark" : "light";
 
   const groups = useMemo(() => groupByBook(highlights), [highlights]);
+
+  // Lazily backfill text for highlights that don't have it yet.
+  useEffect(() => {
+    const missing = highlights.filter((h) => !h.text);
+    if (missing.length === 0) return;
+
+    let cancelled = false;
+
+    const backfill = async () => {
+      for (const h of missing) {
+        if (cancelled) break;
+        try {
+          const text = await fetchVersePlainText(
+            h.bookId,
+            h.chapter,
+            h.startVerse,
+            h.endVerse
+          );
+          if (cancelled || !text) continue;
+          dispatch(updateHighlightText({ id: h.id, text }));
+          if (user?.uid) {
+            void updateHighlightTextDoc(user.uid, h.id, text).catch(() => {});
+          }
+        } catch {
+          // Silently skip — text will be retried next time the screen is visited.
+        }
+      }
+    };
+
+    void backfill();
+    return () => {
+      cancelled = true;
+    };
+  }, [highlights, dispatch, user?.uid]);
 
   const themedStyles = useMemo(
     () => ({
@@ -76,7 +122,7 @@ export const HighlightsScreen: React.FunctionComponent<Props> = ({
       },
       row: {
         flexDirection: "row" as const,
-        alignItems: "center" as const,
+        alignItems: "flex-start" as const,
         paddingHorizontal: 16,
         paddingVertical: 14,
         borderBottomWidth: StyleSheet.hairlineWidth,
@@ -87,14 +133,24 @@ export const HighlightsScreen: React.FunctionComponent<Props> = ({
         width: 12,
         height: 12,
         borderRadius: 6,
+        marginTop: 4,
+      },
+      rowContent: {
+        flex: 1,
       },
       rowText: {
-        flex: 1,
         fontSize: 16,
         color: theme.colors.text,
       },
+      verseText: {
+        fontSize: 13,
+        color: theme.dark ? "#999999" : "#777777",
+        marginTop: 3,
+        lineHeight: 18,
+      },
       chevron: {
         color: theme.dark ? "#666666" : "#C0C0C0",
+        marginTop: 4,
       },
       emptyContainer: {
         flex: 1,
@@ -230,9 +286,16 @@ export const HighlightsScreen: React.FunctionComponent<Props> = ({
                   },
                 ]}
               />
-              <Text style={themedStyles.rowText}>
-                {item.bookName} {formatVerseRange(h)}
-              </Text>
+              <View style={themedStyles.rowContent}>
+                <Text style={themedStyles.rowText}>
+                  {item.bookName} {formatVerseRange(h)}
+                </Text>
+                {h.text ? (
+                  <Text style={themedStyles.verseText} numberOfLines={2}>
+                    {truncate(h.text, 150)}
+                  </Text>
+                ) : undefined}
+              </View>
               <Ionicons
                 name="chevron-forward"
                 size={16}
