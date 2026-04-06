@@ -249,6 +249,38 @@ describe("googleDocs", () => {
     await expect(createNotesDocument("Bible Notes")).rejects.toEqual(
       expect.objectContaining<Partial<GoogleDocsApiError>>({
         code: "needsReconnect",
+        message: "This Google account can't access the current Google Doc.",
+      })
+    );
+  });
+
+  it("maps insufficient scope errors to a reconnect message", async () => {
+    fetchMock.mockResolvedValueOnce(
+      createJsonResponse(
+        {
+          error: {
+            message: "Request had insufficient authentication scopes.",
+          },
+        },
+        403
+      )
+    );
+
+    await expect(createNotesDocument("Bible Notes")).rejects.toEqual(
+      expect.objectContaining<Partial<GoogleDocsApiError>>({
+        code: "needsReconnect",
+        message: "Reconnect Google Docs to continue syncing.",
+      })
+    );
+  });
+
+  it("maps missing documents to a friendly not found error", async () => {
+    fetchMock.mockResolvedValueOnce(createJsonResponse({}, 404));
+
+    await expect(getNotesDocument("doc-123")).rejects.toEqual(
+      expect.objectContaining<Partial<GoogleDocsApiError>>({
+        code: "notFound",
+        message: "The current Google Doc could not be found.",
       })
     );
   });
