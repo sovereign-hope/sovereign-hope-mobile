@@ -222,7 +222,7 @@ export const replaceNotesDocumentBody = async (
 ): Promise<{ revisionId?: string }> => {
   const document = await getNotesDocument(documentId);
   const requests =
-    document.bodyEndIndex > 1
+    document.bodyEndIndex > 2
       ? [
           {
             deleteContentRange: {

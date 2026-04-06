@@ -204,6 +204,45 @@ describe("googleDocs", () => {
     );
   });
 
+  it("skips deleteContentRange for a minimally empty document body", async () => {
+    fetchMock
+      .mockResolvedValueOnce(
+        createJsonResponse({
+          documentId: "doc-123",
+          title: "Sovereign Hope Notes",
+          revisionId: "rev-2",
+          body: {
+            content: [{ endIndex: 1 }, { endIndex: 2 }],
+          },
+        })
+      )
+      .mockResolvedValueOnce(
+        createJsonResponse({
+          revisionId: "rev-3",
+        })
+      );
+
+    await replaceNotesDocumentBody("doc-123", "Sovereign Hope Notes");
+
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      2,
+      "https://docs.googleapis.com/v1/documents/doc-123:batchUpdate",
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({
+          requests: [
+            {
+              insertText: {
+                location: { index: 1 },
+                text: "Sovereign Hope Notes",
+              },
+            },
+          ],
+        }),
+      })
+    );
+  });
+
   it("maps auth failures to reconnect errors", async () => {
     fetchMock.mockResolvedValueOnce(
       createJsonResponse({ error: "denied" }, 403)
