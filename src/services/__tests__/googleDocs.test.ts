@@ -297,6 +297,48 @@ describe("googleDocs", () => {
         italic: true,
       })
     );
+    expect(batchUpdateBody).toEqual(
+      expect.objectContaining({
+        writeControl: {
+          targetRevisionId: "rev-2",
+        },
+      })
+    );
+  });
+
+  it("prefers the freshly loaded document revision over a stale caller revision", async () => {
+    const exportDocument = buildNotesExportDocument([], {
+      now: Date.UTC(2026, 3, 6, 21, 10),
+    });
+    const fetchCalls = fetchMock.mock.calls as unknown[][];
+
+    fetchMock
+      .mockResolvedValueOnce(
+        createJsonResponse({
+          documentId: "doc-123",
+          title: "Bible Notes",
+          revisionId: "rev-current",
+          body: {
+            content: [{ endIndex: 1 }, { endIndex: 42 }],
+          },
+        })
+      )
+      .mockResolvedValueOnce(
+        createJsonResponse({
+          revisionId: "rev-next",
+        })
+      );
+
+    await replaceNotesDocumentBody("doc-123", exportDocument, "rev-stale");
+
+    const batchUpdateBody = getBatchUpdateBody(fetchCalls);
+    expect(batchUpdateBody).toEqual(
+      expect.objectContaining({
+        writeControl: {
+          targetRevisionId: "rev-current",
+        },
+      })
+    );
   });
 
   it("skips deleteContentRange for a minimally empty document body", async () => {

@@ -87,6 +87,7 @@ export const notesExportSlice = createSlice({
     setNotesExportSyncing(state) {
       state.status = "syncing";
       state.lastError = undefined;
+      state.isDirty = false;
     },
     setNotesExportSyncSucceeded(
       state,
@@ -97,7 +98,6 @@ export const notesExportSlice = createSlice({
       state.lastRevisionId =
         action.payload.lastRevisionId ?? state.lastRevisionId;
       state.lastError = undefined;
-      state.isDirty = false;
     },
     setNotesExportNeedsReconnect(
       state,
@@ -105,10 +105,12 @@ export const notesExportSlice = createSlice({
     ) {
       state.status = "needsReconnect";
       state.lastError = action.payload.lastError ?? state.lastError;
+      state.isDirty = true;
     },
     setNotesExportError(state, action: PayloadAction<{ lastError: string }>) {
       state.status = "error";
       state.lastError = action.payload.lastError;
+      state.isDirty = true;
     },
     markNotesExportDirty(state) {
       state.isDirty = true;

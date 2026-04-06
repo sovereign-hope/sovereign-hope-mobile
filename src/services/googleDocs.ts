@@ -514,10 +514,11 @@ export const replaceNotesDocumentBody = async (
       method: "POST",
       body: JSON.stringify({
         requests,
-        ...(targetRevisionId
+        ...(currentDocument.revisionId ?? targetRevisionId
           ? {
               writeControl: {
-                targetRevisionId,
+                targetRevisionId:
+                  currentDocument.revisionId ?? targetRevisionId,
               },
             }
           : {}),

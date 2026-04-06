@@ -115,6 +115,34 @@ describe("notesExportSlice", () => {
     expect(state.notesExport.lastRevisionId).toBe("rev-1");
   });
 
+  it("preserves dirty state when new edits happen during an in-flight sync", () => {
+    const store = createTestStore({
+      notesExport: {
+        provider: "googleDocs",
+        status: "connected",
+        documentId: "doc-123",
+        documentTitle: "Bible Notes",
+        hasHydrated: true,
+        isDirty: true,
+      },
+    });
+
+    store.dispatch(setNotesExportSyncing());
+    expect(store.getState().notesExport.isDirty).toBe(false);
+
+    store.dispatch(markNotesExportDirty());
+    store.dispatch(
+      setNotesExportSyncSucceeded({
+        lastSyncedAt: 5555,
+        lastRevisionId: "rev-2",
+      })
+    );
+
+    expect(store.getState().notesExport.status).toBe("connected");
+    expect(store.getState().notesExport.isDirty).toBe(true);
+    expect(store.getState().notesExport.lastRevisionId).toBe("rev-2");
+  });
+
   it("preserves document metadata through needsReconnect and error states", () => {
     const store = createTestStore({
       notesExport: {
@@ -139,6 +167,7 @@ describe("notesExportSlice", () => {
       documentTitle: "Bible Notes",
       googleAccountEmail: "reader@example.com",
       lastError: "Access was revoked",
+      isDirty: true,
     });
 
     store.dispatch(
@@ -153,6 +182,7 @@ describe("notesExportSlice", () => {
       documentTitle: "Bible Notes",
       googleAccountEmail: "reader@example.com",
       lastError: "Sync failed",
+      isDirty: true,
     });
     expect(selectNotesExportLastError(store.getState() as never)).toBe(
       "Sync failed"

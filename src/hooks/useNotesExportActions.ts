@@ -2,6 +2,7 @@ import { useCallback, useRef, useState } from "react";
 import { useAppDispatch, useAppSelector } from "src/hooks/store";
 import { selectAuthUser } from "src/redux/authSlice";
 import {
+  hydrateNotesExportState,
   disconnectNotesExport,
   markNotesExportDirty,
   selectAllNotesExportState,
@@ -38,6 +39,9 @@ const getErrorMessage = (error: unknown): string =>
 const isReconnectError = (error: unknown): boolean =>
   error instanceof GoogleDocsApiError &&
   (error.code === "needsReconnect" || error.code === "invalidAuth");
+
+const isCancelledError = (error: unknown): boolean =>
+  error instanceof GoogleDocsApiError && error.code === "cancelled";
 
 export const useNotesExportActions = (): {
   isWorking: boolean;
@@ -178,7 +182,14 @@ export const useNotesExportActions = (): {
 
         return true;
       } catch (error) {
-        if (isReconnectError(error)) {
+        if (isCancelledError(error)) {
+          dispatch(
+            hydrateNotesExportState({
+              ...notesExportState,
+              hasHydrated: true,
+            })
+          );
+        } else if (isReconnectError(error)) {
           dispatch(
             setNotesExportNeedsReconnect({
               lastError: getErrorMessage(error),
@@ -197,12 +208,7 @@ export const useNotesExportActions = (): {
         setIsWorking(false);
       }
     },
-    [
-      authUser?.uid,
-      dispatch,
-      notesExportState.documentId,
-      notesExportState.documentTitle,
-    ]
+    [authUser?.uid, dispatch, notesExportState]
   );
 
   const disconnect = useCallback(async (): Promise<void> => {
