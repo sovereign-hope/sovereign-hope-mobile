@@ -72,6 +72,7 @@ import { maybeAutoEnableEinkMode } from "src/services/einkDetection";
 import { resolveThemeColorScheme } from "src/style/themeMode";
 import { useHighlightsSync } from "src/hooks/useHighlightsSync";
 import { useNotesSync } from "src/hooks/useNotesSync";
+import { useNotesExportSync } from "src/hooks/useNotesExportSync";
 import { HighlightsScreen } from "../HighlightsScreen/HighlightsScreen";
 import { NotesScreen } from "../NotesScreen/NotesScreen";
 import { NoteEditorScreen } from "../NoteEditorScreen/NoteEditorScreen";
@@ -923,6 +924,7 @@ export const RootScreen = (): React.JSX.Element => {
   const uiPreferences = useUiPreferences();
   useHighlightsSync();
   useNotesSync();
+  useNotesExportSync();
   const overrideSystemTheme = useAppSelector(selectOverrideSystemTheme);
   const darkModeEnabled = useAppSelector(selectDarkModeEnabled);
   const darkModeScheduleEnabled = useAppSelector(selectDarkModeScheduleEnabled);
