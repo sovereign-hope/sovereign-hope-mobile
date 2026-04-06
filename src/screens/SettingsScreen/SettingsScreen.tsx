@@ -317,7 +317,7 @@ export const SettingsScreen: React.FunctionComponent<Props> = ({
   const handleDisconnectNotesExport = () => {
     Alert.alert(
       "Disconnect Google Docs",
-      "This stops syncing notes to Google Docs on this device. The current Google Doc will still be available if you reconnect later.",
+      "This stops syncing notes to Google Docs and forgets the current Google Doc for future syncs. Your existing Google Doc will not be deleted.",
       [
         { text: "Cancel", style: "cancel" },
         {
@@ -346,12 +346,12 @@ export const SettingsScreen: React.FunctionComponent<Props> = ({
   const notesExportStatusLabel = isNotesExportConnected
     ? notesExportStatus === "syncing"
       ? "Updating your Google Doc..."
-      : "Your notes will stay in sync while the app is open."
+      : "Automatically syncs your notes to Google Docs."
     : notesExportStatus === "needsReconnect"
     ? "Reconnect Google Docs to start syncing notes again."
     : notesExportStatus === "error"
     ? "Something went wrong the last time your notes were synced."
-    : "Keep your Bible notes in a Google Doc while the app is open.";
+    : "Automatically syncs your notes to Google Docs.";
   const notesExportLastSyncedLabel = notesExportLastSyncedAt
     ? new Date(notesExportLastSyncedAt).toLocaleString()
     : "Never";
@@ -714,9 +714,14 @@ export const SettingsScreen: React.FunctionComponent<Props> = ({
             {isSignedIn ? (
               <>
                 <Text style={themedStyles.settingsRowText}>
-                  Sync Bible Notes to Google Docs
+                  Sync Bible Notes
                 </Text>
-                <Text style={themedStyles.accountPanelMutedText}>
+                <Text
+                  style={[
+                    themedStyles.accountPanelMutedText,
+                    { marginTop: spacing.small },
+                  ]}
+                >
                   {notesExportStatusLabel}
                 </Text>
                 {notesExportGoogleAccountEmail && (

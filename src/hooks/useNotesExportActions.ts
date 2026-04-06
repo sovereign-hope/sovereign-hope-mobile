@@ -21,6 +21,7 @@ import {
 } from "src/services/googleDocs";
 import { clearNotesExportStateFromStorage } from "src/services/notesExportLocal";
 import {
+  clearNotesExportMetadata,
   loadNotesExportMetadata,
   saveNotesExportMetadata,
 } from "src/services/notesExportRemote";
@@ -194,11 +195,22 @@ export const useNotesExportActions = (): {
     try {
       await disconnectGoogleDocs();
     } finally {
-      dispatch(disconnectNotesExport());
-      await clearNotesExportStateFromStorage();
-      setIsWorking(false);
+      try {
+        if (authUser?.uid) {
+          await clearNotesExportMetadata(authUser.uid);
+        }
+      } catch (error) {
+        console.warn(
+          "[Notes Export] Failed to clear Google Docs metadata:",
+          error
+        );
+      } finally {
+        dispatch(disconnectNotesExport());
+        await clearNotesExportStateFromStorage();
+        setIsWorking(false);
+      }
     }
-  }, [dispatch]);
+  }, [authUser?.uid, dispatch]);
 
   return {
     isWorking,
