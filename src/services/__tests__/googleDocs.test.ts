@@ -13,6 +13,7 @@ import {
   googleDocsScope,
   replaceNotesDocumentBody,
 } from "../googleDocs";
+import { buildNotesExportDocument } from "../notesExport";
 
 jest.mock("@react-native-google-signin/google-signin", () => ({
   GoogleSignin: {
@@ -46,6 +47,39 @@ const createJsonResponse = (
   json: jest.fn(() => Promise.resolve(body)),
   text: jest.fn(() => Promise.resolve(JSON.stringify(body))),
 });
+
+const getBatchUpdateBody = (
+  fetchCalls: unknown[][]
+): {
+  requests: Array<Record<string, unknown>>;
+} => {
+  const secondCall = fetchCalls[1];
+  expect(secondCall).toBeDefined();
+
+  const [, requestInit] = secondCall as [string, RequestInit];
+  const { body } = requestInit;
+  expect(typeof body).toBe("string");
+
+  return JSON.parse(body as string) as {
+    requests: Array<Record<string, unknown>>;
+  };
+};
+
+const getSecondRequestInit = (fetchCalls: unknown[][]): RequestInit => {
+  const secondCall = fetchCalls[1];
+  expect(secondCall).toBeDefined();
+
+  const [, requestInit] = secondCall as [string, RequestInit];
+  return requestInit;
+};
+
+const getSecondRequestUrl = (fetchCalls: unknown[][]): string => {
+  const secondCall = fetchCalls[1];
+  expect(secondCall).toBeDefined();
+
+  const [url] = secondCall as [string, RequestInit];
+  return url;
+};
 
 describe("googleDocs", () => {
   const fetchMock = jest.fn();
@@ -176,6 +210,11 @@ describe("googleDocs", () => {
   });
 
   it("replaces the body of an existing document", async () => {
+    const fetchCalls = fetchMock.mock.calls as unknown[][];
+    const exportDocument = buildNotesExportDocument([], {
+      now: Date.UTC(2026, 3, 6, 21, 10),
+    });
+
     fetchMock
       .mockResolvedValueOnce(
         createJsonResponse({
@@ -193,38 +232,79 @@ describe("googleDocs", () => {
         })
       );
 
-    expect(await replaceNotesDocumentBody("doc-123", "Bible Notes")).toEqual({
+    expect(await replaceNotesDocumentBody("doc-123", exportDocument)).toEqual({
       revisionId: "rev-3",
     });
 
-    expect(fetchMock).toHaveBeenNthCalledWith(
-      2,
-      "https://docs.googleapis.com/v1/documents/doc-123:batchUpdate",
+    const secondRequest = getSecondRequestInit(fetchCalls);
+    expect(getSecondRequestUrl(fetchCalls)).toBe(
+      "https://docs.googleapis.com/v1/documents/doc-123:batchUpdate"
+    );
+    expect(secondRequest.method).toBe("POST");
+    expect(typeof secondRequest.body).toBe("string");
+
+    const batchUpdateBody = getBatchUpdateBody(fetchCalls);
+    const paragraphStyleRequest = batchUpdateBody.requests.find((request) =>
+      Object.hasOwn(request, "updateParagraphStyle")
+    ) as
+      | {
+          updateParagraphStyle: {
+            paragraphStyle: {
+              namedStyleType: string;
+              alignment?: string;
+            };
+          };
+        }
+      | undefined;
+    const textStyleRequest = batchUpdateBody.requests.find((request) =>
+      Object.hasOwn(request, "updateTextStyle")
+    ) as
+      | {
+          updateTextStyle: {
+            textStyle: {
+              italic?: boolean;
+            };
+          };
+        }
+      | undefined;
+
+    expect(batchUpdateBody.requests).toEqual(
+      expect.arrayContaining([
+        {
+          deleteContentRange: {
+            range: {
+              startIndex: 1,
+              endIndex: 41,
+            },
+          },
+        },
+        {
+          insertText: {
+            location: { index: 1 },
+            text: exportDocument.text,
+          },
+        },
+      ])
+    );
+    expect(paragraphStyleRequest?.updateParagraphStyle.paragraphStyle).toEqual(
       expect.objectContaining({
-        method: "POST",
-        body: JSON.stringify({
-          requests: [
-            {
-              deleteContentRange: {
-                range: {
-                  startIndex: 1,
-                  endIndex: 41,
-                },
-              },
-            },
-            {
-              insertText: {
-                location: { index: 1 },
-                text: "Bible Notes",
-              },
-            },
-          ],
-        }),
+        namedStyleType: "TITLE",
+        alignment: "CENTER",
+      })
+    );
+    expect(textStyleRequest?.updateTextStyle.textStyle).toEqual(
+      expect.objectContaining({
+        italic: true,
       })
     );
   });
 
   it("skips deleteContentRange for a minimally empty document body", async () => {
+    const fetchCalls = fetchMock.mock.calls as unknown[][];
+    const exportDocument = buildNotesExportDocument([], {
+      now: Date.UTC(2026, 3, 6, 21, 10),
+    });
+
     fetchMock
       .mockResolvedValueOnce(
         createJsonResponse({
@@ -242,25 +322,23 @@ describe("googleDocs", () => {
         })
       );
 
-    await replaceNotesDocumentBody("doc-123", "Bible Notes");
+    await replaceNotesDocumentBody("doc-123", exportDocument);
 
-    expect(fetchMock).toHaveBeenNthCalledWith(
-      2,
-      "https://docs.googleapis.com/v1/documents/doc-123:batchUpdate",
-      expect.objectContaining({
-        method: "POST",
-        body: JSON.stringify({
-          requests: [
-            {
-              insertText: {
-                location: { index: 1 },
-                text: "Bible Notes",
-              },
-            },
-          ],
-        }),
-      })
+    const secondRequest = getSecondRequestInit(fetchCalls);
+    expect(getSecondRequestUrl(fetchCalls)).toBe(
+      "https://docs.googleapis.com/v1/documents/doc-123:batchUpdate"
     );
+    expect(secondRequest.method).toBe("POST");
+    expect(typeof secondRequest.body).toBe("string");
+
+    const batchUpdateBody = getBatchUpdateBody(fetchCalls);
+
+    expect(batchUpdateBody.requests[0]).toEqual({
+      insertText: {
+        location: { index: 1 },
+        text: exportDocument.text,
+      },
+    });
   });
 
   it("maps auth failures to reconnect errors", async () => {

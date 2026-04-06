@@ -3,6 +3,7 @@ import {
   GoogleSignin,
   isSuccessResponse,
 } from "@react-native-google-signin/google-signin";
+import type { NotesExportDocument } from "src/services/notesExport";
 
 const GOOGLE_DOCS_SCOPE = "https://www.googleapis.com/auth/drive.file";
 const GOOGLE_DOCS_API_BASE = "https://docs.googleapis.com/v1/documents";
@@ -37,6 +38,8 @@ export type NotesDocumentMetadata = {
   revisionId?: string;
   bodyEndIndex: number;
 };
+
+type BatchUpdateRequest = Record<string, unknown>;
 
 type GoogleDocsDocumentResponse = {
   documentId?: string;
@@ -120,6 +123,152 @@ const getGoogleDocsErrorMessage = async (
 
   return "Google Docs sync failed. Try again.";
 };
+
+function getParagraphStyle(
+  kind: NotesExportDocument["paragraphStyles"][number]["kind"]
+) {
+  switch (kind) {
+    case "title": {
+      return {
+        namedStyleType: "TITLE",
+        alignment: "CENTER",
+        spaceBelow: {
+          magnitude: 2,
+          unit: "PT",
+        },
+      };
+    }
+    case "subtitle": {
+      return {
+        namedStyleType: "NORMAL_TEXT",
+        alignment: "CENTER",
+        spaceBelow: {
+          magnitude: 0,
+          unit: "PT",
+        },
+      };
+    }
+    case "timestamp": {
+      return {
+        namedStyleType: "NORMAL_TEXT",
+        alignment: "CENTER",
+        spaceBelow: {
+          magnitude: 14,
+          unit: "PT",
+        },
+      };
+    }
+    case "bookHeading": {
+      return {
+        namedStyleType: "HEADING_1",
+        spaceAbove: {
+          magnitude: 12,
+          unit: "PT",
+        },
+        spaceBelow: {
+          magnitude: 4,
+          unit: "PT",
+        },
+      };
+    }
+    case "passageHeading": {
+      return {
+        namedStyleType: "HEADING_2",
+        spaceAbove: {
+          magnitude: 8,
+          unit: "PT",
+        },
+        spaceBelow: {
+          magnitude: 0,
+          unit: "PT",
+        },
+      };
+    }
+  }
+}
+
+function getParagraphStyleFields(
+  kind: NotesExportDocument["paragraphStyles"][number]["kind"]
+) {
+  switch (kind) {
+    case "title": {
+      return "namedStyleType,alignment,spaceBelow";
+    }
+    case "subtitle": {
+      return "namedStyleType,alignment,spaceBelow";
+    }
+    case "timestamp": {
+      return "namedStyleType,alignment,spaceBelow";
+    }
+    case "bookHeading": {
+      return "namedStyleType,spaceAbove,spaceBelow";
+    }
+    case "passageHeading": {
+      return "namedStyleType,spaceAbove,spaceBelow";
+    }
+  }
+}
+
+function createRgbColor(red: number, green: number, blue: number) {
+  return {
+    color: {
+      rgbColor: {
+        red,
+        green,
+        blue,
+      },
+    },
+  };
+}
+
+function getTextStyle(kind: NotesExportDocument["textStyles"][number]["kind"]) {
+  switch (kind) {
+    case "subtitle": {
+      return {
+        italic: true,
+        fontSize: {
+          magnitude: 10,
+          unit: "PT",
+        },
+        foregroundColor: createRgbColor(0.43, 0.47, 0.54),
+      };
+    }
+    case "timestamp": {
+      return {
+        fontSize: {
+          magnitude: 9,
+          unit: "PT",
+        },
+        foregroundColor: createRgbColor(0.43, 0.47, 0.54),
+      };
+    }
+    case "metadata": {
+      return {
+        fontSize: {
+          magnitude: 9,
+          unit: "PT",
+        },
+        foregroundColor: createRgbColor(0.43, 0.47, 0.54),
+      };
+    }
+  }
+}
+
+function getTextStyleFields(
+  kind: NotesExportDocument["textStyles"][number]["kind"]
+) {
+  switch (kind) {
+    case "subtitle": {
+      return "italic,fontSize,foregroundColor";
+    }
+    case "timestamp": {
+      return "fontSize,foregroundColor";
+    }
+    case "metadata": {
+      return "fontSize,foregroundColor";
+    }
+  }
+}
 
 const getAuthenticatedGoogleUser = async () => {
   await ensurePlayServicesIfNeeded();
@@ -302,25 +451,25 @@ export const getNotesDocument = async (
 
 export const replaceNotesDocumentBody = async (
   documentId: string,
-  content: string,
+  document: NotesExportDocument,
   targetRevisionId?: string
 ): Promise<{ revisionId?: string }> => {
-  const document = await getNotesDocument(documentId);
-  const requests =
-    document.bodyEndIndex > 2
+  const currentDocument = await getNotesDocument(documentId);
+  const requests: BatchUpdateRequest[] =
+    currentDocument.bodyEndIndex > 2
       ? [
           {
             deleteContentRange: {
               range: {
                 startIndex: 1,
-                endIndex: document.bodyEndIndex - 1,
+                endIndex: currentDocument.bodyEndIndex - 1,
               },
             },
           },
           {
             insertText: {
               location: { index: 1 },
-              text: content,
+              text: document.text,
             },
           },
         ]
@@ -328,10 +477,36 @@ export const replaceNotesDocumentBody = async (
           {
             insertText: {
               location: { index: 1 },
-              text: content,
+              text: document.text,
             },
           },
         ];
+
+  for (const style of document.paragraphStyles) {
+    requests.push({
+      updateParagraphStyle: {
+        range: {
+          startIndex: style.startIndex,
+          endIndex: style.endIndex,
+        },
+        paragraphStyle: getParagraphStyle(style.kind),
+        fields: getParagraphStyleFields(style.kind),
+      },
+    });
+  }
+
+  for (const style of document.textStyles) {
+    requests.push({
+      updateTextStyle: {
+        range: {
+          startIndex: style.startIndex,
+          endIndex: style.endIndex,
+        },
+        textStyle: getTextStyle(style.kind),
+        fields: getTextStyleFields(style.kind),
+      },
+    });
+  }
 
   const response = await requestGoogleDocs<GoogleDocsDocumentResponse>(
     `/${documentId}:batchUpdate`,

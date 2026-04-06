@@ -1,4 +1,4 @@
-import { renderNotesExport } from "../notesExport";
+import { buildNotesExportDocument, renderNotesExport } from "../notesExport";
 import type { Note } from "src/types/notes";
 
 const makeNote = (overrides: Partial<Note> = {}): Note => ({
@@ -17,9 +17,11 @@ describe("renderNotesExport", () => {
   it("renders a stable empty-state export", () => {
     expect(renderNotesExport([], { now: Date.UTC(2026, 3, 6, 21, 10) })).toBe(
       [
-        "Bible Notes",
-        "From the Sovereign Hope app",
-        "Last updated: Apr 6, 2026, 9:10 PM UTC",
+        [
+          "Bible Notes",
+          "From the Sovereign Hope app",
+          "Last updated Apr 6, 2026, 9:10 PM UTC",
+        ].join("\n"),
         "No notes yet.",
       ].join("\n\n")
     );
@@ -80,20 +82,54 @@ describe("renderNotesExport", () => {
       )
     ).toBe(
       [
-        "Bible Notes",
-        "From the Sovereign Hope app",
-        "Last updated: Apr 6, 2026, 10:00 PM UTC",
+        [
+          "Bible Notes",
+          "From the Sovereign Hope app",
+          "Last updated Apr 6, 2026, 10:00 PM UTC",
+        ].join("\n"),
         [
           "John",
           [
             "John 3:16-18",
-            "Created: 2026-01-02",
-            "Updated: 2026-03-05",
+            "Added Jan 2, 2026 • Updated Mar 5, 2026",
             "",
             "Jesus did not come to condemn the world.",
           ].join("\n"),
         ].join("\n\n"),
       ].join("\n\n")
+    );
+  });
+
+  it("returns style ranges for clean Google Docs formatting", () => {
+    const document = buildNotesExportDocument(
+      [
+        makeNote({
+          id: "note-john",
+          bookId: "JHN",
+          chapter: 1,
+          startVerse: 1,
+          text: "In the beginning was the Word.",
+        }),
+      ],
+      { now: Date.UTC(2026, 3, 6, 20, 32) }
+    );
+
+    expect(document.paragraphStyles).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ kind: "title" }),
+        expect.objectContaining({ kind: "subtitle" }),
+        expect.objectContaining({ kind: "timestamp" }),
+        expect.objectContaining({ kind: "bookHeading" }),
+        expect.objectContaining({ kind: "passageHeading" }),
+      ])
+    );
+
+    expect(document.textStyles).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ kind: "subtitle" }),
+        expect.objectContaining({ kind: "timestamp" }),
+        expect.objectContaining({ kind: "metadata" }),
+      ])
     );
   });
 });

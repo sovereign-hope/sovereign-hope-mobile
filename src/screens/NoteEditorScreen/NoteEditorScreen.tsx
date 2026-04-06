@@ -15,6 +15,7 @@ import {
   TextInput,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "@react-navigation/native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { RootStackParamList } from "src/navigation/RootNavigator";
@@ -171,75 +172,77 @@ export const NoteEditorScreen: React.FunctionComponent<Props> = ({
   const canSave = text.trim().length > 0;
 
   return (
-    <Animated.View
-      style={[themedStyles.container, { paddingBottom: keyboardPadding }]}
-    >
-      <View style={themedStyles.header}>
-        <Pressable
-          onPress={handleCancel}
-          style={themedStyles.headerButton}
-          accessibilityRole="button"
-          accessibilityLabel="Cancel"
-          accessibilityHint="Discard changes and go back"
-        >
-          <Text style={themedStyles.headerButtonText}>Cancel</Text>
-        </Pressable>
-
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-          {isEditing && (
-            <Pressable
-              onPress={handleDelete}
-              style={({ pressed }) => [
-                themedStyles.headerDeleteButton,
-                pressed && { opacity: 0.6 },
-              ]}
-              accessibilityRole="button"
-              accessibilityLabel="Delete note"
-              accessibilityHint="Permanently delete this note"
-            >
-              <Text style={{ fontSize: 17, color: "#FF3B30" }}>Delete</Text>
-            </Pressable>
-          )}
+    <SafeAreaView edges={["top", "bottom"]} style={themedStyles.container}>
+      <Animated.View
+        style={[themedStyles.container, { paddingBottom: keyboardPadding }]}
+      >
+        <View style={themedStyles.header}>
           <Pressable
-            onPress={handleSave}
-            disabled={!canSave}
+            onPress={handleCancel}
             style={themedStyles.headerButton}
             accessibilityRole="button"
-            accessibilityLabel="Save note"
-            accessibilityHint="Save your note for this passage"
-            accessibilityState={{ disabled: !canSave }}
+            accessibilityLabel="Cancel"
+            accessibilityHint="Discard changes and go back"
           >
-            <Text
-              style={[
-                themedStyles.headerButtonText,
-                { fontWeight: "600" },
-                !canSave && themedStyles.headerButtonTextDisabled,
-              ]}
-            >
-              Save
-            </Text>
+            <Text style={themedStyles.headerButtonText}>Cancel</Text>
           </Pressable>
+
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+            {isEditing && (
+              <Pressable
+                onPress={handleDelete}
+                style={({ pressed }) => [
+                  themedStyles.headerDeleteButton,
+                  pressed && { opacity: 0.6 },
+                ]}
+                accessibilityRole="button"
+                accessibilityLabel="Delete note"
+                accessibilityHint="Permanently delete this note"
+              >
+                <Text style={{ fontSize: 17, color: "#FF3B30" }}>Delete</Text>
+              </Pressable>
+            )}
+            <Pressable
+              onPress={handleSave}
+              disabled={!canSave}
+              style={themedStyles.headerButton}
+              accessibilityRole="button"
+              accessibilityLabel="Save note"
+              accessibilityHint="Save your note for this passage"
+              accessibilityState={{ disabled: !canSave }}
+            >
+              <Text
+                style={[
+                  themedStyles.headerButtonText,
+                  { fontWeight: "600" },
+                  !canSave && themedStyles.headerButtonTextDisabled,
+                ]}
+              >
+                Save
+              </Text>
+            </Pressable>
+          </View>
         </View>
-      </View>
 
-      <Text style={themedStyles.reference}>
-        {formatVerseReference(bookId, chapter, startVerse, endVerse)}
-      </Text>
+        <Text style={themedStyles.reference}>
+          {formatVerseReference(bookId, chapter, startVerse, endVerse)}
+        </Text>
 
-      <TextInput
-        ref={inputRef}
-        style={themedStyles.input}
-        value={text}
-        onChangeText={setText}
-        placeholder="Write your note..."
-        placeholderTextColor={theme.dark ? "#666666" : "#AAAAAA"}
-        multiline
-        maxLength={5000}
-        autoFocus
-        textAlignVertical="top"
-        accessibilityLabel="Note text"
-        accessibilityHint="Enter your note for this passage"
-      />
-    </Animated.View>
+        <TextInput
+          ref={inputRef}
+          style={themedStyles.input}
+          value={text}
+          onChangeText={setText}
+          placeholder="Write your note..."
+          placeholderTextColor={theme.dark ? "#666666" : "#AAAAAA"}
+          multiline
+          maxLength={5000}
+          autoFocus
+          textAlignVertical="top"
+          accessibilityLabel="Note text"
+          accessibilityHint="Enter your note for this passage"
+        />
+      </Animated.View>
+    </SafeAreaView>
   );
 };
