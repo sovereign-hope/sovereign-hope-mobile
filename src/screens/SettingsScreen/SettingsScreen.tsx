@@ -296,8 +296,8 @@ export const SettingsScreen: React.FunctionComponent<Props> = ({
 
   const handleCreateNewNotesExportDocument = () => {
     Alert.alert(
-      "Create New Google Doc",
-      "This creates a new Google Doc target for future exports. The previous Google Doc will not be deleted.",
+      "Create a New Google Doc",
+      "This creates a fresh Google Doc for future exports. Your current Google Doc will not be deleted.",
       [
         { text: "Cancel", style: "cancel" },
         {
@@ -317,7 +317,7 @@ export const SettingsScreen: React.FunctionComponent<Props> = ({
   const handleDisconnectNotesExport = () => {
     Alert.alert(
       "Disconnect Google Docs",
-      "This stops future note exports on this device. The shared Google Doc target will stay available for reconnecting later.",
+      "This stops syncing notes to Google Docs on this device. The current Google Doc will still be available if you reconnect later.",
       [
         { text: "Cancel", style: "cancel" },
         {
@@ -345,13 +345,13 @@ export const SettingsScreen: React.FunctionComponent<Props> = ({
     miniPlayerHeight + insets.bottom + spacing.large;
   const notesExportStatusLabel = isNotesExportConnected
     ? notesExportStatus === "syncing"
-      ? "Syncing notes to Google Docs…"
-      : "Google Docs export connected"
+      ? "Updating your Google Doc..."
+      : "Your notes will stay in sync while the app is open."
     : notesExportStatus === "needsReconnect"
-    ? "Reconnect Google Docs to resume note export."
+    ? "Reconnect Google Docs to start syncing notes again."
     : notesExportStatus === "error"
-    ? "Google Docs export hit an error."
-    : "Export your notes into a single Google Doc while the app is open.";
+    ? "Something went wrong the last time your notes were synced."
+    : "Keep your Bible notes in a Google Doc while the app is open.";
   const notesExportLastSyncedLabel = notesExportLastSyncedAt
     ? new Date(notesExportLastSyncedAt).toLocaleString()
     : "Never";
@@ -714,19 +714,19 @@ export const SettingsScreen: React.FunctionComponent<Props> = ({
             {isSignedIn ? (
               <>
                 <Text style={themedStyles.settingsRowText}>
-                  Sync Notes to Google Docs
+                  Sync Bible Notes to Google Docs
                 </Text>
                 <Text style={themedStyles.accountPanelMutedText}>
                   {notesExportStatusLabel}
                 </Text>
                 {notesExportGoogleAccountEmail && (
                   <Text style={themedStyles.accountPanelMutedText}>
-                    Connected as {notesExportGoogleAccountEmail}
+                    Google account: {notesExportGoogleAccountEmail}
                   </Text>
                 )}
                 {notesExportDocumentTitle && (
                   <Text style={themedStyles.accountPanelMutedText}>
-                    Document: {notesExportDocumentTitle}
+                    Google Doc: {notesExportDocumentTitle}
                   </Text>
                 )}
                 <Text style={themedStyles.accountPanelMutedText}>
@@ -763,7 +763,7 @@ export const SettingsScreen: React.FunctionComponent<Props> = ({
                         themedStyles.accountButtonPrimaryText,
                       ]}
                     >
-                      Connect Google Docs
+                      Connect Google Account
                     </Text>
                   </Pressable>
                 ) : (
@@ -839,7 +839,7 @@ export const SettingsScreen: React.FunctionComponent<Props> = ({
                         ]}
                       >
                         <Text style={themedStyles.accountButtonText}>
-                          Create New Google Doc
+                          Create New Doc
                         </Text>
                       </Pressable>
                     )}
@@ -848,8 +848,8 @@ export const SettingsScreen: React.FunctionComponent<Props> = ({
               </>
             ) : (
               <Text style={themedStyles.accountPanelMutedText}>
-                Sign in to your Sovereign Hope account before enabling Google
-                Docs export.
+                Sign in to your Sovereign Hope account to sync notes to Google
+                Docs.
               </Text>
             )}
           </View>

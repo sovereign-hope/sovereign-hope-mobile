@@ -26,7 +26,7 @@ import {
 } from "src/services/notesExportRemote";
 import { syncNotesExportDocument } from "src/services/notesExportSync";
 
-const DEFAULT_DOCUMENT_TITLE = "Sovereign Hope Notes";
+const DEFAULT_DOCUMENT_TITLE = "Bible Notes";
 
 type ConnectNotesExportOptions = {
   createNewDocument?: boolean;

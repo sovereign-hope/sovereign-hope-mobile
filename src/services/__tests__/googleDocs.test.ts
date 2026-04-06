@@ -108,7 +108,7 @@ describe("googleDocs", () => {
     fetchMock.mockResolvedValueOnce(
       createJsonResponse({
         documentId: "doc-123",
-        title: "Sovereign Hope Notes",
+        title: "Bible Notes",
         revisionId: "rev-1",
         body: {
           content: [{ endIndex: 1 }],
@@ -116,18 +116,18 @@ describe("googleDocs", () => {
       })
     );
 
-    const document = await createNotesDocument("Sovereign Hope Notes");
+    const document = await createNotesDocument("Bible Notes");
 
     expect(fetchMock).toHaveBeenCalledWith(
       "https://docs.googleapis.com/v1/documents",
       expect.objectContaining({
         method: "POST",
-        body: JSON.stringify({ title: "Sovereign Hope Notes" }),
+        body: JSON.stringify({ title: "Bible Notes" }),
       })
     );
     expect(document).toEqual({
       documentId: "doc-123",
-      title: "Sovereign Hope Notes",
+      title: "Bible Notes",
       revisionId: "rev-1",
       bodyEndIndex: 1,
     });
@@ -137,7 +137,7 @@ describe("googleDocs", () => {
     fetchMock.mockResolvedValueOnce(
       createJsonResponse({
         documentId: "doc-123",
-        title: "Sovereign Hope Notes",
+        title: "Bible Notes",
         revisionId: "rev-2",
         body: {
           content: [{ endIndex: 1 }, { endIndex: 42 }],
@@ -147,7 +147,7 @@ describe("googleDocs", () => {
 
     expect(await getNotesDocument("doc-123")).toEqual({
       documentId: "doc-123",
-      title: "Sovereign Hope Notes",
+      title: "Bible Notes",
       revisionId: "rev-2",
       bodyEndIndex: 42,
     });
@@ -158,7 +158,7 @@ describe("googleDocs", () => {
       .mockResolvedValueOnce(
         createJsonResponse({
           documentId: "doc-123",
-          title: "Sovereign Hope Notes",
+          title: "Bible Notes",
           revisionId: "rev-2",
           body: {
             content: [{ endIndex: 1 }, { endIndex: 42 }],
@@ -171,9 +171,7 @@ describe("googleDocs", () => {
         })
       );
 
-    expect(
-      await replaceNotesDocumentBody("doc-123", "Sovereign Hope Notes")
-    ).toEqual({
+    expect(await replaceNotesDocumentBody("doc-123", "Bible Notes")).toEqual({
       revisionId: "rev-3",
     });
 
@@ -195,7 +193,7 @@ describe("googleDocs", () => {
             {
               insertText: {
                 location: { index: 1 },
-                text: "Sovereign Hope Notes",
+                text: "Bible Notes",
               },
             },
           ],
@@ -209,7 +207,7 @@ describe("googleDocs", () => {
       .mockResolvedValueOnce(
         createJsonResponse({
           documentId: "doc-123",
-          title: "Sovereign Hope Notes",
+          title: "Bible Notes",
           revisionId: "rev-2",
           body: {
             content: [{ endIndex: 1 }, { endIndex: 2 }],
@@ -222,7 +220,7 @@ describe("googleDocs", () => {
         })
       );
 
-    await replaceNotesDocumentBody("doc-123", "Sovereign Hope Notes");
+    await replaceNotesDocumentBody("doc-123", "Bible Notes");
 
     expect(fetchMock).toHaveBeenNthCalledWith(
       2,
@@ -234,7 +232,7 @@ describe("googleDocs", () => {
             {
               insertText: {
                 location: { index: 1 },
-                text: "Sovereign Hope Notes",
+                text: "Bible Notes",
               },
             },
           ],
@@ -248,7 +246,7 @@ describe("googleDocs", () => {
       createJsonResponse({ error: "denied" }, 403)
     );
 
-    await expect(createNotesDocument("Sovereign Hope Notes")).rejects.toEqual(
+    await expect(createNotesDocument("Bible Notes")).rejects.toEqual(
       expect.objectContaining<Partial<GoogleDocsApiError>>({
         code: "needsReconnect",
       })

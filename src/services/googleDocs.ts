@@ -209,7 +209,7 @@ export const getNotesDocument = async (
 
   return {
     documentId: response.documentId ?? documentId,
-    title: response.title ?? "Sovereign Hope Notes",
+    title: response.title ?? "Bible Notes",
     revisionId: response.revisionId ?? undefined,
     bodyEndIndex: getBodyEndIndex(response),
   };

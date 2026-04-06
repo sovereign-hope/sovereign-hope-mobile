@@ -59,7 +59,7 @@ describe("notesExportSlice", () => {
         provider: "googleDocs",
         status: "connected",
         documentId: "doc-123",
-        documentTitle: "Sovereign Hope Notes",
+        documentTitle: "Bible Notes",
         googleAccountEmail: "reader@example.com",
         lastSyncedAt: 1234,
         hasHydrated: false,
@@ -71,7 +71,7 @@ describe("notesExportSlice", () => {
       provider: "googleDocs",
       status: "connected",
       documentId: "doc-123",
-      documentTitle: "Sovereign Hope Notes",
+      documentTitle: "Bible Notes",
       googleAccountEmail: "reader@example.com",
       lastSyncedAt: 1234,
       hasHydrated: true,
@@ -90,7 +90,7 @@ describe("notesExportSlice", () => {
     store.dispatch(
       setNotesExportConnected({
         documentId: "doc-123",
-        documentTitle: "Sovereign Hope Notes",
+        documentTitle: "Bible Notes",
       })
     );
     store.dispatch(markNotesExportDirty());
@@ -121,7 +121,7 @@ describe("notesExportSlice", () => {
         provider: "googleDocs",
         status: "connected",
         documentId: "doc-123",
-        documentTitle: "Sovereign Hope Notes",
+        documentTitle: "Bible Notes",
         googleAccountEmail: "reader@example.com",
         hasHydrated: true,
       },
@@ -136,7 +136,7 @@ describe("notesExportSlice", () => {
     expect(store.getState().notesExport).toMatchObject({
       status: "needsReconnect",
       documentId: "doc-123",
-      documentTitle: "Sovereign Hope Notes",
+      documentTitle: "Bible Notes",
       googleAccountEmail: "reader@example.com",
       lastError: "Access was revoked",
     });
@@ -150,7 +150,7 @@ describe("notesExportSlice", () => {
     expect(store.getState().notesExport).toMatchObject({
       status: "error",
       documentId: "doc-123",
-      documentTitle: "Sovereign Hope Notes",
+      documentTitle: "Bible Notes",
       googleAccountEmail: "reader@example.com",
       lastError: "Sync failed",
     });
@@ -165,7 +165,7 @@ describe("notesExportSlice", () => {
         provider: "googleDocs",
         status: "connected",
         documentId: "doc-123",
-        documentTitle: "Sovereign Hope Notes",
+        documentTitle: "Bible Notes",
         googleAccountEmail: "reader@example.com",
         lastSyncedAt: 9999,
         lastError: "Sync failed",

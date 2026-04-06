@@ -17,8 +17,9 @@ describe("renderNotesExport", () => {
   it("renders a stable empty-state export", () => {
     expect(renderNotesExport([], { now: Date.UTC(2026, 3, 6, 21, 10) })).toBe(
       [
-        "Sovereign Hope Notes",
-        "Last synced: 2026-04-06T21:10:00.000Z",
+        "Bible Notes",
+        "From the Sovereign Hope app",
+        "Last updated: Apr 6, 2026, 9:10 PM UTC",
         "No notes yet.",
       ].join("\n\n")
     );
@@ -79,8 +80,9 @@ describe("renderNotesExport", () => {
       )
     ).toBe(
       [
-        "Sovereign Hope Notes",
-        "Last synced: 2026-04-06T22:00:00.000Z",
+        "Bible Notes",
+        "From the Sovereign Hope app",
+        "Last updated: Apr 6, 2026, 10:00 PM UTC",
         [
           "John",
           [

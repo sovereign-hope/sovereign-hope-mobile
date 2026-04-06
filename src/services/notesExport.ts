@@ -10,6 +10,34 @@ const getBookOrder = (bookId: string): number =>
 const formatDate = (timestamp: number): string =>
   new Date(timestamp).toISOString().slice(0, 10);
 
+const monthLabels = [
+  "Jan",
+  "Feb",
+  "Mar",
+  "Apr",
+  "May",
+  "Jun",
+  "Jul",
+  "Aug",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Dec",
+] as const;
+
+const formatReadableTimestamp = (timestamp: number): string => {
+  const date = new Date(timestamp);
+  const month = monthLabels[date.getUTCMonth()];
+  const day = date.getUTCDate();
+  const year = date.getUTCFullYear();
+  const hour24 = date.getUTCHours();
+  const minute = String(date.getUTCMinutes()).padStart(2, "0");
+  const meridiem = hour24 >= 12 ? "PM" : "AM";
+  const hour12 = hour24 % 12 || 12;
+
+  return `${month} ${day}, ${year}, ${hour12}:${minute} ${meridiem} UTC`;
+};
+
 const compareNotes = (left: Note, right: Note): number =>
   getBookOrder(left.bookId) - getBookOrder(right.bookId) ||
   left.chapter - right.chapter ||
@@ -38,8 +66,9 @@ export const renderNotesExport = (
 ): string => {
   const now = options?.now ?? Date.now();
   const header = [
-    "Sovereign Hope Notes",
-    `Last synced: ${new Date(now).toISOString()}`,
+    "Bible Notes",
+    "From the Sovereign Hope app",
+    `Last updated: ${formatReadableTimestamp(now)}`,
   ];
 
   if (notes.length === 0) {
