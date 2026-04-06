@@ -59,6 +59,17 @@ export const highlightsSlice = createSlice({
         highlight.updatedAt = Date.now();
       }
     },
+    updateHighlightText(
+      state,
+      action: PayloadAction<{ id: string; text: string }>
+    ) {
+      const highlight = state.highlights.find(
+        (h) => h.id === action.payload.id
+      );
+      if (highlight) {
+        highlight.text = action.payload.text;
+      }
+    },
   },
 });
 
@@ -68,6 +79,7 @@ export const {
   removeHighlight,
   updateHighlightColor,
   updateHighlightRange,
+  updateHighlightText,
 } = highlightsSlice.actions;
 
 // Selectors

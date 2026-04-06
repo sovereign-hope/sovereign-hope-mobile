@@ -8,13 +8,16 @@ import {
   removeHighlight as removeHighlightAction,
   updateHighlightColor as updateHighlightColorAction,
   updateHighlightRange as updateHighlightRangeAction,
+  updateHighlightText as updateHighlightTextAction,
 } from "src/redux/highlightsSlice";
 import {
   setHighlightDoc,
   updateHighlightColorDoc,
   updateHighlightRangeDoc,
   deleteHighlightDoc,
+  updateHighlightTextDoc,
 } from "src/services/highlights";
+import { fetchVersePlainText } from "src/services/esv";
 import { DEFAULT_HIGHLIGHT_COLOR } from "src/constants/highlights";
 import type { Highlight, HighlightColor } from "src/types/highlights";
 import { generateLocalId } from "src/utils/generateLocalId";
@@ -166,6 +169,27 @@ export const useHighlightActions = (
     [bookId, chapter, dispatch, updateHighlightRange, user?.uid]
   );
 
+  /** Fetch verse text for a highlight and persist it (fire-and-forget). */
+  const fetchAndStoreText = useCallback(
+    (highlight: Highlight) => {
+      const run = async () => {
+        const text = await fetchVersePlainText(
+          highlight.bookId,
+          highlight.chapter,
+          highlight.startVerse,
+          highlight.endVerse
+        );
+        if (!text) return;
+        dispatch(updateHighlightTextAction({ id: highlight.id, text }));
+        if (user?.uid) {
+          await updateHighlightTextDoc(user.uid, highlight.id, text);
+        }
+      };
+      fireAndForget(run());
+    },
+    [dispatch, user?.uid]
+  );
+
   const createHighlight = useCallback(
     (verse: number): Highlight => {
       const now = Date.now();
@@ -186,9 +210,11 @@ export const useHighlightActions = (
         fireAndForget(setHighlightDoc(user.uid, highlight));
       }
 
+      fetchAndStoreText(highlight);
+
       return highlight;
     },
-    [bookId, chapter, dispatch, user?.uid]
+    [bookId, chapter, dispatch, fetchAndStoreText, user?.uid]
   );
 
   const createRangeHighlight = useCallback(
@@ -221,6 +247,11 @@ export const useHighlightActions = (
         }
 
         updateHighlightRange(target.id, mergedStart, mergedEnd);
+        fetchAndStoreText({
+          ...target,
+          startVerse: mergedStart,
+          endVerse: mergedEnd,
+        });
         return target;
       }
 
@@ -242,9 +273,18 @@ export const useHighlightActions = (
         fireAndForget(setHighlightDoc(user.uid, highlight));
       }
 
+      fetchAndStoreText(highlight);
+
       return highlight;
     },
-    [bookId, chapter, dispatch, updateHighlightRange, user?.uid]
+    [
+      bookId,
+      chapter,
+      dispatch,
+      fetchAndStoreText,
+      updateHighlightRange,
+      user?.uid,
+    ]
   );
 
   // ---------------------------------------------------------------------------
