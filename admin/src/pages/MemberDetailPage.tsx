@@ -1,11 +1,22 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { collection, getDocs, query, where } from "firebase/firestore";
-import { db } from "../config/firebase";
+import { httpsCallable } from "firebase/functions";
+import { db, functions } from "../config/firebase";
 import type {
   MemberProfile,
   ReadingPlanProgressState,
 } from "../../../shared/types";
+
+interface PcoSearchResult {
+  docId: string;
+  displayName: string | null;
+  email: string | null;
+  photoURL: string | null;
+  firstName: string | null;
+  lastName: string | null;
+  planningCenterPersonId: string;
+}
 
 export function MemberDetailPage() {
   const { uid } = useParams<{ uid: string }>();
@@ -13,39 +24,102 @@ export function MemberDetailPage() {
   const [member, setMember] = useState<MemberProfile | null>(null);
   const [progress, setProgress] = useState<Record<string, ReadingPlanProgressState>>({});
   const [isLoading, setIsLoading] = useState(true);
+  const [isPcoLinked, setIsPcoLinked] = useState(false);
 
-  useEffect(() => {
+  // PCO linking state
+  const [pcoSearch, setPcoSearch] = useState("");
+  const [pcoResults, setPcoResults] = useState<Array<PcoSearchResult>>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [isLinking, setIsLinking] = useState(false);
+  const [linkError, setLinkError] = useState("");
+  const [linkSuccess, setLinkSuccess] = useState("");
+
+  const loadMemberData = useCallback(async () => {
     if (!uid) return;
 
-    async function loadMemberData() {
-      try {
-        // Load member profile (docs are keyed by Planning Center ID, not UID)
-        const memberQuery = await getDocs(
-          query(collection(db, "members"), where("uid", "==", uid!)),
-        );
-        if (!memberQuery.empty) {
-          const d = memberQuery.docs[0];
-          setMember({ uid: d.data().uid, ...d.data() } as MemberProfile);
-        }
-
-        // Load reading plan progress
-        const progressSnap = await getDocs(
-          collection(db, "users", uid!, "progress"),
-        );
-        const progressMap: Record<string, ReadingPlanProgressState> = {};
-        progressSnap.forEach((d) => {
-          progressMap[d.id] = d.data() as ReadingPlanProgressState;
-        });
-        setProgress(progressMap);
-      } catch (err) {
-        console.error("Failed to load member data:", err);
-      } finally {
-        setIsLoading(false);
+    try {
+      const memberQuery = await getDocs(
+        query(collection(db, "members"), where("uid", "==", uid)),
+      );
+      if (!memberQuery.empty) {
+        const d = memberQuery.docs[0];
+        const data = d.data();
+        setMember({ uid: data.uid, ...data } as MemberProfile);
+        setIsPcoLinked(data.source === "planning_center" || !!data.planningCenterPersonId);
+      } else {
+        setMember(null);
+        setIsPcoLinked(false);
       }
-    }
 
-    loadMemberData();
+      const progressSnap = await getDocs(
+        collection(db, "users", uid, "progress"),
+      );
+      const progressMap: Record<string, ReadingPlanProgressState> = {};
+      progressSnap.forEach((d) => {
+        progressMap[d.id] = d.data() as ReadingPlanProgressState;
+      });
+      setProgress(progressMap);
+    } catch (err) {
+      console.error("Failed to load member data:", err);
+    } finally {
+      setIsLoading(false);
+    }
   }, [uid]);
+
+  useEffect(() => {
+    loadMemberData();
+  }, [loadMemberData]);
+
+  const handlePcoSearch = async () => {
+    if (!pcoSearch.trim()) return;
+    setIsSearching(true);
+    setLinkError("");
+    setPcoResults([]);
+
+    try {
+      const searchFn = httpsCallable<
+        { query: string },
+        { results: Array<PcoSearchResult> }
+      >(functions, "searchUnlinkedPcoMembers");
+      const result = await searchFn({ query: pcoSearch.trim() });
+      setPcoResults(result.data.results);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Search failed";
+      setLinkError(msg);
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  const handleLink = async (pcoDocId: string) => {
+    if (!uid) return;
+    setIsLinking(true);
+    setLinkError("");
+    setLinkSuccess("");
+
+    try {
+      const linkFn = httpsCallable<
+        { uid: string; pcoDocId: string },
+        { success: boolean; displayName: string | null }
+      >(functions, "linkMemberToPcoRecord");
+      const result = await linkFn({ uid, pcoDocId });
+
+      setLinkSuccess(
+        `Linked to ${result.data.displayName || "Planning Center record"}.`,
+      );
+      setPcoResults([]);
+      setPcoSearch("");
+
+      // Reload member data to reflect the link.
+      setIsLoading(true);
+      await loadMemberData();
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Link failed";
+      setLinkError(msg);
+    } finally {
+      setIsLinking(false);
+    }
+  };
 
   if (isLoading) {
     return <div className="text-gray-500">Loading member...</div>;
@@ -101,6 +175,18 @@ export function MemberDetailPage() {
             {member.planningCenterPersonId && (
               <p>Planning Center ID: {member.planningCenterPersonId}</p>
             )}
+            <p className="flex items-center gap-2">
+              Planning Center:{" "}
+              {isPcoLinked ? (
+                <span className="inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800">
+                  Linked
+                </span>
+              ) : (
+                <span className="inline-flex items-center rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-800">
+                  Not linked
+                </span>
+              )}
+            </p>
           </div>
         )}
         {!member && (
@@ -109,6 +195,94 @@ export function MemberDetailPage() {
           </p>
         )}
       </div>
+
+      {/* PCO Linking Section — shown when not linked */}
+      {!isPcoLinked && (
+        <div className="rounded-lg border border-amber-200 bg-amber-50 p-5">
+          <h3 className="text-sm font-semibold text-amber-900">
+            Link to Planning Center
+          </h3>
+          <p className="mt-1 text-xs text-amber-700">
+            Search for this person's Planning Center record to link their profile
+            data (name, photo, household).
+          </p>
+
+          <div className="mt-3 flex gap-2">
+            <input
+              type="text"
+              value={pcoSearch}
+              onChange={(e) => setPcoSearch(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") handlePcoSearch();
+              }}
+              placeholder="Search by name or email..."
+              className="flex-1 rounded-lg border border-amber-300 bg-white px-3 py-2 text-sm focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500"
+            />
+            <button
+              onClick={handlePcoSearch}
+              disabled={isSearching || !pcoSearch.trim()}
+              className="rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-white hover:bg-amber-700 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {isSearching ? "Searching..." : "Search"}
+            </button>
+          </div>
+
+          {linkError && (
+            <p className="mt-2 text-xs text-red-600">{linkError}</p>
+          )}
+          {linkSuccess && (
+            <p className="mt-2 text-xs text-green-700">{linkSuccess}</p>
+          )}
+
+          {pcoResults.length > 0 && (
+            <ul className="mt-3 divide-y divide-amber-200 rounded-lg border border-amber-200 bg-white">
+              {pcoResults.map((result) => (
+                <li
+                  key={result.docId}
+                  className="flex items-center justify-between px-4 py-3"
+                >
+                  <div className="flex items-center gap-3">
+                    {result.photoURL ? (
+                      <img
+                        src={result.photoURL}
+                        alt=""
+                        className="h-8 w-8 rounded-full object-cover"
+                      />
+                    ) : (
+                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-200 text-xs text-gray-500">
+                        ?
+                      </div>
+                    )}
+                    <div>
+                      <p className="text-sm font-medium text-gray-800">
+                        {result.displayName || "Unknown"}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {result.email || "No email"} &middot; PCO{" "}
+                        {result.planningCenterPersonId}
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => handleLink(result.docId)}
+                    disabled={isLinking}
+                    className="rounded-lg bg-green-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {isLinking ? "Linking..." : "Link"}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+
+          {pcoResults.length === 0 && !isSearching && pcoSearch && !linkError && (
+            <p className="mt-2 text-xs text-amber-700">
+              No unlinked Planning Center records found. Try a different search
+              term, or ensure the member exists in Planning Center.
+            </p>
+          )}
+        </div>
+      )}
 
       {/* Reading plan progress */}
       <div className="rounded-lg border border-gray-200 bg-white">
