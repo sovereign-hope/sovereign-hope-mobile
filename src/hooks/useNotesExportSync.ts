@@ -1,7 +1,7 @@
 import { AppState, AppStateStatus } from "react-native";
 import { useEffect, useRef } from "react";
 import { useAppDispatch, useAppSelector } from "src/hooks/store";
-import { selectAuthUser } from "src/redux/authSlice";
+import { selectAuthIsInitialized, selectAuthUser } from "src/redux/authSlice";
 import { selectAllNotes } from "src/redux/notesSlice";
 import {
   clearNotesExportDirty,
@@ -24,6 +24,7 @@ const SYNC_DEBOUNCE_MS = 5000;
 
 export const useNotesExportSync = (): void => {
   const dispatch = useAppDispatch();
+  const authIsInitialized = useAppSelector(selectAuthIsInitialized);
   const user = useAppSelector(selectAuthUser);
   const notes = useAppSelector(selectAllNotes);
   const notesExportState = useAppSelector((state) => state.notesExport);
@@ -41,20 +42,53 @@ export const useNotesExportSync = (): void => {
     // eslint-disable-next-line unicorn/no-useless-undefined -- useRef requires explicit initial value in strict mode
     useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const previousNotesRef = useRef(notes);
+  const previousUidRef =
+    // eslint-disable-next-line unicorn/no-useless-undefined -- useRef requires explicit initial value in strict mode
+    useRef<string | undefined>(undefined);
+  const hydratedUidRef =
+    // eslint-disable-next-line unicorn/no-useless-undefined -- useRef requires explicit initial value in strict mode
+    useRef<string | undefined>(undefined);
 
   notesRef.current = notes;
 
   useEffect(() => {
+    if (!authIsInitialized) {
+      return;
+    }
+
+    hydratedUidRef.current = undefined;
+    let isCancelled = false;
+
     const hydrate = async () => {
-      const storedState = await loadNotesExportStateFromStorage();
+      if (!user?.uid) {
+        if (!isCancelled) {
+          dispatch(hydrateNotesExportState({}));
+        }
+        return;
+      }
+
+      const storedState = await loadNotesExportStateFromStorage(user.uid);
+      if (isCancelled) {
+        return;
+      }
+      hydratedUidRef.current = user.uid;
       dispatch(hydrateNotesExportState(storedState));
     };
 
     void hydrate();
-  }, [dispatch]);
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [authIsInitialized, dispatch, user?.uid]);
 
   useEffect(() => {
-    if (!hasHydrated) {
+    if (
+      !authIsInitialized ||
+      !hasHydrated ||
+      !user?.uid ||
+      hydratedUidRef.current !== user.uid
+    ) {
       return;
     }
 
@@ -63,7 +97,7 @@ export const useNotesExportSync = (): void => {
     }
 
     saveTimerRef.current = setTimeout(() => {
-      void saveNotesExportStateToStorage(notesExportState);
+      void saveNotesExportStateToStorage(user.uid, notesExportState);
     }, SAVE_DEBOUNCE_MS);
 
     return () => {
@@ -71,10 +105,10 @@ export const useNotesExportSync = (): void => {
         clearTimeout(saveTimerRef.current);
       }
     };
-  }, [hasHydrated, notesExportState]);
+  }, [authIsInitialized, hasHydrated, notesExportState, user?.uid]);
 
   useEffect(() => {
-    if (!hasHydrated) {
+    if (!authIsInitialized || !hasHydrated) {
       return;
     }
 
@@ -85,17 +119,25 @@ export const useNotesExportSync = (): void => {
         dispatch(markNotesExportDirty());
       }
     }
-  }, [dispatch, hasHydrated, isConnected, notes, user?.uid]);
+  }, [authIsInitialized, dispatch, hasHydrated, isConnected, notes, user?.uid]);
 
   useEffect(() => {
-    if (!hasHydrated) {
+    if (!authIsInitialized || !hasHydrated) {
       return;
     }
 
-    if (!user?.uid) {
+    const uid = user?.uid;
+    const previousUid = previousUidRef.current;
+    previousUidRef.current = uid;
+
+    if (previousUid && previousUid !== uid) {
+      void clearNotesExportStateFromStorage(previousUid);
+    }
+
+    if (!uid) {
+      hydratedUidRef.current = undefined;
       previousNotesRef.current = notesRef.current;
       dispatch(disconnectNotesExport());
-      void clearNotesExportStateFromStorage();
       return;
     }
 
@@ -103,6 +145,7 @@ export const useNotesExportSync = (): void => {
       dispatch(markNotesExportDirty());
     }
   }, [
+    authIsInitialized,
     dispatch,
     hasHydrated,
     isConnected,
@@ -124,6 +167,8 @@ export const useNotesExportSync = (): void => {
     }
 
     syncTimerRef.current = setTimeout(() => {
+      syncTimerRef.current = undefined;
+
       void syncNow().then((didSync) => {
         if (didSync) {
           dispatch(clearNotesExportDirty());
@@ -158,8 +203,14 @@ export const useNotesExportSync = (): void => {
         nextState === "active" &&
         user?.uid &&
         isConnected &&
-        isDirty
+        isDirty &&
+        !isWorking
       ) {
+        if (syncTimerRef.current) {
+          clearTimeout(syncTimerRef.current);
+          syncTimerRef.current = undefined;
+        }
+
         void syncNow().then((didSync) => {
           if (didSync) {
             dispatch(clearNotesExportDirty());
@@ -173,5 +224,5 @@ export const useNotesExportSync = (): void => {
     return () => {
       subscription.remove();
     };
-  }, [dispatch, isConnected, isDirty, syncNow, user?.uid]);
+  }, [dispatch, isConnected, isDirty, isWorking, syncNow, user?.uid]);
 };

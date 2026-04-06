@@ -1,18 +1,10 @@
+import { doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
 import {
-  deleteField,
-  doc,
-  getDoc,
-  serverTimestamp,
-  setDoc,
-} from "firebase/firestore";
-import {
-  clearNotesExportMetadata,
   loadNotesExportMetadata,
   saveNotesExportMetadata,
 } from "src/services/notesExportRemote";
 
 jest.mock("firebase/firestore", () => ({
-  deleteField: jest.fn(() => "__deleteField__"),
   doc: jest.fn(() => "__userDocRef__"),
   getDoc: jest.fn(),
   serverTimestamp: jest.fn(() => "__serverTimestamp__"),
@@ -84,21 +76,6 @@ describe("notesExportRemote", () => {
       },
       { merge: true }
     );
-    expect(serverTimestamp).toHaveBeenCalledTimes(1);
-  });
-
-  it("clears Google Docs metadata from the user document", async () => {
-    await clearNotesExportMetadata("user-123");
-
-    expect(setDoc).toHaveBeenCalledWith(
-      "__userDocRef__",
-      {
-        notesExport: "__deleteField__",
-        lastSyncTimestamp: "__serverTimestamp__",
-      },
-      { merge: true }
-    );
-    expect(deleteField).toHaveBeenCalledTimes(1);
     expect(serverTimestamp).toHaveBeenCalledTimes(1);
   });
 });

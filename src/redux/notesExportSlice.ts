@@ -171,6 +171,7 @@ export const selectNotesExportHasHydrated = (state: RootState): boolean =>
   state.notesExport.hasHydrated;
 export const selectIsNotesExportConnected = (state: RootState): boolean =>
   state.notesExport.status === "connected" ||
-  state.notesExport.status === "syncing";
+  state.notesExport.status === "syncing" ||
+  state.notesExport.status === "error";
 
 export const notesExportReducer = notesExportSlice.reducer;

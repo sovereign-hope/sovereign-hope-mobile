@@ -157,6 +157,7 @@ describe("notesExportSlice", () => {
     expect(selectNotesExportLastError(store.getState() as never)).toBe(
       "Sync failed"
     );
+    expect(selectIsNotesExportConnected(store.getState() as never)).toBe(true);
   });
 
   it("resets export metadata on disconnect but leaves hydration complete", () => {

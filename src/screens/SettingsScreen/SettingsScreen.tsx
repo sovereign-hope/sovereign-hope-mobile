@@ -317,7 +317,7 @@ export const SettingsScreen: React.FunctionComponent<Props> = ({
   const handleDisconnectNotesExport = () => {
     Alert.alert(
       "Disconnect Google Docs",
-      "This stops syncing notes to Google Docs and forgets the current Google Doc for future syncs. Your existing Google Doc will not be deleted.",
+      "This stops syncing notes to Google Docs on this device. Your existing Google Doc will stay available for future reconnects and other signed-in devices.",
       [
         { text: "Cancel", style: "cancel" },
         {
@@ -350,7 +350,7 @@ export const SettingsScreen: React.FunctionComponent<Props> = ({
     : notesExportStatus === "needsReconnect"
     ? "Reconnect Google Docs to start syncing notes again."
     : notesExportStatus === "error"
-    ? "Something went wrong the last time your notes were synced."
+    ? "We couldn't sync your notes. We'll keep trying while the app is open."
     : "Automatically syncs your notes to Google Docs.";
   const notesExportLastSyncedLabel = notesExportLastSyncedAt
     ? new Date(notesExportLastSyncedAt).toLocaleString()

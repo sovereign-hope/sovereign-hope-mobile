@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { useAppDispatch, useAppSelector } from "src/hooks/store";
 import { selectAuthUser } from "src/redux/authSlice";
 import {
@@ -21,7 +21,6 @@ import {
 } from "src/services/googleDocs";
 import { clearNotesExportStateFromStorage } from "src/services/notesExportLocal";
 import {
-  clearNotesExportMetadata,
   loadNotesExportMetadata,
   saveNotesExportMetadata,
 } from "src/services/notesExportRemote";
@@ -51,52 +50,69 @@ export const useNotesExportActions = (): {
   const notes = useAppSelector((state) => state.notes.notes);
   const notesExportState = useAppSelector(selectAllNotesExportState);
   const [isWorking, setIsWorking] = useState(false);
+  const syncPromiseRef =
+    // eslint-disable-next-line unicorn/no-useless-undefined -- useRef requires explicit initial value in strict mode
+    useRef<Promise<boolean> | undefined>(undefined);
 
   const syncNow = useCallback(async (): Promise<boolean> => {
+    if (syncPromiseRef.current) {
+      return syncPromiseRef.current;
+    }
+
     if (!authUser?.uid || !notesExportState.documentId) {
       return false;
     }
 
+    const uid = authUser.uid;
+    const documentId = notesExportState.documentId;
+
     dispatch(setNotesExportSyncing());
     setIsWorking(true);
 
-    try {
-      const result = await syncNotesExportDocument({
-        documentId: notesExportState.documentId,
-        notes,
-        lastRevisionId: notesExportState.lastRevisionId,
-      });
+    const syncPromise = (async (): Promise<boolean> => {
+      try {
+        const result = await syncNotesExportDocument({
+          documentId,
+          notes,
+          lastRevisionId: notesExportState.lastRevisionId,
+        });
 
-      dispatch(setNotesExportSyncSucceeded(result));
+        dispatch(setNotesExportSyncSucceeded(result));
 
-      await saveNotesExportMetadata(authUser.uid, {
-        provider: "googleDocs",
-        documentId: notesExportState.documentId,
-        documentTitle: notesExportState.documentTitle ?? DEFAULT_DOCUMENT_TITLE,
-        updatedAt: Date.now(),
-        lastAppManagedSyncAt: result.lastSyncedAt,
-      });
+        await saveNotesExportMetadata(uid, {
+          provider: "googleDocs",
+          documentId,
+          documentTitle:
+            notesExportState.documentTitle ?? DEFAULT_DOCUMENT_TITLE,
+          updatedAt: Date.now(),
+          lastAppManagedSyncAt: result.lastSyncedAt,
+        });
 
-      return true;
-    } catch (error) {
-      if (isReconnectError(error)) {
-        dispatch(
-          setNotesExportNeedsReconnect({
-            lastError: getErrorMessage(error),
-          })
-        );
-      } else {
-        dispatch(
-          setNotesExportError({
-            lastError: getErrorMessage(error),
-          })
-        );
+        return true;
+      } catch (error) {
+        if (isReconnectError(error)) {
+          dispatch(
+            setNotesExportNeedsReconnect({
+              lastError: getErrorMessage(error),
+            })
+          );
+        } else {
+          dispatch(
+            setNotesExportError({
+              lastError: getErrorMessage(error),
+            })
+          );
+        }
+
+        return false;
+      } finally {
+        syncPromiseRef.current = undefined;
+        setIsWorking(false);
       }
+    })();
 
-      return false;
-    } finally {
-      setIsWorking(false);
-    }
+    syncPromiseRef.current = syncPromise;
+    return syncPromise;
   }, [
     authUser?.uid,
     dispatch,
@@ -196,17 +212,11 @@ export const useNotesExportActions = (): {
       await disconnectGoogleDocs();
     } finally {
       try {
-        if (authUser?.uid) {
-          await clearNotesExportMetadata(authUser.uid);
-        }
-      } catch (error) {
-        console.warn(
-          "[Notes Export] Failed to clear Google Docs metadata:",
-          error
-        );
-      } finally {
         dispatch(disconnectNotesExport());
-        await clearNotesExportStateFromStorage();
+        if (authUser?.uid) {
+          await clearNotesExportStateFromStorage(authUser.uid);
+        }
+      } finally {
         setIsWorking(false);
       }
     }

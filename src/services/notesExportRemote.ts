@@ -1,10 +1,4 @@
-import {
-  deleteField,
-  doc,
-  getDoc,
-  serverTimestamp,
-  setDoc,
-} from "firebase/firestore";
+import { doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
 import { getFirebaseAuth, getFirebaseFirestore } from "src/config/firebase";
 
 export type NotesExportMetadata = {
@@ -64,17 +58,6 @@ export const saveNotesExportMetadata = async (
       // eslint-disable-next-line unicorn/no-null
       displayName: authUser?.displayName ?? null,
       notesExport: metadata,
-      lastSyncTimestamp: serverTimestamp(),
-    },
-    { merge: true }
-  );
-};
-
-export const clearNotesExportMetadata = async (uid: string): Promise<void> => {
-  await setDoc(
-    doc(getFirebaseFirestore(), "users", uid),
-    {
-      notesExport: deleteField(),
       lastSyncTimestamp: serverTimestamp(),
     },
     { merge: true }

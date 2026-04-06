@@ -13,6 +13,7 @@ import {
   writeBatch,
 } from "firebase/firestore";
 import { getFirebaseAuth, getFirebaseFirestore } from "src/config/firebase";
+import { clearAllNotesExportStateFromStorage } from "src/services/notesExportLocal";
 import { applyNotificationSchedule } from "src/services/notificationSchedule";
 
 export interface SyncSettingsShape {
@@ -311,6 +312,8 @@ export const clearLocalSyncedData = async (): Promise<void> => {
   if (keysToClear.length > 0) {
     await AsyncStorage.multiRemove(dedupeStrings(keysToClear));
   }
+
+  await clearAllNotesExportStateFromStorage();
 };
 
 export const deleteRemoteUserData = async (uid: string): Promise<void> => {
