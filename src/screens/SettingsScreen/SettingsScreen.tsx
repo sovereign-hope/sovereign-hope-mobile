@@ -74,12 +74,21 @@ import { useMiniPlayerHeight } from "src/hooks/useMiniPlayerHeight";
 import { spacing } from "src/style/layout";
 import { getPressFeedbackStyle } from "src/style/eink";
 import { useUiPreferences } from "src/hooks/useUiPreferences";
+import { useNotesExportActions } from "src/hooks/useNotesExportActions";
 import {
   dateToMinutesOfDay,
   formatMinutesOfDay,
   minutesOfDayToDate,
 } from "src/style/themeMode";
 import { getDateFromTimeString } from "./timeParsing";
+import {
+  selectIsNotesExportConnected,
+  selectNotesExportDocumentTitle,
+  selectNotesExportGoogleAccountEmail,
+  selectNotesExportLastError,
+  selectNotesExportLastSyncedAt,
+  selectNotesExportStatus,
+} from "src/redux/notesExportSlice";
 
 type Props = NativeStackScreenProps<
   RootStackParamList,
@@ -118,7 +127,23 @@ export const SettingsScreen: React.FunctionComponent<Props> = ({
   const authIsLoading = useAppSelector(selectAuthIsLoading);
   const authIsSyncing = useAppSelector(selectAuthIsSyncing);
   const authErrorMessage = useAppSelector(selectAuthErrorMessage);
+  const notesExportStatus = useAppSelector(selectNotesExportStatus);
+  const notesExportDocumentTitle = useAppSelector(
+    selectNotesExportDocumentTitle
+  );
+  const notesExportGoogleAccountEmail = useAppSelector(
+    selectNotesExportGoogleAccountEmail
+  );
+  const notesExportLastSyncedAt = useAppSelector(selectNotesExportLastSyncedAt);
+  const notesExportLastError = useAppSelector(selectNotesExportLastError);
+  const isNotesExportConnected = useAppSelector(selectIsNotesExportConnected);
   const uiPreferences = useUiPreferences();
+  const {
+    connect: connectNotesExport,
+    disconnect: disconnectNotesExport,
+    syncNow: syncNotesExportNow,
+    isWorking: isNotesExportWorking,
+  } = useNotesExportActions();
 
   // Ref Hooks
 
@@ -261,14 +286,75 @@ export const SettingsScreen: React.FunctionComponent<Props> = ({
     navigation.push("Account Sign In");
   };
 
+  const handleConnectNotesExport = () => {
+    void connectNotesExport();
+  };
+
+  const handleReconnectNotesExport = () => {
+    void connectNotesExport();
+  };
+
+  const handleCreateNewNotesExportDocument = () => {
+    Alert.alert(
+      "Create New Google Doc",
+      "This creates a new Google Doc target for future exports. The previous Google Doc will not be deleted.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Create New",
+          onPress: () => {
+            void connectNotesExport({ createNewDocument: true });
+          },
+        },
+      ]
+    );
+  };
+
+  const handleSyncNotesExportNow = () => {
+    void syncNotesExportNow();
+  };
+
+  const handleDisconnectNotesExport = () => {
+    Alert.alert(
+      "Disconnect Google Docs",
+      "This stops future note exports on this device. The shared Google Doc target will stay available for reconnecting later.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Disconnect",
+          style: "destructive",
+          onPress: () => {
+            void disconnectNotesExport();
+          },
+        },
+      ]
+    );
+  };
+
   // Constants
   const themedStyles = styles({ theme, isEinkMode: uiPreferences.isEinkMode });
   const isSignedIn = Boolean(authUser);
   const isBusy = authIsLoading || authIsSyncing;
+  const isNotesExportBusy =
+    isNotesExportWorking ||
+    notesExportStatus === "connecting" ||
+    notesExportStatus === "syncing";
   const useInsetSettingsGroups =
     Platform.OS === "ios" || Platform.OS === "android";
   const settingsBottomPadding =
     miniPlayerHeight + insets.bottom + spacing.large;
+  const notesExportStatusLabel = isNotesExportConnected
+    ? notesExportStatus === "syncing"
+      ? "Syncing notes to Google Docs…"
+      : "Google Docs export connected"
+    : notesExportStatus === "needsReconnect"
+    ? "Reconnect Google Docs to resume note export."
+    : notesExportStatus === "error"
+    ? "Google Docs export hit an error."
+    : "Export your notes into a single Google Doc while the app is open.";
+  const notesExportLastSyncedLabel = notesExportLastSyncedAt
+    ? new Date(notesExportLastSyncedAt).toLocaleString()
+    : "Never";
 
   return (
     <SafeAreaView edges={["left", "right"]} style={themedStyles.screen}>
@@ -622,6 +708,151 @@ export const SettingsScreen: React.FunctionComponent<Props> = ({
               </View>
             </>
           )}
+
+          <Text style={themedStyles.settingsSectionHeader}>Google Docs</Text>
+          <View style={themedStyles.accountPanel}>
+            {isSignedIn ? (
+              <>
+                <Text style={themedStyles.settingsRowText}>
+                  Sync Notes to Google Docs
+                </Text>
+                <Text style={themedStyles.accountPanelMutedText}>
+                  {notesExportStatusLabel}
+                </Text>
+                {notesExportGoogleAccountEmail && (
+                  <Text style={themedStyles.accountPanelMutedText}>
+                    Connected as {notesExportGoogleAccountEmail}
+                  </Text>
+                )}
+                {notesExportDocumentTitle && (
+                  <Text style={themedStyles.accountPanelMutedText}>
+                    Document: {notesExportDocumentTitle}
+                  </Text>
+                )}
+                <Text style={themedStyles.accountPanelMutedText}>
+                  Last synced: {notesExportLastSyncedLabel}
+                </Text>
+                {notesExportLastError && (
+                  <Text style={themedStyles.accountErrorText}>
+                    {notesExportLastError}
+                  </Text>
+                )}
+
+                {notesExportStatus === "disconnected" ? (
+                  <Pressable
+                    accessibilityRole="button"
+                    disabled={isBusy || isNotesExportBusy}
+                    onPress={handleConnectNotesExport}
+                    style={({ pressed }) => [
+                      themedStyles.accountButton,
+                      themedStyles.accountButtonPrimary,
+                      { marginTop: 12 },
+                      getPressFeedbackStyle(
+                        pressed || isBusy || isNotesExportBusy,
+                        uiPreferences.isEinkMode,
+                        {
+                          pressedOpacity: 0.7,
+                          isDarkMode: theme.dark,
+                        }
+                      ),
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        themedStyles.accountButtonText,
+                        themedStyles.accountButtonPrimaryText,
+                      ]}
+                    >
+                      Connect Google Docs
+                    </Text>
+                  </Pressable>
+                ) : (
+                  <>
+                    <View style={themedStyles.accountButtonRow}>
+                      <Pressable
+                        accessibilityRole="button"
+                        disabled={isBusy || isNotesExportBusy}
+                        onPress={
+                          isNotesExportConnected
+                            ? handleSyncNotesExportNow
+                            : handleReconnectNotesExport
+                        }
+                        style={({ pressed }) => [
+                          themedStyles.accountButton,
+                          themedStyles.accountButtonPrimary,
+                          getPressFeedbackStyle(
+                            pressed || isBusy || isNotesExportBusy,
+                            uiPreferences.isEinkMode,
+                            {
+                              pressedOpacity: 0.7,
+                              isDarkMode: theme.dark,
+                            }
+                          ),
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            themedStyles.accountButtonText,
+                            themedStyles.accountButtonPrimaryText,
+                          ]}
+                        >
+                          {isNotesExportConnected ? "Sync Now" : "Reconnect"}
+                        </Text>
+                      </Pressable>
+                      <Pressable
+                        accessibilityRole="button"
+                        disabled={isBusy || isNotesExportBusy}
+                        onPress={handleDisconnectNotesExport}
+                        style={({ pressed }) => [
+                          themedStyles.accountButton,
+                          getPressFeedbackStyle(
+                            pressed || isBusy || isNotesExportBusy,
+                            uiPreferences.isEinkMode,
+                            {
+                              pressedOpacity: 0.7,
+                              isDarkMode: theme.dark,
+                            }
+                          ),
+                        ]}
+                      >
+                        <Text style={themedStyles.accountButtonText}>
+                          Disconnect
+                        </Text>
+                      </Pressable>
+                    </View>
+
+                    {!isNotesExportConnected && (
+                      <Pressable
+                        accessibilityRole="button"
+                        disabled={isBusy || isNotesExportBusy}
+                        onPress={handleCreateNewNotesExportDocument}
+                        style={({ pressed }) => [
+                          themedStyles.accountButton,
+                          getPressFeedbackStyle(
+                            pressed || isBusy || isNotesExportBusy,
+                            uiPreferences.isEinkMode,
+                            {
+                              pressedOpacity: 0.7,
+                              isDarkMode: theme.dark,
+                            }
+                          ),
+                        ]}
+                      >
+                        <Text style={themedStyles.accountButtonText}>
+                          Create New Google Doc
+                        </Text>
+                      </Pressable>
+                    )}
+                  </>
+                )}
+              </>
+            ) : (
+              <Text style={themedStyles.accountPanelMutedText}>
+                Sign in to your Sovereign Hope account before enabling Google
+                Docs export.
+              </Text>
+            )}
+          </View>
 
           <Text style={themedStyles.settingsSectionHeader}>Account</Text>
           <View style={themedStyles.accountPanel}>

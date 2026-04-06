@@ -140,6 +140,8 @@ export const {
 
 export const selectNotesExportState = (state: RootState): NotesExportState =>
   state.notesExport;
+export const selectAllNotesExportState = (state: RootState): NotesExportState =>
+  state.notesExport;
 export const selectNotesExportStatus = (state: RootState): NotesExportStatus =>
   state.notesExport.status;
 export const selectNotesExportProvider = (
@@ -162,6 +164,11 @@ export const selectNotesExportLastSyncedAt = (
 export const selectNotesExportLastError = (
   state: RootState
 ): string | undefined => state.notesExport.lastError;
+export const selectNotesExportLastRevisionId = (
+  state: RootState
+): string | undefined => state.notesExport.lastRevisionId;
+export const selectNotesExportHasHydrated = (state: RootState): boolean =>
+  state.notesExport.hasHydrated;
 export const selectIsNotesExportConnected = (state: RootState): boolean =>
   state.notesExport.status === "connected" ||
   state.notesExport.status === "syncing";
