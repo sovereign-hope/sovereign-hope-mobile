@@ -8,6 +8,7 @@ import {
   connectGoogleDocs,
   createNotesDocument,
   disconnectGoogleDocs,
+  getConnectedGoogleDocsAccountSilently,
   getNotesDocument,
   googleDocsScope,
   replaceNotesDocumentBody,
@@ -102,6 +103,27 @@ describe("googleDocs", () => {
       displayName: "Reader Example",
       scopes: ["email", "profile", googleDocsScope],
     });
+  });
+
+  it("returns the existing authorized Google Docs account silently", async () => {
+    (GoogleSignin.getCurrentUser as jest.Mock).mockReturnValue({
+      ...mockGoogleUser,
+      scopes: [...mockGoogleUser.scopes, googleDocsScope],
+    });
+
+    await expect(getConnectedGoogleDocsAccountSilently()).resolves.toEqual({
+      email: "reader@example.com",
+      displayName: "Reader Example",
+      scopes: ["email", "profile", googleDocsScope],
+    });
+
+    expect(GoogleSignin.signIn).not.toHaveBeenCalled();
+  });
+
+  it("returns undefined when the existing Google account lacks the Docs scope", async () => {
+    await expect(
+      getConnectedGoogleDocsAccountSilently()
+    ).resolves.toBeUndefined();
   });
 
   it("creates a Google Doc", async () => {

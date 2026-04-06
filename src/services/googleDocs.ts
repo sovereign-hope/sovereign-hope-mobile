@@ -162,6 +162,21 @@ const getAuthenticatedGoogleUser = async () => {
   return googleUser;
 };
 
+const getExistingGoogleUser = async () => {
+  await ensurePlayServicesIfNeeded();
+
+  let googleUser = GoogleSignin.getCurrentUser();
+
+  if (!googleUser && GoogleSignin.hasPreviousSignIn()) {
+    const silentResponse = await GoogleSignin.signInSilently();
+    if (silentResponse.type === "success") {
+      googleUser = silentResponse.data;
+    }
+  }
+
+  return googleUser;
+};
+
 const getAccessToken = async (): Promise<string> => {
   const tokens = await GoogleSignin.getTokens();
 
@@ -221,6 +236,28 @@ export const connectGoogleDocs = async (): Promise<ConnectedGoogleAccount> => {
   const googleUser = await getAuthenticatedGoogleUser();
 
   await getAccessToken();
+
+  return {
+    email: googleUser.user.email,
+    displayName: googleUser.user.name ?? undefined,
+    scopes: googleUser.scopes,
+  };
+};
+
+export const getConnectedGoogleDocsAccountSilently = async (): Promise<
+  ConnectedGoogleAccount | undefined
+> => {
+  const googleUser = await getExistingGoogleUser();
+
+  if (!googleUser || !googleUser.scopes.includes(GOOGLE_DOCS_SCOPE)) {
+    return undefined;
+  }
+
+  try {
+    await getAccessToken();
+  } catch {
+    return undefined;
+  }
 
   return {
     email: googleUser.user.email,

@@ -348,7 +348,7 @@ export const SettingsScreen: React.FunctionComponent<Props> = ({
       ? "Updating your Google Doc..."
       : "Automatically syncs your notes to Google Docs."
     : notesExportStatus === "needsReconnect"
-    ? "Reconnect Google Docs to start syncing notes again."
+    ? "Reconnect Google Docs on this device to sync your shared Google Doc."
     : notesExportStatus === "error"
     ? "We couldn't sync your notes. We'll keep trying while the app is open."
     : "Automatically syncs your notes to Google Docs.";

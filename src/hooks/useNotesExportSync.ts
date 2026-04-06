@@ -18,6 +18,8 @@ import {
   saveNotesExportStateToStorage,
 } from "src/services/notesExportLocal";
 import { useNotesExportActions } from "src/hooks/useNotesExportActions";
+import { getConnectedGoogleDocsAccountSilently } from "src/services/googleDocs";
+import { loadNotesExportMetadata } from "src/services/notesExportRemote";
 
 const SAVE_DEBOUNCE_MS = 500;
 const SYNC_DEBOUNCE_MS = 5000;
@@ -68,11 +70,38 @@ export const useNotesExportSync = (): void => {
       }
 
       const storedState = await loadNotesExportStateFromStorage(user.uid);
+      let hydratedState = storedState;
+
+      try {
+        const remoteMetadata = await loadNotesExportMetadata(user.uid);
+        if (remoteMetadata) {
+          const connectedAccount =
+            await getConnectedGoogleDocsAccountSilently();
+
+          hydratedState = {
+            ...storedState,
+            provider: "googleDocs",
+            status: connectedAccount ? "connected" : "needsReconnect",
+            documentId: remoteMetadata.documentId,
+            documentTitle:
+              remoteMetadata.documentTitle ??
+              storedState.documentTitle ??
+              "Bible Notes",
+            googleAccountEmail: connectedAccount?.email,
+            lastSyncedAt:
+              remoteMetadata.lastAppManagedSyncAt ?? storedState.lastSyncedAt,
+            lastError: connectedAccount ? storedState.lastError : undefined,
+          };
+        }
+      } catch {
+        hydratedState = storedState;
+      }
+
       if (isCancelled) {
         return;
       }
       hydratedUidRef.current = user.uid;
-      dispatch(hydrateNotesExportState(storedState));
+      dispatch(hydrateNotesExportState(hydratedState));
     };
 
     void hydrate();
