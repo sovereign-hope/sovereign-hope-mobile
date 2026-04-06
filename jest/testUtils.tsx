@@ -22,6 +22,7 @@ import { memberReducer } from "src/redux/memberSlice";
 import { bibleReducer } from "src/redux/bibleSlice";
 import { highlightsReducer } from "src/redux/highlightsSlice";
 import { notesReducer } from "src/redux/notesSlice";
+import { notesExportReducer } from "src/redux/notesExportSlice";
 
 const rootReducer = {
   auth: authReducer,
@@ -37,6 +38,7 @@ const rootReducer = {
   member: memberReducer,
   highlights: highlightsReducer,
   notes: notesReducer,
+  notesExport: notesExportReducer,
 };
 
 interface ExtendedRenderOptions extends Omit<RenderOptions, "wrapper"> {
